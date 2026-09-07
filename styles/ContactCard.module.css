@@ -1,0 +1,67 @@
+.card {
+    background: #0f0f10;
+    border: 1px solid #333;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6),
+        inset 0 1px rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: scale(1.02);
+}
+
+.top {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2rem;
+}
+
+.iconBox {
+    width: 56px;
+    height: 56px;
+    background: #141414;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    box-shadow: inset 0 -6px 12px rgba(0, 0, 0, 0.5);
+}
+
+.icon {
+    width: 24px;
+    height: 24px;
+    color: #eee;
+}
+
+.content {
+    flex: 1;
+    min-width: 0;
+}
+
+.title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.text {
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    color: #ccc;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+.email {
+    color: #4da6ff;
+    font-weight: 500;
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.email:hover {
+    text-decoration: underline;
+}

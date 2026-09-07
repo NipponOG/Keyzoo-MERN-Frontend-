@@ -1,0 +1,42 @@
+===================================xxxxxx=====================
+user:{
+    "id":2,
+    "documentId":"zeyl9pgkoq8tkkissslclgva",
+    "username":"NIPPON",
+    "email":"nipponbiswas0@gmail.com",
+    "provider":"local",
+    "confirmed":true,
+    "blocked":false,
+    "createdAt":"2026-03-30T11:18:14.803Z",
+    "updatedAt":"2026-06-29T15:24:39.800Z",
+    "publishedAt":"2026-06-29T15:24:39.263Z",
+    "firstName":null,
+    "lastName":null
+},
+jwt:{
+    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiaWF0IjoxNzgyODk5MzkzLCJleHAiOjE3ODU0OTEzOTN9.CbGMPx-ewqs-G8AIWWiSqiiygWeK57bnFxeqZPbXnOg
+}
+===================================xxxxxx=====================
+
+
+📂 lib
+ ├── adminFetch.js          ✅ (already done)
+ ├── auth
+ │     ├── verifyAdmin.js   ✅ (already done)
+ │     ├── adminLogin.js
+ │     ├── adminLogout.js
+ │     └── adminSession.js
+ │
+📂 context
+ └── AdminContext.jsx
+
+📂 components/admin
+ ├── AdminGuard.jsx
+ ├── AdminLoading.jsx
+ └── ProtectedRoute.jsx
+
+📂 pages
+ ├── admin
+ │      └── login.js
+ │
+ └── tc.js

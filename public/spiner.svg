@@ -1,0 +1,93 @@
+<!-- Inline SVG spinner (40x40) - paste inside a button or element -->
+<svg
+  width="40"
+  height="40"
+  viewBox="0 0 40 40"
+  role="img"
+  aria-label="Loading"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <title>Loading</title>
+
+  <defs>
+    <!-- subtle radial center to mimic the small bright center -->
+    <radialGradient id="centerGrad" cx="50%" cy="50%" r="50%">
+      <!-- <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" /> -->
+    </radialGradient>
+
+    <!-- bar fill gradient (purple -> blue) -->
+    <linearGradient id="barGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4e21be" />
+      <stop offset="100%" stop-color="#3a66ea" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(20,20)">
+    <!-- rotating group -->
+    <g>
+      <!-- center small circle to match image -->
+      <circle cx="0" cy="0" r="4.5" fill="url(#centerGrad)" />
+
+      <!-- create 12 bars around the circle -->
+      <!-- each rect is positioned at top (-y) and rotated by multiples of 30deg -->
+      <!-- animation: each bar fades from 1 -> 0.18; begin is staggered to create the rotating fade -->
+      <!-- rx gives rounded ends -->
+      <!-- bar dimensions tuned to visually match your image -->
+      <g>
+        <!-- we generate 12 rects; for brevity they are written explicitly with staggered begin times -->
+        <rect x="-1.6" y="-12.5" width="3.2" height="7" rx="1.6" fill="url(#barGrad)" opacity="1">
+          <animate attributeName="opacity" values="1;0.18" dur="1s" repeatCount="indefinite" begin="0s" />
+        </rect>
+
+        <rect x="-1.6" y="-12.5" width="3.2" height="7" rx="1.6" fill="url(#barGrad)" opacity="0.18" transform="rotate(30)">
+          <animate attributeName="opacity" values="1;0.18" dur="1s" repeatCount="indefinite" begin="0.0833s" />
+        </rect>
+
+        <rect x="-1.6" y="-12.5" width="3.2" height="7" rx="1.6" fill="url(#barGrad)" opacity="0.18" transform="rotate(60)">
+          <animate attributeName="opacity" values="1;0.18" dur="1s" repeatCount="indefinite" begin="0.1666s" />
+        </rect>
+
+        <rect x="-1.6" y="-12.5" width="3.2" height="7" rx="1.6" fill="url(#barGrad)" opacity="0.18" transform="rotate(90)">
+          <animate attributeName="opacity" values="1;0.18" dur="1s" repeatCount="indefinite" begin="0.25s" />
+        </rect>
+
+        <rect x="-1.6" y="-12.5" width="3.2" height="7" rx="1.6" fill="url(#barGrad)" opacity="0.18" transform="rotate(120)">
+          <animate attributeName="opacity" values="1;0.18" dur="1s" repeatCount="indefinite" begin="0.3333s" />
+        </rect>
+
+        <rect x="-1.6" y="-12.5" width="3.2" height="7" rx="1.6" fill="url(#barGrad)" opacity="0.18" transform="rotate(150)">
+          <animate attributeName="opacity" values="1;0.18" dur="1s" repeatCount="indefinite" begin="0.4166s" />
+        </rect>
+
+        <rect x="-1.6" y="-12.5" width="3.2" height="7" rx="1.6" fill="url(#barGrad)" opacity="0.18" transform="rotate(180)">
+          <animate attributeName="opacity" values="1;0.18" dur="1s" repeatCount="indefinite" begin="0.5s" />
+        </rect>
+
+        <rect x="-1.6" y="-12.5" width="3.2" height="7" rx="1.6" fill="url(#barGrad)" opacity="0.18" transform="rotate(210)">
+          <animate attributeName="opacity" values="1;0.18" dur="1s" repeatCount="indefinite" begin="0.5833s" />
+        </rect>
+
+        <rect x="-1.6" y="-12.5" width="3.2" height="7" rx="1.6" fill="url(#barGrad)" opacity="0.18" transform="rotate(240)">
+          <animate attributeName="opacity" values="1;0.18" dur="1s" repeatCount="indefinite" begin="0.6666s" />
+        </rect>
+
+        <rect x="-1.6" y="-12.5" width="3.2" height="7" rx="1.6" fill="url(#barGrad)" opacity="0.18" transform="rotate(270)">
+          <animate attributeName="opacity" values="1;0.18" dur="1s" repeatCount="indefinite" begin="0.75s" />
+        </rect>
+
+        <rect x="-1.6" y="-12.5" width="3.2" height="7" rx="1.6" fill="url(#barGrad)" opacity="0.18" transform="rotate(300)">
+          <animate attributeName="opacity" values="1;0.18" dur="1s" repeatCount="indefinite" begin="0.8333s" />
+        </rect>
+
+        <rect x="-1.6" y="-12.5" width="3.2" height="7" rx="1.6" fill="url(#barGrad)" opacity="0.18" transform="rotate(330)">
+          <animate attributeName="opacity" values="1;0.18" dur="1s" repeatCount="indefinite" begin="0.9166s" />
+        </rect>
+      </g>
+
+      <!-- rotate the whole group so fading/pulse looks like rotation -->
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="1s" repeatCount="indefinite" />
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,94 @@
+.section {
+    background: black;
+    color: white;
+    min-height: 100vh;
+    padding: 4rem 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.spotlight {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    top: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(128, 0, 255, 0.35);
+    filter: blur(150px);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.container {
+    max-width: 1200px;
+    width: 100%;
+    position: relative;
+    z-index: 5;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.title {
+    font-size: 3rem;
+    font-weight: bold;
+}
+
+.subtitle {
+    margin-top: 0.5rem;
+    color: #aaa;
+    font-size: 1.1rem;
+}
+
+.grid {
+    display: grid;
+    gap: 2.5rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.purchaseSection {
+    margin-top: 4rem;
+    text-align: center;
+}
+
+.purchaseTitle {
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+
+.purchaseSubtitle {
+    color: #aaa;
+    margin-bottom: 1.25rem;
+}
+
+.mailButton {
+    padding: 0.6rem 2rem;
+    border-radius: 9999px;
+    background: rgba(68, 68, 68, 0.3);
+    border: 1px solid #555;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.mailButton:hover {
+    background: transparent;
+    border-color: white;
+}
