@@ -1,5 +1,6 @@
 // context/AuthContext.js
 import { createContext, useState, useEffect, useContext } from "react";
+import { apiFetch } from "@/lib/api";
 
 const AuthContext = createContext();
 
@@ -33,27 +34,12 @@ export const AuthProvider = ({ children }) => {
             }
 
             try {
-                const res = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL}/auth/me`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${savedJwt}`,
-                            "Content-Type": "application/json",
-                        },
-                    }
-                );
 
-                // If the token is invalid or expired, log the user out
-                if (res.status === 401) {
-                    logout();
-                    return;
-                }
-
-                if (!res.ok) {
-                    throw new Error("Failed to verify session.");
-                }
-
-                const data = await res.json();
+                const data = await apiFetch("/auth/me", {
+                    headers: {
+                        Authorization: `Bearer ${savedJwt}`,
+                    },
+                });
 
                 setJwt(savedJwt);
                 setUser(data.user);
@@ -64,9 +50,14 @@ export const AuthProvider = ({ children }) => {
                 );
 
             } catch (err) {
+
                 console.error("Auth verification failed:", err);
+                logout();
+                
             } finally {
+
                 setLoading(false);
+
             }
         };
 

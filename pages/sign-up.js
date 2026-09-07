@@ -6,6 +6,7 @@ import LoadingButton from "@/components/LoadingButton";
 import Link from "next/link";
 import Turnstile from "react-turnstile";  // Import Turnstile component
 import { signIn } from "next-auth/react";  // Import signIn from next-auth
+import { apiFetch } from "@/lib/api";
 
 export default function SignUpPage() {
   const [firstName, setFirstName] = useState("");
@@ -41,40 +42,24 @@ export default function SignUpPage() {
     }
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            firstName,
-            lastName,
-            email,
-            password,
-            dateOfBirth, // Optional: Add dateOfBirth if needed
-            turnstileToken,
-          }),
-        }
-      );
+      await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          password,
+          dateOfBirth,
+          turnstileToken,
+        }),
+      });
 
-      const data = await res.json();
+      setSuccess("Account created successfully!");
 
-      if (res.ok) {
-        setSuccess("Account created successfully!");
-        setTimeout(() => router.push("/sign-in"), 1000);
-      } else {
-        // setError(data?.error?.message || "Registration failed");
-        setError(data?.error || "Registration failed");
-
-        // ⭐ AUTO-RESET TURNSTILE
-        turnstileRef.current?.reset();
-        setTurnstileToken("");
-        setCaptchaKey(Date.now());
-
-      }
+      setTimeout(() => router.push("/sign-in"), 1000);
     } catch (err) {
-      setError("Something went wrong");
-      // ⭐ AUTO-RESET TURNSTILE
+      setError(err.message || "Registration failed");
+
       turnstileRef.current?.reset();
       setTurnstileToken("");
       setCaptchaKey(Date.now());

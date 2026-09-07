@@ -4,8 +4,8 @@ import { useRouter } from "next/router";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import LoadingButton from "@/components/LoadingButton";
-import Turnstile from "react-turnstile"; // Note: Turnstile is imported but not used in this code.
-// import { signIn } from "next-auth/react";
+import Turnstile from "react-turnstile";
+import { apiFetch } from "@/lib/api";
 
 
 export default function SignInPage() {
@@ -35,53 +35,36 @@ export default function SignInPage() {
 
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            identifier: email,
-            password: password,
-            turnstileToken,
-          }),
-        });
+      const data = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          identifier: email,
+          password,
+          turnstileToken,
+        }),
+      });
 
-      const data = await res.json();
+      localStorage.setItem("jwt", data.jwt);
+      localStorage.setItem("user", JSON.stringify(data.user));
 
-      if (res.ok) {
-        localStorage.setItem("jwt", data.jwt);
-        localStorage.setItem("user", JSON.stringify(data.user));
+      login(data.user, data.jwt);
+      setSuccess("Login successful!");
 
-        // Update AuthContext immediately
-        login(data.user, data.jwt);
-        setSuccess("Login successful!");
+      const isAdmin = data.user.role?.name === "Admin";
 
-        const isAdmin = data.user.role?.name === "Admin";
-
-        setTimeout(() => {
-          if (isAdmin) {
-            router.push("/admin/orders"); // admin panel
-          } else {
-            router.push("/"); // normal user
-          }
-        }, 600);
-
-      } else {
-        setError(data.error?.message || "Login failed");
-
-        // ⭐ AUTO-RESET TURNSTILE
-        turnstileRef.current?.reset();
-        setTurnstileToken("");
-        setCaptchaKey(Date.now());  // ⭐ Force re-render
-      }
+      setTimeout(() => {
+        if (isAdmin) {
+          router.push("/admin/orders");
+        } else {
+          router.push("/");
+        }
+      }, 600);
     } catch (err) {
-      setError("Something went wrong");
+      setError(err.message || "Login failed");
 
-      // ⭐ AUTO-RESET TURNSTILE
       turnstileRef.current?.reset();
       setTurnstileToken("");
-      setCaptchaKey(Date.now());  // ⭐ Force re-render
+      setCaptchaKey(Date.now());
     } finally {
       setLoading(false);
     }
