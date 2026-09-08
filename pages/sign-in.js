@@ -81,35 +81,39 @@ export default function SignInPage() {
 
           {/* Social Buttons */}
           <div className="space-y-3">
-            {[
-              {
-                src: "https://driffle.com/icons/google-icon.svg",
-                text: "Continue with Google",
-              },
-              {
-                src: "https://driffle.com/icons/facebook-round-icon.svg",
-                text: "Continue with Facebook",
-              },
-              {
-                src: "https://driffle.com/icons/discord-icon-new.svg",
-                text: "Continue with Discord",
-              },
-            ].map((btn, i) => (
-              <button
-                key={i}
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
-              >
-                <img src={btn.src} alt={btn.text} className="w-5 h-5" />
-                {btn.text}
-              </button>
-            ))}
-            {/* <button
-              onClick={() => signIn("google", { callbackUrl: "/" })}
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
+
+            <button
+              onClick={() => {
+                window.location.href =
+                  `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+              }}
+              className="cursor-pointer flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
             >
               <img src="https://driffle.com/icons/google-icon.svg" className="w-5 h-5" />
-              Continue with Google
-            </button> */}
+              Sign up with Google
+            </button>
+
+            <button className="flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium">
+              <img src="https://driffle.com/icons/facebook-round-icon.svg" className="w-5 h-5" />
+              Sign up with Facebook
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href =
+                  `${process.env.NEXT_PUBLIC_API_URL}/auth/discord`;
+              }}
+              className="cursor-pointer flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
+            >
+              <img
+                src="https://driffle.com/icons/discord-icon-new.svg"
+                className="w-5 h-5"
+                alt="Discord"
+              />
+              Sign in with Discord
+            </button>
+
           </div>
 
           {/* Divider */}

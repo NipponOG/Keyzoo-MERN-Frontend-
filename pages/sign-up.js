@@ -4,8 +4,7 @@ import PasswordInput from "@/components/PasswordInput";
 import Image from "next/image";
 import LoadingButton from "@/components/LoadingButton";
 import Link from "next/link";
-import Turnstile from "react-turnstile";  // Import Turnstile component
-import { signIn } from "next-auth/react";  // Import signIn from next-auth
+import Turnstile from "react-turnstile";
 import { apiFetch } from "@/lib/api";
 
 export default function SignUpPage() {
@@ -113,8 +112,11 @@ export default function SignUpPage() {
           <div className="space-y-3">
 
             <button
-              onClick={() => signIn("google", { callbackUrl: "/" })}
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
+              onClick={() => {
+                window.location.href =
+                  `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+              }}
+              className="cursor-pointer flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
             >
               <img src="https://driffle.com/icons/google-icon.svg" className="w-5 h-5" />
               Sign up with Google
@@ -125,9 +127,20 @@ export default function SignUpPage() {
               Sign up with Facebook
             </button>
 
-            <button className="flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium">
-              <img src="https://driffle.com/icons/discord-icon-new.svg" className="w-5 h-5" />
-              Sign up with Discord
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href =
+                  `${process.env.NEXT_PUBLIC_API_URL}/auth/discord`;
+              }}
+              className="cursor-pointer flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
+            >
+              <img
+                src="https://driffle.com/icons/discord-icon-new.svg"
+                className="w-5 h-5"
+                alt="Discord"
+              />
+              Sign in with Discord
             </button>
 
           </div>

@@ -20,7 +20,7 @@ import 'react-loading-skeleton/dist/skeleton.css';
 import { SkeletonTheme } from 'react-loading-skeleton';
 import TermlyCMP from '@/components/TermlyCMP'
 import { Onest } from 'next/font/google';
-import { AdminProvider } from "@/context/AdminContext";
+// import { AdminProvider } from "@/context/AdminContext";
 
 const onest = Onest({ subsets: ['latin'] });
 
@@ -130,7 +130,7 @@ export default function MyApp({ Component, pageProps }) {
         {/* <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /> */}
         {/* <link href="https://fonts.googleapis.com/css2?family=Onest:wght@100..900&display=swap" rel="stylesheet" /> */}
         {/* </Head> */}
-        <AdminProvider>
+        {/* <AdminProvider> */}
           <ThemeProvider attribute="class">
             <TermlyCMP websiteUUID={WEBSITE_UUID} />
             {/* <SessionProvider session={session}> */}
@@ -159,7 +159,7 @@ export default function MyApp({ Component, pageProps }) {
             </AuthProvider>
             {/* </SessionProvider> */}
           </ThemeProvider>
-        </AdminProvider>
+        {/* </AdminProvider> */}
       </main>
     </>
   );
