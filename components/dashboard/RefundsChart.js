@@ -66,9 +66,9 @@ export default function RefundsChart() {
 
             try {
 
-                const data = await adminFetch("/api/admin/refunds-chart");
+                const response = await adminFetch("/admin/dashboard/refunds-chart");
 
-                setData(data || []);
+                setData(response?.data || []);
 
             } catch (err) {
 

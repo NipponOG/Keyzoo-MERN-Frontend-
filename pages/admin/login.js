@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { useAdmin } from "@/context/AdminContext";
+import { apiFetch } from "@/lib/api";
 import { loginPasskey } from "@/lib/passkey";
 import { HugeiconsIcon } from '@hugeicons/react';
 import { FingerAccessIcon, AuthorizedIcon } from '@hugeicons/core-free-icons';
@@ -9,7 +9,7 @@ export default function AdminLogin() {
 
     const router = useRouter();
 
-    const { login } = useAdmin();
+    // const { login } = useAdmin();
 
     const [email, setEmail] = useState("");
 
@@ -20,120 +20,33 @@ export default function AdminLogin() {
     const [error, setError] = useState("");
 
     const handleSubmit = async (e) => {
-
         e.preventDefault();
 
         setLoading(true);
-
         setError("");
 
         try {
-
-            // const response = await fetch(
-            //     `${process.env.NEXT_PUBLIC_STRAPI_URL}api/auth/local`,
-            //     {
-            //         method: "POST",
-            //         headers: {
-            //             "Content-Type": "application/json",
-            //         },
-            //         body: JSON.stringify({
-            //             identifier: email,
-            //             password,
-            //         }),
-            //     }
-            // );
-
-            // const data = await response.json();
-
-            // if (!response.ok) {
-
-            //     setError(
-            //         data.error?.message || "Login failed"
-            //     );
-
-            //     setLoading(false);
-
-            //     return;
-
-            // }
-
-            // const meResponse = await fetch("/api/admin/me", {
-            //     headers: {
-            //         Authorization: `Bearer ${data.jwt}`,
-            //     },
-            // });
-
-            // const meData = await meResponse.json();
-
-            // if (!meResponse.ok) {
-
-            //     setError(meData.error || "Unauthorized");
-
-            //     setLoading(false);
-
-            //     return;
-
-            // }
-
-            // login(
-            //     data.jwt,
-            //     meData.user
-            // );
-
-            // router.replace("/tc");
-
-            const response = await fetch("/api/admin/login", {
+            const data = await apiFetch("/admin/login", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify({
                     email,
                     password,
                 }),
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-
-                // setError(data.error || "Login failed");
-                setError(typeof data.error === "string" ? data.error : data.error?.message || "Login failed");
-
-                return;
-
-            }
-
-            // Save temporarily until 2FA finishes
+            // Store admin authentication separately
             sessionStorage.setItem("admin_jwt", data.jwt);
-            sessionStorage.setItem("admin_user", JSON.stringify(data.user));
+            sessionStorage.setItem(
+                "admin_user",
+                JSON.stringify(data.user)
+            );
 
-            if (data.requiresSetup) {
-
-                router.push("/admin/2fa/setup");
-                return;
-
-            }
-
-            if (data.requires2FA) {
-
-                router.push("/admin/2fa/login");
-                return;
-
-            }
-
-            // Should never happen
-            login(data.jwt, data.user);
+            // Temporary: 2FA is not connected yet
             router.replace("/tc");
-
         } catch (err) {
-
-            console.error(err);
-
-            setError("Something went wrong.");
-
+            console.error("Admin login failed:", err);
+            setError(err.message || "Login failed.");
         } finally {
-
             setLoading(false);
         }
     };

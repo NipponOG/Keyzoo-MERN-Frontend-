@@ -2,49 +2,31 @@ import { useEffect, useState } from "react";
 import adminFetch from "@/lib/adminFetch";
 
 export default function CategorySales() {
-
-    // const categories = [
-    //     { name: "Games", value: 75 },
-    //     { name: "Softwares", value: 55 },
-    //     { name: "Gift cards", value: 35 },
-    //     { name: "DLCs, Games", value: 20 },
-    //     { name: "Game points", value: 20 },
-    //     { name: "DLCs", value: 20 },
-
-    // ];
-
+    
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadCategories = async () => {
+            try {
+                const data = await adminFetch(
+                    "/admin/dashboard/category-sales"
+                );
 
-            const data = await adminFetch("/api/admin/category-sales");
+                console.log("CATEGORY API:", data);
+                console.log("Array?", Array.isArray(data?.data));
 
-            console.log("CATEGORY API:", data);
-            console.log("Array?", Array.isArray(data));
-
-            setCategories(data || []);
+                setCategories(data?.data || []);
+            } catch (error) {
+                console.error("Failed to load category sales:", error);
+                setCategories([]);
+            } finally {
+                setLoading(false);
+            }
         };
 
         loadCategories();
-        setLoading(false);
     }, []);
-
-    // useEffect(() => {
-    //     const loadChart = async () => {
-    //         try {
-    //             const res = await fetch("/api/admin/category-sales");
-    //             const result = await res.json();
-
-    //             setData(result || []);
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
-
-    //     loadChart();
-    // }, []);
 
     if (loading) {
         return (

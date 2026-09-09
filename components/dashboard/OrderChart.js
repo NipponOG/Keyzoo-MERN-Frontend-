@@ -55,9 +55,9 @@ export default function OrderChart() {
 
             try {
 
-                const data = await adminFetch("/api/admin/order-chart");
+                const response = await adminFetch("/admin/dashboard/order-chart");
 
-                setData(data || []);
+                setData(response?.data || []);
 
             } catch (err) {
 

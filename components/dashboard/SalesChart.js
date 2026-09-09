@@ -52,71 +52,15 @@ export default function SalesChart() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // useEffect(() => {
-    //     const loadChart = async () => {
-    //         try {
-    //             const res = await fetch("/api/admin/revenue-chart");
-    //             const result = await res.json();
-
-    //             setData(result || []);
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
-
-    //     loadChart();
-    // }, []);
-
-    // useEffect(() => {
-    //     const loadChart = async () => {
-    //         const res = await fetch("/api/admin/revenue-chart");
-    //         const result = await res.json();
-    //         setData(result || []);
-    //     };
-
-    //     loadChart();
-    //     setLoading(false);
-
-    //     const interval = setInterval(
-    //         loadChart,
-    //         60000
-    //     );
-
-    //     return () => clearInterval(interval);
-    // }, []);
-
-    // useEffect(() => {
-    //     const loadChart = async () => {
-
-    //         try {
-    //             const data = await adminFetch("/api/admin/revenue-chart");
-    //             const result = await res.json();
-
-    //             setData(result || []);
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
-
-    //     loadChart();
-
-    //     const interval = setInterval(
-    //         loadChart,
-    //         60000
-    //     );
-
-    //     return () => clearInterval(interval);
-    // }, []);
-
     useEffect(() => {
 
         const loadChart = async () => {
 
             try {
 
-                const data = await adminFetch("/api/admin/revenue-chart");
+                const data = await adminFetch("/admin/dashboard/revenue-chart");
 
-                setData(data || []);
+                setData(response?.data || []);
 
             } catch (err) {
 
