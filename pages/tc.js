@@ -527,7 +527,7 @@ export default function Dashboard() {
         //     },
         // });
 
-        const data = await adminFetch("/api/admin/inventory");
+        const data = await adminFetch("/admin/inventory");
 
         setInventory({
             totalProducts: data.totalProducts,

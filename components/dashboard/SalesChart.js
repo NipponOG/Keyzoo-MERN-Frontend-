@@ -55,23 +55,17 @@ export default function SalesChart() {
     useEffect(() => {
 
         const loadChart = async () => {
-
             try {
-
-                const data = await adminFetch("/admin/dashboard/revenue-chart");
+                const response = await adminFetch(
+                    "/admin/dashboard/revenue-chart"
+                );
 
                 setData(response?.data || []);
-
             } catch (err) {
-
                 console.error(err);
-
             } finally {
-
                 setLoading(false);
-
             }
-
         };
 
         loadChart();
@@ -82,7 +76,6 @@ export default function SalesChart() {
         );
 
         return () => clearInterval(interval);
-
     }, []);
 
     if (loading) {
@@ -99,8 +92,13 @@ export default function SalesChart() {
                 Revenue Overview
             </h2>
 
-            <div className="h-[365px]">
-                <ResponsiveContainer width="100%" height="100%">
+            <div className="w-full h-[365px] min-h-[365px]">
+                <ResponsiveContainer
+                    width="100%"
+                    height="100%"
+                    minWidth={0}
+                    minHeight={0}
+                >
                     <AreaChart data={data}>
                         <defs>
                             <linearGradient
@@ -110,15 +108,18 @@ export default function SalesChart() {
                                 x2="0"
                                 y2="1"
                             >
-                                <stop offset="5%" stopColor="#10B981" stopOpacity={0.45} />
-                                <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                                <stop
+                                    offset="5%"
+                                    stopColor="#10B981"
+                                    stopOpacity={0.45}
+                                />
+                                <stop
+                                    offset="95%"
+                                    stopColor="#10B981"
+                                    stopOpacity={0}
+                                />
                             </linearGradient>
                         </defs>
-
-                        {/* <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="#2a2f3a"
-                        /> */}
 
                         <XAxis
                             dataKey="month"
@@ -138,7 +139,6 @@ export default function SalesChart() {
                             strokeWidth={3}
                             fill="url(#colorRevenue)"
                         />
-
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
