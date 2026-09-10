@@ -556,21 +556,22 @@ export default function Dashboard() {
     // };
 
     const handleViewKeys = async (product) => {
+        try {
+            setViewProduct(product);
 
-        setViewProduct(product);
+            const ownerType = product.type === "gift-card"
+                ? "gift-card"
+                : "product";
 
-        // const res = await fetch(
-        //     `/api/admin/view-keys?productId=${product.documentId || product.id}&type=${product.type}`
-        // );
+            const data = await adminFetch(
+                `/admin/game-keys?ownerType=${ownerType}&ownerId=${product.id}`
+            );
 
-        const data = await adminFetch(
-            `/api/admin/view-keys?productId=${product.documentId || product.id}&type=${product.type}`
-        );
-
-        // const data = await res.json();
-
-        setViewKeys(data.keys || []);
-
+            setViewKeys(data?.data || []);
+        } catch (error) {
+            console.error("Failed to fetch game keys:", error);
+            setViewKeys([]);
+        }
     };
 
     // const exportOrders = () => {

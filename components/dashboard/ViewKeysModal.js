@@ -53,7 +53,7 @@ export default function ViewKeysModal({
 
         await navigator.clipboard.writeText(key.code);
 
-        setCopiedId(key.id);
+        setCopiedId(key._id);
 
         setTimeout(() => {
             setCopiedId(null);
@@ -61,8 +61,7 @@ export default function ViewKeysModal({
 
     };
 
-    const handleDelete = async (id) => {
-
+    const handleDelete = async (key) => {
         const ok = window.confirm(
             "Delete this activation key?"
         );
@@ -70,42 +69,31 @@ export default function ViewKeysModal({
         if (!ok) return;
 
         try {
-
-            const data = await adminFetch("/api/admin/delete-key", {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    id,
-                }),
-            });
+            const data = await adminFetch(
+                `/admin/game-keys/${key._id}`,
+                {
+                    method: "DELETE",
+                }
+            );
 
             if (!data.success) {
                 alert("Delete failed");
                 return;
             }
 
-            setLocalKeys(prev => {
-
+            setLocalKeys((prev) => {
                 const updated = prev.filter(
-                    key => key.id !== id
+                    (item) => item._id !== key._id
                 );
 
                 onDelete?.(updated);
 
                 return updated;
-
             });
-
         } catch (err) {
-
             console.error(err);
-
             alert(err.message);
-
         }
-
     };
 
     useEffect(() => {
@@ -281,7 +269,7 @@ export default function ViewKeysModal({
                     {filteredKeys.map((key) => (
 
                         <div
-                            key={key.id}
+                            key={key._id}
                             className="grid grid-cols-[1fr_130px_220px] items-center gap-6 px-6 py-4 border-b border-[#232323]"
                         >
 
@@ -293,12 +281,12 @@ export default function ViewKeysModal({
                                     onClick={() =>
                                         setVisibleKeys(prev => ({
                                             ...prev,
-                                            [key.id]: !prev[key.id],
+                                            [key._id]: !prev[key._id],
                                         }))
                                     }
                                     className="text-gray-400 hover:text-white"
                                 >
-                                    {visibleKeys[key.id] ? (
+                                    {visibleKeys[key._id] ? (
                                         <FiEyeOff />
                                     ) : (
                                         <FiEye />
@@ -307,7 +295,7 @@ export default function ViewKeysModal({
 
                                 <span className="font-mono text-sm text-white">
 
-                                    {visibleKeys[key.id]
+                                    {visibleKeys[key._id]
                                         ? key.code
                                         : "••••••••••••••••••••••"}
 
@@ -344,14 +332,14 @@ export default function ViewKeysModal({
                             <div className="flex justify-end gap-2">
 
                                 <button onClick={() => handleCopy(key)} className="h-10 w-10 rounded-lg bg-[#232323] hover:bg-[#303030] flex items-center justify-center">
-                                    {copiedId === key.id ? <FiCheck /> : <FiCopy />}
+                                    {copiedId === key._id ? <FiCheck /> : <FiCopy />}
                                 </button>
 
                                 <button className="h-10 w-10 rounded-lg bg-[#232323] hover:bg-[#303030] flex items-center justify-center">
                                     <FiEdit2 />
                                 </button>
 
-                                <button onClick={() => handleDelete(key.id)} className="h-10 w-10 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 flex items-center justify-center">
+                                <button onClick={() => handleDelete(key)} className="h-10 w-10 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 flex items-center justify-center">
                                     <FiTrash2 />
                                 </button>
 
