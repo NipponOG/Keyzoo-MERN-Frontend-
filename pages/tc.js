@@ -74,7 +74,7 @@ export default function Dashboard() {
 
         return (
             product.title?.toLowerCase().includes(q) ||
-            product.documentId?.toLowerCase().includes(q) ||
+            product._id?.toLowerCase().includes(q) ||
             product.region?.toLowerCase().includes(q) ||
             product.card_region?.toLowerCase().includes(q) ||
             product.workPlatform?.toLowerCase().includes(q)
@@ -559,17 +559,22 @@ export default function Dashboard() {
         try {
             setViewProduct(product);
 
-            const ownerType = product.type === "gift-card"
-                ? "gift-card"
-                : "product";
+            const query =
+                product.type === "gift-card"
+                    ? `giftCardId=${product._id}`
+                    : `productId=${product._id}`;
 
             const data = await adminFetch(
-                `/admin/game-keys?ownerType=${ownerType}&ownerId=${product.id}`
+                `/admin/game-keys?${query}`
             );
 
             setViewKeys(data?.data || []);
         } catch (error) {
-            console.error("Failed to fetch game keys:", error);
+            console.error(
+                "Failed to fetch game keys:",
+                error
+            );
+
             setViewKeys([]);
         }
     };
@@ -987,7 +992,7 @@ shadow-lg
 
                                                 return (
                                                     <div
-                                                        key={product.documentId}
+                                                        key={product._id}
                                                         ref={rowVirtualizer.measureElement}
                                                         data-index={virtualRow.index}
                                                         className="pb-4"
@@ -1013,7 +1018,7 @@ shadow-lg
                                     <div className="space-y-4">
                                         {displayedProducts.map((product) => (
                                             <ProductInventoryRow
-                                                key={product.documentId}
+                                                key={product._id}
                                                 product={product}
                                                 onUpload={() => setSelectedProduct(product)}
                                                 onView={() => handleViewKeys(product)}
@@ -1026,8 +1031,8 @@ shadow-lg
                                     <UploadKeysModal
                                         product={selectedProduct}
                                         onClose={() => setSelectedProduct(null)}
-                                        onUpload={(keys) => {
-                                            console.log(keys);
+                                        onUpload={async () => {
+                                            await fetchInventory();
                                         }}
                                     />
                                 )}
@@ -1049,7 +1054,7 @@ shadow-lg
                                             setProducts(prev =>
                                                 prev.map(item => {
 
-                                                    if (item.documentId !== viewProduct.documentId) {
+                                                    if (item._id !== viewProduct._id) {
                                                         return item;
                                                     }
 

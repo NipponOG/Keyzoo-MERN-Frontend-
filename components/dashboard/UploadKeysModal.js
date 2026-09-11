@@ -102,110 +102,56 @@ export default function UploadKeysModal({
 
     };
 
-    // const handleUpload = async (keys) => {
-    //     const res = await fetch("/api/admin/upload-keys", {
-    //         method: "POST",
-    //         headers: {
-    //             "Content-Type": "application/json",
-    //         },
-    //         body: JSON.stringify({
-    //             type: product.inventoryType,
-    //             productId: product.id,
-    //             keys,
-    //         }),
-    //     });
-
-    //     const data = await res.json();
-
-    //     if (data.success) {
-
-    //         alert(
-    //             `${data.uploaded} keys uploaded\n${data.duplicates} duplicates skipped`
-    //         );
-
-    //         onClose();
-
-    //         // Refresh inventory list here
-    //     }
-    // };
-
-    // const handleUpload = async (keys) => {
-
-    //     try {
-
-    //         setUploading(true);
-
-    //         const res = await adminFetch("/api/admin/upload-keys", {
-    //             method: "POST",
-    //             headers: {
-    //                 "Content-Type": "application/json",
-    //             },
-    //             body: JSON.stringify({
-    //                 type: product.inventoryType,
-    //                 productId: product.id,
-    //                 type: product.type,
-    //                 keys,
-    //             }),
-    //         });
-
-    //         const data = await res.json();
-
-    //         if (!res.ok) {
-    //             throw new Error(data.error || "Upload failed");
-    //         }
-
-    //         alert(
-    //             `${data.uploaded} keys uploaded\n${data.duplicates} duplicates skipped`
-    //         );
-
-    //         onClose();
-
-    //     } catch (err) {
-
-    //         alert(err.message);
-
-    //     } finally {
-
-    //         setUploading(false);
-
-    //     }
-
-    // };
-
     const handleUpload = async (keys) => {
-
         try {
-
             setUploading(true);
 
-            const data = await adminFetch("/api/admin/upload-keys", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    type: product.inventoryType,
-                    productId: product.id,
-                    keys,
-                }),
-            });
+            const body =
+                product.type === "gift-card"
+                    ? {
+                        giftCardId: product._id,
+                        keys,
+                    }
+                    : {
+                        productId: product._id,
+                        keys,
+                    };
 
-            alert(
-                `${data.uploaded} keys uploaded\n${data.duplicates} duplicates skipped`
+            const data = await adminFetch(
+                "/admin/game-keys",
+                {
+                    method: "POST",
+                    body: JSON.stringify(body),
+                }
             );
 
+            if (!data?.success) {
+                throw new Error(
+                    data?.message || "Upload failed"
+                );
+            }
+
+            alert(
+                data.message ||
+                `${keys.length} key(s) uploaded successfully`
+            );
+
+            onUpload?.(data.data || []);
             onClose();
 
         } catch (err) {
+            console.error(
+                "Failed to upload game keys:",
+                err
+            );
 
-            alert(err.message);
-
+            alert(
+                err.message ||
+                "Failed to upload game keys"
+            );
         } finally {
-
             setUploading(false);
-
         }
-
     };
 
     return (
@@ -289,7 +235,7 @@ export default function UploadKeysModal({
                                     </div>
 
                                     <p className="mt-4 text-xs text-gray-500">
-                                        Product ID: {product.documentId || product.id}
+                                        Product ID: {product._id}
                                     </p>
 
                                 </div>
