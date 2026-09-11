@@ -169,7 +169,7 @@ export default function Dashboard() {
 
     const fetchProductsCount = async () => {
 
-        const data = await adminFetch("/api/admin/products-count");
+        const data = await adminFetch("/admin/products-count");
 
         setProductCount(data.total || 0);
     };
@@ -187,7 +187,7 @@ export default function Dashboard() {
         //     }
         // );
 
-        const data = await adminFetch("/api/admin/dashboard");
+        const data = await adminFetch("/admin/dashboard");
 
         setDashboardOrders(data.data || []);
         // setDashboardStats(data.stats);  

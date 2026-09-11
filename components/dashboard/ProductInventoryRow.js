@@ -1,42 +1,3 @@
-// import Image from "next/image";
-// import { getStrapiMedia } from "@/lib/getStrapiMedia";
-
-// export default function ProductInventoryRow({ product }) {
-
-//     return (
-//         <div className="bg-[#1a1a1a] rounded-xl border border-gray-700 p-6 text-white">
-
-//             <div className="flex items-center gap-6">
-
-//                 <Image
-//                     src={getStrapiMedia(product.image?.url)}
-//                     alt={product.title}
-//                     width={120}
-//                     height={160}
-//                     className="rounded-lg object-cover"
-//                 />
-
-//                 <div className="flex-1">
-
-//                     <h3 className="text-lg font-semibold">
-//                         {product.title}
-//                     </h3>
-
-//                     <p className="text-blue-400">
-//                         {product.region || product.card_region}
-//                     </p>
-
-//                 </div>
-
-//             </div>
-
-//         </div>
-//     );
-// }
-
-
-
-
 import Image from "next/image";
 import { getStrapiMedia } from "@/lib/getStrapiMedia";
 import {
@@ -147,7 +108,7 @@ export default function ProductInventoryRow({ product, onUpload, onView }) {
 
                         <p className="text-sm text-gray-500 mt-5">
 
-                            Product ID : {product.documentId || product.id}
+                            Product ID : {product._id}
 
                         </p>
 
