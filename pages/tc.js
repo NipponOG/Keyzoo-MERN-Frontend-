@@ -1,5 +1,4 @@
 import Head from "next/head";
-import { STRAPI_URL } from "@/lib/env-clint-server-config"
 import SalesTodayCard from "@/components/dashboard/SalesTodayCard";
 import SalesChart from "@/components/dashboard/SalesChart";
 import OrderChart from "@/components/dashboard/OrderChart";
@@ -27,6 +26,8 @@ import adminFetch from "@/lib/adminFetch";
 import { FiSettings } from "react-icons/fi";
 import Link from "next/link";
 import ClearCacheModal from "@/components/dashboard/ClearCacheModal";
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Add02Icon } from '@hugeicons/core-free-icons';
 
 export default function Dashboard() {
 
@@ -741,6 +742,36 @@ export default function Dashboard() {
                         </div>
 
                         <div className="flex items-center gap-4">
+
+                            <span
+                                onClick={() => setShowClearCacheModal(true)}
+                                className="
+        group
+        flex
+        h-12
+        w-12
+        items-center
+        justify-center
+        rounded-2xl
+        border
+        border-white/10
+        bg-[#1d1d1d]
+        text-gray-400
+        transition-all
+        duration-200
+        hover:border-indigo-500/40
+        hover:bg-indigo-500/10
+        hover:text-indigo-400
+    "
+                                title="Add Products or Gift Cards"
+                            >
+                                {/* <MdCached
+                                    size={30}
+                                    className="transition-transform duration-300 group-hover:rotate-90"
+                                /> */}
+                                <HugeiconsIcon icon={Add02Icon} className="transition-transform duration-300 group-hover:rotate-90"/>
+                            </span>
+
                             <span
                                 onClick={() => setShowClearCacheModal(true)}
                                 className="
@@ -768,6 +799,7 @@ export default function Dashboard() {
                                     className="transition-transform duration-300 group-hover:rotate-90"
                                 />
                             </span>
+
                             <Link
                                 href="/admin/settings"
                                 className="
@@ -1458,6 +1490,7 @@ shadow-lg
 
                     </div>
                 </div>
+
                 <ClearCacheModal
                     open={showClearCacheModal}
                     onClose={() => setShowClearCacheModal(false)}

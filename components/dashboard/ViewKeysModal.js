@@ -10,6 +10,9 @@ import {
     FiCheck
 } from "react-icons/fi";
 
+import { HugeiconsIcon } from '@hugeicons/react';
+import { ViewIcon, EyeOffIcon, CopyIcon, TickDouble04Icon, Edit04Icon, Delete02Icon, MultiplicationSignSquareIcon, SearchCircleIcon } from '@hugeicons/core-free-icons';
+
 import Image from "next/image";
 import { getStrapiMedia } from "@/lib/getStrapiMedia";
 import { useEffect } from "react";
@@ -26,6 +29,9 @@ export default function ViewKeysModal({
     const [filter, setFilter] = useState("all");
     const [visibleKeys, setVisibleKeys] = useState({});
 
+    const [editingId, setEditingId] = useState(null);
+    const [editCode, setEditCode] = useState("");
+    const [savingEdit, setSavingEdit] = useState(false);
 
     const [copiedId, setCopiedId] = useState(null);
     const [localKeys, setLocalKeys] = useState(keys);
@@ -59,6 +65,76 @@ export default function ViewKeysModal({
             setCopiedId(null);
         }, 1500);
 
+    };
+
+    const handleEdit = (key) => {
+        if (!key.isAvailable) {
+            alert("Sold keys cannot be edited.");
+            return;
+        }
+
+        setEditingId(key._id);
+        setEditCode(key.code);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setEditCode("");
+    };
+
+    const handleSaveEdit = async (key) => {
+        const cleanedCode = editCode.trim();
+
+        if (!cleanedCode) {
+            alert("Game key cannot be empty.");
+            return;
+        }
+
+        try {
+            setSavingEdit(true);
+
+            const data = await adminFetch(
+                `/admin/game-keys/${key._id}`,
+                {
+                    method: "PATCH",
+                    body: JSON.stringify({
+                        code: cleanedCode,
+                    }),
+                }
+            );
+
+            if (!data?.success) {
+                throw new Error(
+                    data?.message ||
+                    "Failed to update game key."
+                );
+            }
+
+            const updatedKey = data.data;
+
+            setLocalKeys((prev) =>
+                prev.map((item) =>
+                    item._id === key._id
+                        ? updatedKey
+                        : item
+                )
+            );
+
+            setEditingId(null);
+            setEditCode("");
+        } catch (err) {
+            console.error(
+                "Failed to update game key:",
+                err
+            );
+
+            alert(
+                err.message ||
+                "Failed to update game key."
+            );
+        } finally {
+            setSavingEdit(false);
+        }
     };
 
     const handleDelete = async (key) => {
@@ -138,7 +214,7 @@ export default function ViewKeysModal({
                         onClick={onClose}
                         className="h-10 w-10 rounded-lg hover:bg-white/10 flex items-center justify-center"
                     >
-                        <FiX size={20} />
+                        <HugeiconsIcon icon={MultiplicationSignSquareIcon} />
                     </button>
 
                 </div>
@@ -239,12 +315,12 @@ export default function ViewKeysModal({
 
                     <div className="relative flex-1">
 
-                        <FiSearch className="absolute left-4 top-4 text-gray-500" />
+                        <HugeiconsIcon icon={SearchCircleIcon} className="absolute left-4 top-4 text-gray-500" />
 
                         <input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search key..."
+                            placeholder="Search Your Keys"
                             className="w-full rounded-xl bg-[#101010] border border-[#2b2b2b] py-3 pl-11 pr-4 text-white outline-none"
                         />
 
@@ -275,7 +351,7 @@ export default function ViewKeysModal({
 
                             {/* Key */}
 
-                            <div className="flex items-center gap-4">
+                            <div className="flex min-w-0 items-center gap-4">
 
                                 <button
                                     onClick={() =>
@@ -287,19 +363,39 @@ export default function ViewKeysModal({
                                     className="text-gray-400 hover:text-white"
                                 >
                                     {visibleKeys[key._id] ? (
-                                        <FiEyeOff />
+                                        <HugeiconsIcon icon={EyeOffIcon} />
                                     ) : (
-                                        <FiEye />
+                                        <HugeiconsIcon icon={ViewIcon} />
                                     )}
                                 </button>
 
-                                <span className="font-mono text-sm text-white">
+                                {editingId === key._id ? (
+                                    <input
+                                        value={editCode}
+                                        onChange={(e) =>
+                                            setEditCode(e.target.value)
+                                        }
+                                        autoFocus
+                                        className="flex-1 min-w-0 rounded-lg bg-[#101010] border border-blue-500/50 px-3 py-2 font-mono text-sm text-white outline-none focus:border-blue-500"
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                handleSaveEdit(key);
+                                            }
 
-                                    {visibleKeys[key._id]
-                                        ? key.code
-                                        : "••••••••••••••••••••••"}
+                                            if (e.key === "Escape") {
+                                                handleCancelEdit();
+                                            }
+                                        }}
+                                    />
+                                ) : (
+                                    <span className="font-mono text-sm text-white">
 
-                                </span>
+                                        {visibleKeys[key._id]
+                                            ? key.code
+                                            : "••••••••••••••••••••••"}
+
+                                    </span>
+                                )}
 
                             </div>
 
@@ -332,15 +428,54 @@ export default function ViewKeysModal({
                             <div className="flex justify-end gap-2">
 
                                 <button onClick={() => handleCopy(key)} className="h-10 w-10 rounded-lg bg-[#232323] hover:bg-[#303030] flex items-center justify-center">
-                                    {copiedId === key._id ? <FiCheck /> : <FiCopy />}
+                                    {copiedId === key._id ? <HugeiconsIcon icon={TickDouble04Icon} /> : <HugeiconsIcon icon={CopyIcon} />}
                                 </button>
 
-                                <button className="h-10 w-10 rounded-lg bg-[#232323] hover:bg-[#303030] flex items-center justify-center">
-                                    <FiEdit2 />
-                                </button>
+                                {editingId === key._id ? (
+                                    <>
+                                        <button
+                                            onClick={() =>
+                                                handleSaveEdit(key)
+                                            }
+                                            disabled={savingEdit}
+                                            className="h-10 w-10 rounded-lg bg-green-500/15 hover:bg-green-500/25 text-green-400 flex items-center justify-center disabled:opacity-50"
+                                            title="Save"
+                                        >
+                                            <HugeiconsIcon
+                                                icon={TickDouble04Icon}
+                                            />
+                                        </button>
+
+                                        <button
+                                            onClick={handleCancelEdit}
+                                            disabled={savingEdit}
+                                            className="h-10 w-10 rounded-lg bg-[#232323] hover:bg-[#303030] text-gray-400 flex items-center justify-center disabled:opacity-50"
+                                            title="Cancel"
+                                        >
+                                            <HugeiconsIcon
+                                                icon={MultiplicationSignSquareIcon}
+                                            />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={() => handleEdit(key)}
+                                        disabled={!key.isAvailable}
+                                        className="h-10 w-10 rounded-lg bg-[#232323] hover:bg-[#303030] flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                                        title={
+                                            key.isAvailable
+                                                ? "Edit key"
+                                                : "Sold keys cannot be edited"
+                                        }
+                                    >
+                                        <HugeiconsIcon
+                                            icon={Edit04Icon}
+                                        />
+                                    </button>
+                                )}
 
                                 <button onClick={() => handleDelete(key)} className="h-10 w-10 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 flex items-center justify-center">
-                                    <FiTrash2 />
+                                    <HugeiconsIcon icon={Delete02Icon} />
                                 </button>
 
                             </div>

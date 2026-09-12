@@ -45,22 +45,21 @@ export default function ProductInventoryRow({ product, onUpload, onView }) {
                 : "Healthy");
 
     const statusConfig = {
-        healthy: {
+        "Healthy": {
             label: "Healthy",
-            className: "bg-green-500/15 text-green-400",
+            className: "bg-green-500/15 text-green-400 uppercase",
         },
-        low: {
+        "Low Stock": {
             label: "Low Stock",
-            className: "bg-yellow-500/15 text-yellow-400",
+            className: "bg-yellow-500/15 text-yellow-400 uppercase",
         },
-        out: {
+        "Out of Stock": {
             label: "Out of Stock",
-            className: "bg-red-500/15 text-red-400",
+            className: "bg-red-500/15 text-red-400 uppercase",
         },
     };
 
-    const currentStatus =
-        statusConfig[status] || statusConfig.out;
+    const currentStatus = statusConfig[status] || statusConfig.out;
 
     return (
         <div className="rounded-2xl border border-[#2b2b2b] bg-[#1b1b1b] p-6">
