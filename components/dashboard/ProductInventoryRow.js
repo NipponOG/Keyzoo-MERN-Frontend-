@@ -72,7 +72,7 @@ export default function ProductInventoryRow({ product, onUpload, onView }) {
                 <div className="flex gap-5 basis-[520px] flex-shrink-0">
 
                     <Image
-                        src={getStrapiMedia(product.image?.url)}
+                        src={getStrapiMedia(product.image)}
                         alt={product.title}
                         width={110}
                         height={150}

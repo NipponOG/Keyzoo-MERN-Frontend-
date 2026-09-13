@@ -4,7 +4,6 @@ import SalesChart from "@/components/dashboard/SalesChart";
 import OrderChart from "@/components/dashboard/OrderChart";
 import RefundsChart from "@/components/dashboard/RefundsChart";
 import CategorySales from "@/components/dashboard/CategorySales";
-// import AdminGuard from "@/components/admin/AdminGuard";
 import Sales7DaysCard from "@/components/dashboard/Sales7DaysCard";
 import ProfitCard from "@/components/dashboard/ProfitCard";
 import ActiveOffersCard from "@/components/dashboard/ActiveOffersCard";
@@ -25,6 +24,7 @@ import { useRef } from "react";
 import adminFetch from "@/lib/adminFetch";
 import { FiSettings } from "react-icons/fi";
 import Link from "next/link";
+import AddProductModal from "@/components/dashboard/AddProductModal";
 import ClearCacheModal from "@/components/dashboard/ClearCacheModal";
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Add02Icon } from '@hugeicons/core-free-icons';
@@ -58,6 +58,9 @@ export default function Dashboard() {
     const [inventorySearch, setInventorySearch] = useState("");
 
     // Cache clearing state
+
+    const [showAddProductModal, setShowAddProductModal] = useState(false);
+
     const [showClearCacheModal, setShowClearCacheModal] = useState(false);
     const [clearingCache, setClearingCache] = useState(false);
 
@@ -743,8 +746,9 @@ export default function Dashboard() {
 
                         <div className="flex items-center gap-4">
 
-                            <span
-                                onClick={() => setShowClearCacheModal(true)}
+                            <button
+                                type="button"
+                                onClick={() => setShowAddProductModal(true)}
                                 className="
         group
         flex
@@ -763,14 +767,13 @@ export default function Dashboard() {
         hover:bg-indigo-500/10
         hover:text-indigo-400
     "
-                                title="Add Products or Gift Cards"
+                                title="Add Product"
                             >
-                                {/* <MdCached
-                                    size={30}
+                                <HugeiconsIcon
+                                    icon={Add02Icon}
                                     className="transition-transform duration-300 group-hover:rotate-90"
-                                /> */}
-                                <HugeiconsIcon icon={Add02Icon} className="transition-transform duration-300 group-hover:rotate-90"/>
-                            </span>
+                                />
+                            </button>
 
                             <span
                                 onClick={() => setShowClearCacheModal(true)}
@@ -1490,6 +1493,16 @@ shadow-lg
 
                     </div>
                 </div>
+
+                
+
+                <AddProductModal
+                    open={showAddProductModal}
+                    onClose={() => setShowAddProductModal(false)}
+                    onCreated={async () => {
+                        await fetchInventory();
+                    }}
+                />
 
                 <ClearCacheModal
                     open={showClearCacheModal}
