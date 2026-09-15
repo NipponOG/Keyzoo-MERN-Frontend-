@@ -23,8 +23,10 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef } from "react";
 import adminFetch from "@/lib/adminFetch";
 import { FiSettings } from "react-icons/fi";
+import DeleteProductModal from "@/components/dashboard/DeleteProductModal";
 import Link from "next/link";
 import AddProductModal from "@/components/dashboard/AddProductModal";
+import EditProductModal from "@/components/dashboard/EditProductModal";
 import ClearCacheModal from "@/components/dashboard/ClearCacheModal";
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Add02Icon } from '@hugeicons/core-free-icons';
@@ -59,7 +61,12 @@ export default function Dashboard() {
 
     // Cache clearing state
 
+    const [editProduct, setEditProduct] = useState(null);
     const [showAddProductModal, setShowAddProductModal] = useState(false);
+    const [showEditProductModal, setShowEditProductModal] = useState(false);
+
+    const [showDeleteProductModal, setShowDeleteProductModal] = useState(false);
+    const [deleteProduct, setDeleteProduct] = useState(null);
 
     const [showClearCacheModal, setShowClearCacheModal] = useState(false);
     const [clearingCache, setClearingCache] = useState(false);
@@ -664,6 +671,9 @@ export default function Dashboard() {
                 setSelectedProduct(null);
                 setViewProduct(null);
                 setSelectedOrder(null);
+
+                setEditProduct(null);
+                setShowEditProductModal(false);
             }
 
             // Ctrl + I
@@ -1043,6 +1053,14 @@ shadow-lg
                                                             product={product}
                                                             onUpload={() => setSelectedProduct(product)}
                                                             onView={() => handleViewKeys(product)}
+                                                            onEdit={() => {
+                                                                setEditProduct(product);
+                                                                setShowEditProductModal(true);
+                                                            }}
+                                                            onDelete={() => {
+                                                                setDeleteProduct(product);
+                                                                setShowDeleteProductModal(true);
+                                                            }}
                                                         />
                                                     </div>
                                                 );
@@ -1057,6 +1075,14 @@ shadow-lg
                                                 product={product}
                                                 onUpload={() => setSelectedProduct(product)}
                                                 onView={() => handleViewKeys(product)}
+                                                onEdit={() => {
+                                                    setEditProduct(product);
+                                                    setShowEditProductModal(true);
+                                                }}
+                                                onDelete={() => {
+                                                    setDeleteProduct(product);
+                                                    setShowDeleteProductModal(true);
+                                                }}
                                             />
                                         ))}
                                     </div>
@@ -1494,12 +1520,27 @@ shadow-lg
                     </div>
                 </div>
 
-                
+
 
                 <AddProductModal
                     open={showAddProductModal}
                     onClose={() => setShowAddProductModal(false)}
                     onCreated={async () => {
+                        await fetchInventory();
+                    }}
+                />
+
+                <EditProductModal
+                    open={showEditProductModal}
+                    product={editProduct}
+                    onClose={() => {
+                        setShowEditProductModal(false);
+                        setEditProduct(null);
+                    }}
+                    onUpdated={async () => {
+                        setShowEditProductModal(false);
+                        setEditProduct(null);
+
                         await fetchInventory();
                     }}
                 />

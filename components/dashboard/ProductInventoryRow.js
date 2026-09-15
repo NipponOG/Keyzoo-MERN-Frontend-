@@ -7,7 +7,7 @@ import {
     FiTrash2,
 } from "react-icons/fi";
 
-export default function ProductInventoryRow({ product, onUpload, onView }) {
+export default function ProductInventoryRow({ product, onUpload, onView, onEdit, onDelete }) {
 
     // const availableKeys = product.availableKeys ?? 10;
     // const soldKeys = product.soldKeys ?? 5;
@@ -253,12 +253,22 @@ export default function ProductInventoryRow({ product, onUpload, onView }) {
 
                     </button>
 
-                    <button disabled className="cursor-not-allowed flex items-center justify-center gap-2 rounded-lg bg-[#2b2b2b] hover:bg-[#343434] px-4 py-2 text-sm">
-
+                    <button
+                        type="button"
+                        onClick={onEdit}
+                        className="
+        cursor-pointer
+        flex items-center justify-center gap-2
+        rounded-lg
+        bg-[#2b2b2b]
+        hover:bg-[#343434]
+        px-4 py-2
+        text-sm
+        transition
+    "
+                    >
                         <FiEdit2 />
-
-                        Edit
-
+                        Edit Product
                     </button>
 
                     <button disabled className="cursor-not-allowed flex items-center justify-center gap-2 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 px-4 py-2 text-sm">
