@@ -26,7 +26,12 @@ export default function DeleteProductModal({
             setDeleting(true);
             setError("");
 
-            await adminFetch(`/admin/products/${product._id}`, {
+            const endpoint =
+                product.type === "gift-card"
+                    ? `/admin/gift-cards/${product._id}`
+                    : `/admin/products/${product._id}`;
+
+            await adminFetch(endpoint, {
                 method: "DELETE",
             });
 
@@ -57,7 +62,7 @@ export default function DeleteProductModal({
                         </div>
 
                         <h2 className="text-lg font-semibold text-white">
-                            Delete Product
+                            {product.type === "gift-card" ? "Delete Gift Card" : "Delete Product"}
                         </h2>
                     </div>
 
@@ -74,7 +79,10 @@ export default function DeleteProductModal({
                 {/* Content */}
                 <div className="px-6 py-5">
                     <p className="text-sm leading-6 text-gray-300">
-                        Are you sure you want to delete this product?
+                        Are you sure you want to delete this{" "}
+                        {product.type === "gift-card"
+                            ? "gift card"
+                            : "product"}?
                     </p>
 
                     <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
@@ -92,8 +100,9 @@ export default function DeleteProductModal({
                     <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/5 p-3">
                         <p className="text-xs leading-5 text-red-300">
                             This action cannot be undone. All available game
-                            keys belonging to this product will also be
-                            deleted.
+                            keys belonging to this {product.type === "gift-card"
+                                ? "gift card"
+                                : "product"} will also be deleted.
                         </p>
                     </div>
 
@@ -125,7 +134,11 @@ export default function DeleteProductModal({
                     >
                         <FiTrash2 size={16} />
 
-                        {deleting ? "Deleting..." : "Delete Product"}
+                        {deleting
+                            ? "Deleting..."
+                            : product.type === "gift-card"
+                                ? "Delete Gift Card"
+                                : "Delete Product"}
                     </button>
                 </div>
             </div>

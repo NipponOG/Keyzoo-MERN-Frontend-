@@ -4,10 +4,11 @@ import {
     FiEdit2,
     FiUpload,
     FiEye,
+    FiEyeOff,
     FiTrash2,
 } from "react-icons/fi";
 
-export default function ProductInventoryRow({ product, onUpload, onView, onEdit, onDelete }) {
+export default function ProductInventoryRow({ product, onUpload, onView, onEdit, onDelete, onToggleVisibility }) {
 
     // const availableKeys = product.availableKeys ?? 10;
     // const soldKeys = product.soldKeys ?? 5;
@@ -29,37 +30,46 @@ export default function ProductInventoryRow({ product, onUpload, onView, onEdit,
 
     const availableKeys = Number(product.availableKeys || 0);
     const soldKeys = Number(product.soldKeys || 0);
-    const totalKeys = Number(product.totalKeys || (availableKeys + soldKeys));
+    const totalKeys = Number(
+        product.totalKeys || (availableKeys + soldKeys)
+    );
 
-    const progress =
-        totalKeys > 0
-            ? Math.round((availableKeys / totalKeys) * 100)
-            : 0;
-
-    const status =
-        product.status ||
+    const stockStatus =
+        product.stockStatus ||
         (availableKeys === 0
             ? "Out of Stock"
             : availableKeys <= 5
                 ? "Low Stock"
                 : "Healthy");
 
+    const progress =
+        totalKeys > 0
+            ? Math.round((availableKeys / totalKeys) * 100)
+            : 0;
+
     const statusConfig = {
-        "Healthy": {
+        Healthy: {
             label: "Healthy",
-            className: "bg-green-500/15 text-green-400 uppercase",
+            className:
+                "bg-green-500/15 text-green-400 uppercase",
         },
+
         "Low Stock": {
             label: "Low Stock",
-            className: "bg-yellow-500/15 text-yellow-400 uppercase",
+            className:
+                "bg-yellow-500/15 text-yellow-400 uppercase",
         },
+
         "Out of Stock": {
             label: "Out of Stock",
-            className: "bg-red-500/15 text-red-400 uppercase",
+            className:
+                "bg-red-500/15 text-red-400 uppercase",
         },
     };
 
-    const currentStatus = statusConfig[status] || statusConfig.out;
+    const currentStatus =
+        statusConfig[stockStatus] ||
+        statusConfig["Out of Stock"];
 
     return (
         <div className="rounded-2xl border border-[#2b2b2b] bg-[#1b1b1b] p-6">
@@ -271,7 +281,26 @@ export default function ProductInventoryRow({ product, onUpload, onView, onEdit,
                         Edit Product
                     </button>
 
-                    <button disabled className="cursor-not-allowed flex items-center justify-center gap-2 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 px-4 py-2 text-sm">
+                    <button
+                        type="button"
+                        onClick={onToggleVisibility}
+                        className={`cursor-pointer flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm transition ${product.status === "published"
+                            ? "bg-green-500/15 hover:bg-green-500/25 text-green-400"
+                            : "bg-yellow-500/15 hover:bg-yellow-500/25 text-yellow-400"
+                            }`}
+                    >
+                        {product.status === "published" ? (
+                            <FiEye />
+                        ) : (
+                            <FiEyeOff />
+                        )}
+
+                        {product.status === "published"
+                            ? "Live"
+                            : "Hidden"}
+                    </button>
+
+                    <button onClick={onDelete} className="cursor-pointer flex items-center justify-center gap-2 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 px-4 py-2 text-sm">
 
                         <FiTrash2 />
 

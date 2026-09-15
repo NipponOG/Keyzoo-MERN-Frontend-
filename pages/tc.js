@@ -389,31 +389,41 @@ export default function Dashboard() {
 
     };
 
-    // const handleInvoice = async (orderId) => {
-    //     const token = localStorage.getItem("jwt");
+    const handleToggleVisibility = async (product) => {
+        try {
+            const isCurrentlyLive =
+                product.status === "published";
 
-    //     await fetch(
-    //         `${STRAPI_URL}api/orders/send-invoice`,
-    //         {
-    //             method: "POST",
-    //             headers: {
-    //                 "Content-Type": "application/json",
-    //                 Authorization: `Bearer ${token}`,
-    //             },
-    //             body: JSON.stringify({
-    //                 orderId,
-    //             }),
-    //         }
-    //     );
-    // };
+            const newStatus =
+                isCurrentlyLive
+                    ? "draft"
+                    : "published";
 
-    // const stats = {
-    //     total: orders.length,
-    //     pending: orders.filter(o => o.deliveryStatus === "pending").length,
-    //     partial: orders.filter(o => o.deliveryStatus === "partial").length,
-    //     completed: orders.filter(o => o.deliveryStatus === "completed").length,
-    //     manual: orders.filter(o => o.manualDeliveryRequired).length,
-    // };
+            const endpoint =
+                product.type === "gift-card"
+                    ? `/admin/gift-cards/${product._id}`
+                    : `/admin/products/${product._id}`;
+
+            await adminFetch(endpoint, {
+                method: "PUT",
+                body: JSON.stringify({
+                    status: newStatus,
+                }),
+            });
+
+            await fetchInventory();
+        } catch (error) {
+            console.error(
+                "Toggle visibility error:",
+                error
+            );
+
+            alert(
+                error?.message ||
+                "Failed to change product visibility."
+            );
+        }
+    };
 
     const stats = {
         total: dashboardOrders.length,
@@ -1061,6 +1071,9 @@ shadow-lg
                                                                 setDeleteProduct(product);
                                                                 setShowDeleteProductModal(true);
                                                             }}
+                                                            onToggleVisibility={() =>
+                                                                handleToggleVisibility(product)
+                                                            }
                                                         />
                                                     </div>
                                                 );
@@ -1083,6 +1096,7 @@ shadow-lg
                                                     setDeleteProduct(product);
                                                     setShowDeleteProductModal(true);
                                                 }}
+                                                onToggleVisibility={() => handleToggleVisibility(product)}
                                             />
                                         ))}
                                     </div>
@@ -1541,6 +1555,22 @@ shadow-lg
                         setShowEditProductModal(false);
                         setEditProduct(null);
 
+                        await fetchInventory();
+                    }}
+                />
+
+                <DeleteProductModal
+                    open={showDeleteProductModal}
+                    product={deleteProduct}
+                    onClose={() => {
+                        if (deleteProduct) {
+                            setShowDeleteProductModal(false);
+                            setDeleteProduct(null);
+                        }
+                    }}
+                    onDeleted={async () => {
+                        setShowDeleteProductModal(false);
+                        setDeleteProduct(null);
                         await fetchInventory();
                     }}
                 />
