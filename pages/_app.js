@@ -57,9 +57,10 @@ const WEBSITE_UUID = process.env.NEXT_PUBLIC_TERMLY_WEBSITE_UUID;
 
 export default function MyApp({ Component, pageProps }) {
 
-  const [isMaintenance, setIsMaintenance] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(false);
+
+  const [maintenanceChecked, setMaintenanceChecked] = useState(false);
+  const [isMaintenance, setIsMaintenance] = useState(false);
 
   useEffect(() => {
     const handleStart = () => setPageLoading(true);
@@ -77,32 +78,69 @@ export default function MyApp({ Component, pageProps }) {
   }, []);
 
   useEffect(() => {
-    const fetchMaintenanceStatus = async () => {
+    const checkMaintenance = async () => {
+      const pathname = window.location.pathname;
+
+      // Admin should always remain accessible.
+      if (pathname.startsWith("/admin")) {
+        setMaintenanceChecked(true);
+        return;
+      }
+
+      // Maintenance page itself should remain accessible.
+      if (pathname === "/maintenance") {
+        setMaintenanceChecked(true);
+        return;
+      }
+
       try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
         const res = await fetch(
-          // "https://steadfast-gem-fdb13b7584.strapiapp.com/api/sites?filters[id][$eq]=5"   //id is heardcoded
-          `${process.env.NEXT_PUBLIC_STRAPI_URL}api/sites?filters[title][$eq]=maintenance`,   //id is heardcoded
-          // `${process.env.NEXT_PUBLIC_STRAPI_URL}api/sites?filters[title][$eq]=maintenance_mode`,   //id is heardcoded
+          `${API_URL}/maintenance/status`,
+          {
+            cache: "no-store",
+          }
         );
+
+        if (!res.ok) {
+          setIsMaintenance(false);
+          return;
+        }
+
         const data = await res.json();
 
-        const maintenance = data?.data?.[0]?.maintenance_mode ?? false;
-        setIsMaintenance(maintenance);
-      } catch (err) {
-        console.error("Maintenance mode fetch failed:", err);
-        setIsMaintenance(false); // Default to no maintenance on error
+        setIsMaintenance(
+          data?.data?.enabled === true
+        );
+      } catch (error) {
+        console.error(
+          "Maintenance mode check failed:",
+          error
+        );
+
+        // Fail open:
+        // if backend maintenance check fails,
+        // don't block the storefront.
+        setIsMaintenance(false);
       } finally {
-        setLoading(false);
+        setMaintenanceChecked(true);
       }
     };
 
-    fetchMaintenanceStatus();
+    checkMaintenance();
   }, []);
 
-  if (loading) return null; // or loading spinner
+  if (!maintenanceChecked) {
+    return null;
+  }
 
-  // Block entire app unless on /admin
-  if (isMaintenance && typeof window !== "undefined" && window.location.pathname !== "/admin") {
+  if (
+    isMaintenance &&
+    typeof window !== "undefined" &&
+    window.location.pathname !== "/maintenance" &&
+    !window.location.pathname.startsWith("/admin")
+  ) {
     return <Maintenance />;
   }
 
@@ -131,34 +169,34 @@ export default function MyApp({ Component, pageProps }) {
         {/* <link href="https://fonts.googleapis.com/css2?family=Onest:wght@100..900&display=swap" rel="stylesheet" /> */}
         {/* </Head> */}
         {/* <AdminProvider> */}
-          <ThemeProvider attribute="class">
-            <TermlyCMP websiteUUID={WEBSITE_UUID} />
-            {/* <SessionProvider session={session}> */}
-            <AuthProvider>
-              <Provider store={store}>
-                <CartLoader>
-                  {pageLoading && <PageLoader />}
-                  <SkeletonTheme baseColor="#202020" highlightColor="#444">
-                    <div className="flex flex-col min-h-screen">
-                      <Header />
-                      <main className="flex-grow">
-                        <Component {...pageProps} />
-                        {/* <Toaster position="top-right" /> */}
-                        <Toaster
-                          position="bottom-right"
-                          richColors
-                          expand
-                          duration={3500}
-                        />
-                      </main>
-                      <Footer />
-                    </div>
-                  </SkeletonTheme>
-                </CartLoader>
-              </Provider>
-            </AuthProvider>
-            {/* </SessionProvider> */}
-          </ThemeProvider>
+        <ThemeProvider attribute="class">
+          <TermlyCMP websiteUUID={WEBSITE_UUID} />
+          {/* <SessionProvider session={session}> */}
+          <AuthProvider>
+            <Provider store={store}>
+              <CartLoader>
+                {pageLoading && <PageLoader />}
+                <SkeletonTheme baseColor="#202020" highlightColor="#444">
+                  <div className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-grow">
+                      <Component {...pageProps} />
+                      {/* <Toaster position="top-right" /> */}
+                      <Toaster
+                        position="bottom-right"
+                        richColors
+                        expand
+                        duration={3500}
+                      />
+                    </main>
+                    <Footer />
+                  </div>
+                </SkeletonTheme>
+              </CartLoader>
+            </Provider>
+          </AuthProvider>
+          {/* </SessionProvider> */}
+        </ThemeProvider>
         {/* </AdminProvider> */}
       </main>
     </>

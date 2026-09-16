@@ -93,9 +93,29 @@ export default function ProductInventoryRow({ product, onUpload, onView, onEdit,
 
                         <div>
 
-                            <h2 className="text-lg font-semibold leading-7 line-clamp-2">
-                                {product.title}
-                            </h2>
+                            <div className="flex items-start gap-3">
+                                <h2 className="text-lg font-semibold leading-7 line-clamp-2">
+                                    {product.title}
+                                </h2>
+
+                                <span
+                                    className={`mt-1 flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide ${product.status === "published"
+                                            ? "bg-green-500/15 text-green-400"
+                                            : "bg-red-500/15 text-red-400"
+                                        }`}
+                                >
+                                    <span
+                                        className={`w-1.5 h-1.5 rounded-full ${product.status === "published"
+                                                ? "bg-green-400"
+                                                : "bg-red-400"
+                                            }`}
+                                    />
+
+                                    {product.status === "published"
+                                        ? "Live"
+                                        : "Hidden"}
+                                </span>
+                            </div>
 
                             <div className="flex flex-wrap gap-2 mt-3">
 

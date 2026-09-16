@@ -42,7 +42,7 @@ export default function AdminLogin() {
             );
 
             // Temporary: 2FA is not connected yet
-            router.replace("/tc");
+            router.replace("/admin/dashboard");
         } catch (err) {
             console.error("Admin login failed:", err);
             setError(err.message || "Login failed.");
@@ -67,7 +67,7 @@ export default function AdminLogin() {
             login(data.jwt, data.user);
 
             // Redirect to dashboard
-            router.replace("/tc");
+            router.replace("/admin/dashboard");
 
         } catch (err) {
             console.error(err);

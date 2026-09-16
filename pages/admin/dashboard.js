@@ -31,7 +31,7 @@ import ClearCacheModal from "@/components/dashboard/ClearCacheModal";
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Add02Icon, Wrench01Icon } from '@hugeicons/core-free-icons';
 
-export default function Dashboard() {
+const dashboard = () => {
 
     const [maintenanceOpen, setMaintenanceOpen] = useState(false);
     const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
@@ -39,6 +39,8 @@ export default function Dashboard() {
         "Keyzoo is currently undergoing scheduled maintenance."
     );
     const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+
+    const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
     const [products, setProducts] = useState([]);
     const [loadingId, setLoadingId] = useState(null);
@@ -232,84 +234,16 @@ export default function Dashboard() {
         return () => clearInterval(interval);
     }, []);
 
-    // useEffect(() => {
-    //     async function getProducts() {
-    //         try {
-    //             const [productsRes, giftCardsRes] = await Promise.all([
-    //                 fetchFromStrapi(
-    //                     "api/products?populate=*"
-    //                 ),
-    //                 fetchFromStrapi(
-    //                     "api/gift-cards?populate=*"
-    //                 ),
-    //             ]);
-
-    //             const items = [
-    //                 ...(productsRes.data || []).map(item => ({
-    //                     ...item,
-    //                     type: "product",
-    //                 })),
-    //                 ...(giftCardsRes.data || []).map(item => ({
-    //                     ...item,
-    //                     type: "gift-card",
-    //                 })),
-    //             ];
-
-    //             setProducts(items);
-
-    //         } catch (error) {
-    //             console.error("Failed to fetch products:", error);
-    //         }
-    //     }
-
-    //     getProducts();
-    // }, []);
-
-    // useEffect(() => {
-    //     const token = localStorage.getItem("jwt");
-    //     const user = JSON.parse(localStorage.getItem("user"));
-
-    //     if (!token || !user) {
-    //         window.location.href = "/sign-in";
-    //         return;
-    //     }
-
-    //     fetchOrders();
-    //     fetchProductsCount();
-
-    // }, [page, search, status]);
-
-    // useEffect(() => {
-    //     const token = localStorage.getItem("jwt");
-    //     const user = JSON.parse(localStorage.getItem("user"));
-
-    //     if (!token || !user) {
-    //         window.location.href = "/sign-in";
-    //     }
-    // }, []);
-
-    // const handleSendKeys = async (orderId) => {
-    //     setLoadingId(orderId);
-    //     const token = localStorage.getItem("jwt");
-
-    //     await fetch(`${STRAPI_URL}api/orders/manual-send`, {
-    //         method: "POST",
-    //         headers: {
-    //             "Content-Type": "application/json",
-    //             Authorization: `Bearer ${token}`,
-    //         },
-    //         body: JSON.stringify({ orderId }),
-    //     });
-
-    //     await fetchOrders();
-    //     await fetchDashboardStats();
-
-    //     setLoadingId(null);
-    // };
 
     const handleOpenMaintenance = async () => {
         await fetchMaintenanceStatus();
         setMaintenanceOpen(true);
+    };
+
+    const handleAdminLogout = () => {
+        sessionStorage.removeItem("admin_jwt");
+
+        window.location.href = "/admin/login";
     };
 
     const handleSaveMaintenance = async () => {
@@ -791,7 +725,6 @@ export default function Dashboard() {
     }, [totalPages]);
 
     return (
-        // <AdminGuard>
         <>
             <Head>
                 <title>Keyzoo Analytics</title>
@@ -1032,6 +965,122 @@ export default function Dashboard() {
                                     className="transition-transform duration-300 group-hover:rotate-90"
                                 />
                             </Link>
+
+                            <button
+                                type="button"
+                                onClick={() => setLogoutModalOpen(true)}
+                                className="
+        group
+        flex
+        h-12
+        w-12
+        items-center
+        justify-center
+        rounded-2xl
+        border
+        border-white/10
+        bg-[#1d1d1d]
+        text-gray-400
+        transition-all
+        duration-200
+        hover:border-red-500/40
+        hover:bg-red-500/10
+        hover:text-red-400
+    "
+                                title="Logout"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-0.5"
+                                >
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                    <path d="M16 17l5-5-5-5" />
+                                    <path d="M21 12H9" />
+                                </svg>
+                            </button>
+
+                            {logoutModalOpen && (
+                                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                                    <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#181818] p-6 shadow-2xl">
+
+                                        {/* Icon */}
+                                        <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 text-red-400">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="1.8"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                className="h-6 w-6"
+                                            >
+                                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                                <path d="M16 17l5-5-5-5" />
+                                                <path d="M21 12H9" />
+                                            </svg>
+                                        </div>
+
+                                        {/* Content */}
+                                        <h2 className="text-xl font-semibold text-white">
+                                            Logout?
+                                        </h2>
+
+                                        <p className="mt-2 text-sm leading-6 text-gray-400">
+                                            Are you sure you want to logout from the admin
+                                            dashboard?
+                                        </p>
+
+                                        {/* Buttons */}
+                                        <div className="mt-6 flex justify-end gap-3">
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setLogoutModalOpen(false)}
+                                                className="
+                        rounded-xl
+                        border
+                        border-white/10
+                        px-4
+                        py-2.5
+                        text-sm
+                        font-medium
+                        text-gray-300
+                        transition
+                        hover:bg-white/5
+                    "
+                                            >
+                                                Cancel
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={handleAdminLogout}
+                                                className="
+                        rounded-xl
+                        bg-red-500
+                        px-5
+                        py-2.5
+                        text-sm
+                        font-medium
+                        text-white
+                        transition
+                        hover:bg-red-600
+                    "
+                                            >
+                                                Logout
+                                            </button>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                         </div>
                     </div>
@@ -1767,6 +1816,7 @@ shadow-lg
                 <ScrollToTopButton />
             </div>
         </ >
-        // {/* </AdminGuard > */}
     );
 }
+
+export default dashboard
