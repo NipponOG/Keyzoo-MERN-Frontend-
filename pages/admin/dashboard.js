@@ -29,17 +29,19 @@ import AddProductModal from "@/components/dashboard/AddProductModal";
 import EditProductModal from "@/components/dashboard/EditProductModal";
 import ClearCacheModal from "@/components/dashboard/ClearCacheModal";
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Add02Icon, Wrench01Icon } from '@hugeicons/core-free-icons';
+import { Add02Icon, Wrench01Icon, Home01Icon } from '@hugeicons/core-free-icons';
+
+import HeroBannerManager from "@/components/admin/HeroBannerManager";
+import GameBannerManager from "@/components/admin/GameBannerManager";
 
 const dashboard = () => {
 
     const [maintenanceOpen, setMaintenanceOpen] = useState(false);
     const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
-    const [maintenanceMessage, setMaintenanceMessage] = useState(
-        "Keyzoo is currently undergoing scheduled maintenance."
-    );
+    const [maintenanceMessage, setMaintenanceMessage] = useState("Keyzoo is currently undergoing scheduled maintenance.");
     const [maintenanceLoading, setMaintenanceLoading] = useState(false);
-
+    const [homePageMenuOpen, setHomePageMenuOpen] = useState(false);
+    const [homePageSection, setHomePageSection] = useState(null);
     const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
     const [products, setProducts] = useState([]);
@@ -909,6 +911,190 @@ const dashboard = () => {
                                     </div>
                                 </div>
                             )}
+
+                            <div className="relative">
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setHomePageMenuOpen((prev) => !prev)
+                                    }
+                                    className="
+            group
+            flex
+            h-12
+            w-12
+            items-center
+            justify-center
+            rounded-2xl
+            border
+            border-white/10
+            bg-[#1d1d1d]
+            text-gray-400
+            transition-all
+            duration-200
+            hover:border-indigo-500/40
+            hover:bg-indigo-500/10
+            hover:text-indigo-400
+        "
+                                    title="Home Page"
+                                >
+                                    <HugeiconsIcon
+                                        icon={Home01Icon}
+                                        className="transition-transform duration-300 group-hover:scale-110"
+                                    />
+                                </button>
+
+                                {homePageMenuOpen && (
+                                    <div
+                                        className="
+                absolute
+                right-0
+                top-[calc(100%+10px)]
+                z-[1000]
+                w-56
+                overflow-hidden
+                rounded-2xl
+                border
+                border-white/10
+                bg-[#181818]
+                p-2
+                shadow-2xl
+                shadow-black/40
+            "
+                                    >
+
+                                        {/* Header */}
+                                        <div className="px-3 py-2">
+                                            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                                                Home Page
+                                            </p>
+                                        </div>
+
+                                        {/* Hero Banners */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setHomePageMenuOpen(false);
+                                                setHomePageSection("hero-banners");
+                                            }}
+                                            className="
+                    flex
+                    w-full
+                    items-center
+                    justify-between
+                    rounded-xl
+                    px-3
+                    py-2.5
+                    text-left
+                    text-sm
+                    text-gray-300
+                    transition
+                    hover:bg-white/5
+                    hover:text-white
+                "
+                                        >
+                                            <span>Hero Banners</span>
+
+                                            <span className="text-gray-600">
+                                                →
+                                            </span>
+                                        </button>
+
+                                        {/* Game Banners */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setHomePageMenuOpen(false);
+                                                setHomePageSection("game-banners");
+                                            }}
+                                            className="
+                    flex
+                    w-full
+                    items-center
+                    justify-between
+                    rounded-xl
+                    px-3
+                    py-2.5
+                    text-left
+                    text-sm
+                    text-gray-300
+                    transition
+                    hover:bg-white/5
+                    hover:text-white
+                "
+                                        >
+                                            <span>Game Banners</span>
+
+                                            <span className="text-gray-600">
+                                                →
+                                            </span>
+                                        </button>
+
+                                        {/* Category Banners */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setHomePageMenuOpen(false);
+                                                console.log("Category Banners");
+                                            }}
+                                            className="
+                    flex
+                    w-full
+                    items-center
+                    justify-between
+                    rounded-xl
+                    px-3
+                    py-2.5
+                    text-left
+                    text-sm
+                    text-gray-300
+                    transition
+                    hover:bg-white/5
+                    hover:text-white
+                "
+                                        >
+                                            <span>Category Banners</span>
+
+                                            <span className="text-gray-600">
+                                                →
+                                            </span>
+                                        </button>
+
+                                        {/* Promo Banners */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setHomePageMenuOpen(false);
+                                                console.log("Promo Banners");
+                                            }}
+                                            className="
+                    flex
+                    w-full
+                    items-center
+                    justify-between
+                    rounded-xl
+                    px-3
+                    py-2.5
+                    text-left
+                    text-sm
+                    text-gray-300
+                    transition
+                    hover:bg-white/5
+                    hover:text-white
+                "
+                                        >
+                                            <span>Promo Banners</span>
+
+                                            <span className="text-gray-600">
+                                                →
+                                            </span>
+                                        </button>
+
+                                    </div>
+                                )}
+
+                            </div>
 
                             <span
                                 onClick={() => setShowClearCacheModal(true)}
@@ -1813,6 +1999,47 @@ shadow-lg
                     onClear={handleClearFullCache}
                     clearing={clearingCache}
                 />
+
+                {homePageSection === "hero-banners" && (
+                    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                        <div className="relative max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-2xl border border-white/10 bg-[#111111] shadow-2xl">
+
+                            <button
+                                type="button"
+                                onClick={() => setHomePageSection(null)}
+                                className="absolute right-5 top-5 z-10 text-gray-500 transition hover:text-white"
+                            >
+                                ✕
+                            </button>
+
+                            <div className="p-6">
+                                <HeroBannerManager />
+                            </div>
+
+                        </div>
+                    </div>
+                )}
+
+                {homePageSection === "game-banners" && (
+                    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                        <div className="relative max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-2xl border border-white/10 bg-[#111111] shadow-2xl">
+
+                            <button
+                                type="button"
+                                onClick={() => setHomePageSection(null)}
+                                className="absolute right-5 top-5 z-10 text-gray-500 transition hover:text-white"
+                            >
+                                ✕
+                            </button>
+
+                            <div className="p-6">
+                                <GameBannerManager />
+                            </div>
+
+                        </div>
+                    </div>
+                )}
+
                 <ScrollToTopButton />
             </div>
         </ >
