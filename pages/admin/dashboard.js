@@ -33,6 +33,8 @@ import { Add02Icon, Wrench01Icon, Home01Icon } from '@hugeicons/core-free-icons'
 
 import HeroBannerManager from "@/components/admin/HeroBannerManager";
 import GameBannerManager from "@/components/admin/GameBannerManager";
+import PromoBannerManager from "@/components/admin/PromoBannerManager";
+import CategoryBannerManager from "@/components/admin/CategoryBannerManager";
 
 const dashboard = () => {
 
@@ -1031,42 +1033,12 @@ const dashboard = () => {
                                             </span>
                                         </button>
 
-                                        {/* Category Banners */}
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setHomePageMenuOpen(false);
-                                                console.log("Category Banners");
-                                            }}
-                                            className="
-                    flex
-                    w-full
-                    items-center
-                    justify-between
-                    rounded-xl
-                    px-3
-                    py-2.5
-                    text-left
-                    text-sm
-                    text-gray-300
-                    transition
-                    hover:bg-white/5
-                    hover:text-white
-                "
-                                        >
-                                            <span>Category Banners</span>
-
-                                            <span className="text-gray-600">
-                                                →
-                                            </span>
-                                        </button>
-
                                         {/* Promo Banners */}
                                         <button
                                             type="button"
                                             onClick={() => {
                                                 setHomePageMenuOpen(false);
-                                                console.log("Promo Banners");
+                                                setHomePageSection("promo-banners");
                                             }}
                                             className="
                     flex
@@ -1085,6 +1057,36 @@ const dashboard = () => {
                 "
                                         >
                                             <span>Promo Banners</span>
+
+                                            <span className="text-gray-600">
+                                                →
+                                            </span>
+                                        </button>
+
+                                        {/* Category Banners */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setHomePageMenuOpen(false);
+                                                setHomePageSection("category-banners");
+                                            }}
+                                            className="
+                    flex
+                    w-full
+                    items-center
+                    justify-between
+                    rounded-xl
+                    px-3
+                    py-2.5
+                    text-left
+                    text-sm
+                    text-gray-300
+                    transition
+                    hover:bg-white/5
+                    hover:text-white
+                "
+                                        >
+                                            <span>Category Banners</span>
 
                                             <span className="text-gray-600">
                                                 →
@@ -2034,6 +2036,46 @@ shadow-lg
 
                             <div className="p-6">
                                 <GameBannerManager />
+                            </div>
+
+                        </div>
+                    </div>
+                )}
+
+                {homePageSection === "promo-banners" && (
+                    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                        <div className="relative max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-2xl border border-white/10 bg-[#111111] shadow-2xl">
+
+                            <button
+                                type="button"
+                                onClick={() => setHomePageSection(null)}
+                                className="absolute right-5 top-5 z-10 text-gray-500 transition hover:text-white"
+                            >
+                                ✕
+                            </button>
+
+                            <div className="p-6">
+                                <PromoBannerManager />
+                            </div>
+
+                        </div>
+                    </div>
+                )}
+
+                {homePageSection === "category-banners" && (
+                    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                        <div className="relative max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-2xl border border-white/10 bg-[#111111] shadow-2xl">
+
+                            <button
+                                type="button"
+                                onClick={() => setHomePageSection(null)}
+                                className="absolute right-5 top-5 z-10 text-gray-500 transition hover:text-white"
+                            >
+                                ✕
+                            </button>
+
+                            <div className="p-6">
+                                <CategoryBannerManager />
                             </div>
 
                         </div>

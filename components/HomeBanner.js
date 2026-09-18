@@ -14,13 +14,13 @@ const HomeBanner = () => {
                 </div>
                 <div className="hidden lg:flex flex-col gap-2">
                     <GameBanner />
-                    <CategoryGrid />
+                    <PromoBannerGrid />
                 </div>
             </div>
 
             {/* Bottom row: promo banners */}
             <div className="mt-1.5">
-                <PromoBannerGrid />
+                <CategoryGrid />
             </div>
         </section>
     );

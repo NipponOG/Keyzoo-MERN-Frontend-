@@ -1,122 +1,144 @@
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { fetchFromStrapi } from '@/lib/strapi';
-import Skeleton from 'react-loading-skeleton';
-import { getStrapiMedia } from '@/lib/getStrapiMedia';
+"use client";
 
-const CategoryGrid = () => {
-  const [banners, setBanners] = useState([]);
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import Skeleton from "react-loading-skeleton";
 
+import OptimizedImage from "@/components/Image/OptimizedImage";
+import { useIsMobile } from "@/hook/useIsMobile";
 
-  useEffect(() => {
-    async function fetchPromoBanners() {
-      try {
+export default function CategoryGrid() {
+    const [categoriesBanner, setCategoriesBanner] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-        // const res = await fetchFromStrapi('api/promo-banners?populate=image');
-        // setBanners(res.data || []);
+    const isMobile = useIsMobile();
 
-        const res = await fetch('/api/home/category-grid');
+    useEffect(() => {
+        async function getCategoryBanners() {
+            try {
+                const API_URL =
+                    process.env.NEXT_PUBLIC_API_URL;
 
-        const data = await res.json();
+                const res = await fetch(
+                    `${API_URL}/home/category-banners`,
+                    {
+                        cache: "no-store",
+                    }
+                );
 
-        setBanners(data || []);
+                if (!res.ok) {
+                    throw new Error(
+                        "Failed to fetch category banners"
+                    );
+                }
 
-      } catch (err) {
-        console.error('Failed to load promo banners:', err);
-      }
+                const data = await res.json();
+
+                setCategoriesBanner(
+                    data?.data || []
+                );
+            } catch (error) {
+                console.error(
+                    "Category banners fetch error:",
+                    error
+                );
+
+                setCategoriesBanner([]);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        getCategoryBanners();
+    }, []);
+
+    // ─────────────────────────────────────────────
+    // Loading
+    // ─────────────────────────────────────────────
+
+    if (loading) {
+        return (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+                <Skeleton
+                    height={210}
+                    borderRadius={16}
+                />
+
+                <Skeleton
+                    height={210}
+                    borderRadius={16}
+                />
+
+                <Skeleton
+                    height={210}
+                    borderRadius={16}
+                />
+            </div>
+        );
     }
 
-    fetchPromoBanners();
-  }, []);
+    // ─────────────────────────────────────────────
+    // Empty
+    // ─────────────────────────────────────────────
 
-  //   const linkUrl = attributes.link?.startsWith('http') ? attributes.link : `https://${attributes.link}`;
+    if (!categoriesBanner.length) {
+        return null;
+    }
 
-  if (!banners.length) {
     return (
-      // <SkeletonTheme baseColor="#202020" highlightColor="#444">
-      <Skeleton height={210} borderRadius={16} />
-      // </SkeletonTheme>
+        <section className="mt-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                {categoriesBanner.map((item) => {
+                    if (!item.desktopImage) {
+                        return null;
+                    }
+
+                    /*
+                     * Mobile image is optional.
+                     * If there is no mobile image,
+                     * use the desktop image.
+                     */
+                    const imageUrl = isMobile
+                        ? item.mobileImage ||
+                        item.desktopImage
+                        : item.desktopImage;
+
+                    const linkHref =
+                        item.link?.trim() || "#";
+
+                    return (
+                        <Link
+                            key={item._id}
+                            href={linkHref}
+                            className="group"
+                        >
+                            <div className="relative h-[210px] overflow-hidden rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl">
+                                <OptimizedImage
+                                    src={imageUrl}
+                                    alt={
+                                        item.title ||
+                                        "Keyzoo category"
+                                    }
+                                    fill
+                                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                                    className="
+                                        object-center
+                                        transition-transform
+                                        duration-300
+                                        group-hover:scale-105
+                                    "
+                                />
+
+                                <div className="absolute inset-0 flex flex-col justify-end p-5 text-white">
+                                    <h3 className="mb-1 text-xl font-bold">
+                                        {/* {item.title} */}
+                                    </h3>
+                                </div>
+                            </div>
+                        </Link>
+                    );
+                })}
+            </div>
+        </section>
     );
-  }
-
-  return (
-    <div>
-      {banners.map((item) => {
-
-        const imgUrl = getStrapiMedia(
-          item.image?.url,
-          {
-            width: 1600,
-          }
-        );
-
-        const blurUrl = getStrapiMedia(
-          item.image?.url,
-          {
-            blur: true,
-          }
-        );
-
-        const linkHref = item.subtitle && item.subtitle.trim() !== '' ? item.subtitle : '#';
-
-        return (
-          <div className="flex flex-col gap-4.5">
-            <Link key={item.id} href={linkHref}>
-              <div className="relative h-[210px] rounded-xl overflow-hidden group shadow-md hover:shadow-xl transition">
-                <ProductCardImage
-                  imgUrl={imgUrl}
-                  blurUrl={blurUrl}
-                  src={imgUrl}
-                  alt={item.title}
-                  fill
-                  className="object-center group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 flex flex-col justify-end p-5 text-white">
-                  <h3 className="text-xl font-bold mb-1">{item.title}</h3>
-                  {/* <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold px-4 py-1 rounded-full w-fit">
-                    {item.button}
-                  </span> */}
-                </div>
-              </div>
-            </Link>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-export default CategoryGrid;
-
-const ProductCardImage = ({ imgUrl, blurUrl, title, available }) => {
-
-  const [loaded, setLoaded] = useState(false);
-
-  return (
-    <>
-      {/* BLUR IMAGE */}
-      <Image
-        src={blurUrl}
-        alt=""
-        fill
-        className={`
-          object-cover scale-110 blur-xl
-          transition-opacity duration-500
-          ${loaded ? "opacity-0" : "opacity-100"}
-        `}
-      />
-
-      {/* REAL IMAGE */}
-      <Image
-        src={imgUrl}
-        alt={title}
-        fill
-        onLoad={() => setLoaded(true)}
-        className={`object-center transition-all duration-700 ${loaded ? "opacity-100 scale-100" : "opacity-0 scale-105"}
-          
-        `}
-      />
-    </>
-  );
 }

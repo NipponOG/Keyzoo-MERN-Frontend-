@@ -1,131 +1,121 @@
-import { fetchFromStrapi } from '@/lib/strapi';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import React from 'react';
-import { useIsMobile } from '@/hook/useIsMobile';
-import Skeleton from 'react-loading-skeleton';
-import { getStrapiMedia } from '@/lib/getStrapiMedia';
+"use client";
 
-export default function CategoryGrid() {
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import OptimizedImage from "@/components/Image/OptimizedImage";
+import Skeleton from "react-loading-skeleton";
 
-  const [categoriesBanner, setCategoriesBanner] = useState([]);
-  const isMobile = useIsMobile();
+const PromoBanner = () => {
+    const [banners, setBanners] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function getCategoryBanners() {
-      try {
+    useEffect(() => {
+        async function fetchPromoBanners() {
+            try {
+                const API_URL =
+                    process.env.NEXT_PUBLIC_API_URL;
 
-        // const res = await fetchFromStrapi('api/category-banners?populate=*');
-        // setCategoriesBanner(res.data || []);
+                const res = await fetch(
+                    `${API_URL}/home/promo-banners`,
+                    {
+                        cache: "no-store",
+                    }
+                );
 
-        const res = await fetch('/api/home/category-banners');
+                if (!res.ok) {
+                    throw new Error(
+                        "Failed to fetch promo banners"
+                    );
+                }
 
-        const data = await res.json();
+                const data = await res.json();
 
-        setCategoriesBanner(data || []);
+                setBanners(data?.data || []);
+            } catch (error) {
+                console.error(
+                    "Promo banners fetch error:",
+                    error
+                );
 
-      } catch (err) {
-        console.error('Failed to load category banners:', err);
-      }
+                setBanners([]);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchPromoBanners();
+    }, []);
+
+    // ─────────────────────────────────────────────
+    // Loading
+    // ─────────────────────────────────────────────
+
+    if (loading) {
+        return (
+            <div className="overflow-hidden rounded-xl">
+                <Skeleton
+                    height={210}
+                    borderRadius={16}
+                />
+            </div>
+        );
     }
 
-    getCategoryBanners();
-  }, []);
+    // ─────────────────────────────────────────────
+    // Empty
+    // ─────────────────────────────────────────────
 
+    if (!banners.length) {
+        return null;
+    }
 
-  if (!categoriesBanner.length) {
+    // ─────────────────────────────────────────────
+    // Render
+    // ─────────────────────────────────────────────
+
     return (
-      // <SkeletonTheme baseColor="#202020" highlightColor="#444">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        <Skeleton height={210} borderRadius={16} />
-        <Skeleton height={210} borderRadius={16} />
-        <Skeleton height={210} borderRadius={16} />
-      </div>
-      // </SkeletonTheme>
+        <div className="flex flex-col gap-4.5">
+            {banners.map((banner) => {
+                if (!banner.image) {
+                    return null;
+                }
+
+                const linkHref =
+                    banner.link?.trim() || "#";
+
+                return (
+                    <Link
+                        key={banner._id}
+                        href={linkHref}
+                    >
+                        <div className="group relative h-[210px] overflow-hidden rounded-xl shadow-md transition hover:shadow-xl">
+                            <OptimizedImage
+                                src={banner.image}
+                                alt={
+                                    banner.title ||
+                                    "Keyzoo promo banner"
+                                }
+                                fill
+                                sizes="(max-width: 1024px) 100vw, 33vw"
+                                className="
+                                    object-center
+                                    transition-transform
+                                    duration-300
+                                    group-hover:scale-105
+                                "
+                            />
+
+                            <div className="absolute inset-0 flex flex-col justify-end p-5 text-white">
+                                <h3 className="mb-1 text-xl font-bold">
+                                    {/* {banner.title} */}
+                                </h3>
+                            </div>
+                        </div>
+                    </Link>
+                );
+            })}
+        </div>
     );
-  }
+};
 
-
-  return (
-    <section className="mt-2">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-
-        {categoriesBanner.map((item) => {
-
-          // const imgUrl = isMobile
-          //   ? getStrapiMedia(item.mobileImage?.url)
-          //   : getStrapiMedia(item.desktopImage?.url);
-
-          const imgUrl = getStrapiMedia(
-            item.desktopImage?.url,
-            {
-              width: 1600,
-            }
-          );
-
-          const blurUrl = getStrapiMedia(
-            item.desktopImage?.url,
-            {
-              blur: true,
-            }
-          );
-
-          const linkHref = item.subtitle && item.subtitle.trim() !== '' ? item.subtitle : '#';
-
-          return (
-            <Link key={item.id} href={linkHref} className="group">
-              <div className="relative rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 h-[210px]">
-                <ProductCardImage
-                  imgUrl={imgUrl}
-                  blurUrl={blurUrl}
-                  alt={item.title}
-                  fill
-                  className="object-center group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 flex flex-col justify-end p-5 text-white">
-                  <h3 className="text-xl font-bold mb-1">{item.title}</h3>
-                  {/* <span className="bg-white text-black text-sm font-semibold px-4 py-1 rounded-full w-fit">
-                    {item.button}
-                  </span> */}
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-const ProductCardImage = ({ imgUrl, blurUrl, title, available }) => {
-
-  const [loaded, setLoaded] = useState(false);
-
-  return (
-    <>
-      {/* BLUR IMAGE */}
-      <Image
-        src={blurUrl}
-        alt=""
-        fill
-        className={`
-          object-cover scale-110 blur-xl
-          transition-opacity duration-500
-          ${loaded ? "opacity-0" : "opacity-100"}
-        `}
-      />
-
-      {/* REAL IMAGE */}
-      <Image
-        src={imgUrl}
-        alt={title}
-        fill
-        onLoad={() => setLoaded(true)}
-        className={`object-center transition-all duration-700 ${loaded ? "opacity-100 scale-100" : "opacity-0 scale-105"}
-          
-        `}
-      />
-    </>
-  );
-}
+export default PromoBanner;

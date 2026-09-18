@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import adminFetch from "@/lib/adminFetch";
 
-const GameBannerManager = () => {
+const PromoBannerManager = () => {
     const fileInputRef = useRef(null);
 
     const [banners, setBanners] = useState([]);
@@ -29,19 +29,19 @@ const GameBannerManager = () => {
             setLoading(true);
 
             const response = await adminFetch(
-                "/admin/game-banners"
+                "/admin/promo-banners"
             );
 
             setBanners(response?.data || []);
         } catch (error) {
             console.error(
-                "Failed to fetch game banners:",
+                "Failed to fetch promo banners:",
                 error
             );
 
             alert(
                 error?.message ||
-                "Failed to load game banners."
+                "Failed to load promo banners."
             );
         } finally {
             setLoading(false);
@@ -67,6 +67,10 @@ const GameBannerManager = () => {
             sortOrder: 0,
         });
 
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+
         setModalOpen(true);
     };
 
@@ -85,6 +89,10 @@ const GameBannerManager = () => {
             sortOrder: banner.sortOrder ?? 0,
         });
 
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+
         setModalOpen(true);
     };
 
@@ -102,7 +110,7 @@ const GameBannerManager = () => {
     };
 
     // ─────────────────────────────────────────────
-    // Upload image
+    // Upload image from PC
     // ─────────────────────────────────────────────
 
     const handleImageUpload = async (file) => {
@@ -115,9 +123,7 @@ const GameBannerManager = () => {
                 sessionStorage.getItem("admin_jwt");
 
             if (!token) {
-                window.location.href =
-                    "/admin/login";
-
+                window.location.href = "/admin/login";
                 return;
             }
 
@@ -159,7 +165,7 @@ const GameBannerManager = () => {
             }));
         } catch (error) {
             console.error(
-                "Game banner image upload error:",
+                "Promo banner image upload error:",
                 error
             );
 
@@ -196,7 +202,9 @@ const GameBannerManager = () => {
         }
 
         if (!form.image.trim()) {
-            alert("Please upload an image or enter an image URL.");
+            alert(
+                "Please upload an image or enter an image URL."
+            );
             return;
         }
 
@@ -205,7 +213,7 @@ const GameBannerManager = () => {
 
             const payload = {
                 title: form.title.trim(),
-                image: form.image,
+                image: form.image.trim(),
                 link: form.link.trim() || null,
                 status: form.status,
                 sortOrder: Number(form.sortOrder) || 0,
@@ -213,7 +221,7 @@ const GameBannerManager = () => {
 
             if (editingBanner) {
                 await adminFetch(
-                    `/admin/game-banners/${editingBanner._id}`,
+                    `/admin/promo-banners/${editingBanner._id}`,
                     {
                         method: "PUT",
                         body: JSON.stringify(payload),
@@ -221,7 +229,7 @@ const GameBannerManager = () => {
                 );
             } else {
                 await adminFetch(
-                    "/admin/game-banners",
+                    "/admin/promo-banners",
                     {
                         method: "POST",
                         body: JSON.stringify(payload),
@@ -234,13 +242,13 @@ const GameBannerManager = () => {
             await fetchBanners();
         } catch (error) {
             console.error(
-                "Game banner save error:",
+                "Promo banner save error:",
                 error
             );
 
             alert(
                 error?.message ||
-                "Failed to save game banner."
+                "Failed to save promo banner."
             );
         } finally {
             setSaving(false);
@@ -260,7 +268,7 @@ const GameBannerManager = () => {
 
         try {
             await adminFetch(
-                `/admin/game-banners/${banner._id}`,
+                `/admin/promo-banners/${banner._id}`,
                 {
                     method: "DELETE",
                 }
@@ -269,13 +277,13 @@ const GameBannerManager = () => {
             await fetchBanners();
         } catch (error) {
             console.error(
-                "Game banner delete error:",
+                "Promo banner delete error:",
                 error
             );
 
             alert(
                 error?.message ||
-                "Failed to delete game banner."
+                "Failed to delete promo banner."
             );
         }
     };
@@ -285,14 +293,13 @@ const GameBannerManager = () => {
 
             {/* Header */}
             <div className="mb-5 flex items-center justify-between">
-
                 <div>
                     <h2 className="text-xl font-semibold text-white">
-                        Game Banners
+                        Promo Banners
                     </h2>
 
                     <p className="mt-1 text-sm text-gray-500">
-                        Manage homepage game banners.
+                        Manage homepage promo banners.
                     </p>
                 </div>
 
@@ -303,22 +310,20 @@ const GameBannerManager = () => {
                 >
                     Add Banner
                 </button>
-
             </div>
 
             {/* Loading */}
             {loading && (
                 <div className="rounded-2xl border border-white/10 bg-[#181818] p-8 text-center text-sm text-gray-500">
-                    Loading game banners...
+                    Loading promo banners...
                 </div>
             )}
 
             {/* Empty */}
             {!loading && banners.length === 0 && (
                 <div className="rounded-2xl border border-dashed border-white/10 bg-[#181818] p-10 text-center">
-
                     <p className="text-sm text-gray-400">
-                        No game banners yet.
+                        No promo banners yet.
                     </p>
 
                     <button
@@ -328,23 +333,19 @@ const GameBannerManager = () => {
                     >
                         Create your first banner
                     </button>
-
                 </div>
             )}
 
             {/* Banner list */}
             {!loading && banners.length > 0 && (
                 <div className="space-y-3">
-
                     {banners.map((banner) => (
                         <div
                             key={banner._id}
                             className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-[#181818] p-4 md:flex-row md:items-center"
                         >
-
                             {/* Image */}
                             <div className="h-24 w-full shrink-0 overflow-hidden rounded-xl bg-[#202020] md:w-40">
-
                                 {banner.image && (
                                     <img
                                         src={banner.image}
@@ -352,29 +353,27 @@ const GameBannerManager = () => {
                                         className="h-full w-full object-cover"
                                     />
                                 )}
-
                             </div>
 
                             {/* Info */}
                             <div className="min-w-0 flex-1">
-
                                 <div className="flex items-center gap-2">
-
                                     <h3 className="truncate font-medium text-white">
                                         {banner.title}
                                     </h3>
 
                                     <span
-                                        className={`rounded-full px-2 py-1 text-[11px] font-medium ${banner.status === "published"
-                                            ? "bg-emerald-500/10 text-emerald-400"
-                                            : "bg-gray-500/10 text-gray-400"
+                                        className={`rounded-full px-2 py-1 text-[11px] font-medium ${banner.status ===
+                                                "published"
+                                                ? "bg-emerald-500/10 text-emerald-400"
+                                                : "bg-gray-500/10 text-gray-400"
                                             }`}
                                     >
-                                        {banner.status === "published"
+                                        {banner.status ===
+                                            "published"
                                             ? "Published"
                                             : "Draft"}
                                     </span>
-
                                 </div>
 
                                 <p className="mt-1 text-xs text-gray-500">
@@ -386,16 +385,16 @@ const GameBannerManager = () => {
                                         {banner.link}
                                     </p>
                                 )}
-
                             </div>
 
                             {/* Actions */}
                             <div className="flex shrink-0 gap-2">
-
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        openEditModal(banner)
+                                        openEditModal(
+                                            banner
+                                        )
                                     }
                                     className="rounded-xl border border-white/10 px-3 py-2 text-sm text-gray-300 transition hover:bg-white/5"
                                 >
@@ -405,38 +404,36 @@ const GameBannerManager = () => {
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        handleDelete(banner)
+                                        handleDelete(
+                                            banner
+                                        )
                                     }
                                     className="rounded-xl border border-red-500/20 px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10"
                                 >
                                     Delete
                                 </button>
-
                             </div>
-
                         </div>
                     ))}
-
                 </div>
             )}
 
             {/* Modal */}
             {modalOpen && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-
                     <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-white/10 bg-[#181818] p-6 shadow-2xl">
 
+                        {/* Modal header */}
                         <div className="mb-6 flex items-start justify-between">
-
                             <div>
                                 <h2 className="text-xl font-semibold text-white">
                                     {editingBanner
-                                        ? "Edit Game Banner"
-                                        : "Add Game Banner"}
+                                        ? "Edit Promo Banner"
+                                        : "Add Promo Banner"}
                                 </h2>
 
                                 <p className="mt-1 text-sm text-gray-500">
-                                    Configure the homepage game banner.
+                                    Configure the homepage promo banner.
                                 </p>
                             </div>
 
@@ -449,10 +446,8 @@ const GameBannerManager = () => {
                             >
                                 ✕
                             </button>
-
                         </div>
 
-                        {/* Image */}
                         {/* Image */}
                         <div className="mb-5">
                             <label className="mb-2 block text-sm font-medium text-gray-300">
@@ -467,7 +462,8 @@ const GameBannerManager = () => {
                                         alt="Banner preview"
                                         className="h-48 w-full object-cover"
                                         onError={(e) => {
-                                            e.currentTarget.style.display = "none";
+                                            e.currentTarget.style.display =
+                                                "none";
                                         }}
                                     />
                                 </div>
@@ -528,7 +524,6 @@ const GameBannerManager = () => {
 
                         {/* Title */}
                         <div className="mb-5">
-
                             <label className="mb-2 block text-sm font-medium text-gray-300">
                                 Title
                             </label>
@@ -538,15 +533,13 @@ const GameBannerManager = () => {
                                 name="title"
                                 value={form.title}
                                 onChange={handleChange}
-                                placeholder="Grand Theft Auto V"
-                                className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none focus:border-indigo-500/50"
+                                placeholder="Special Offers"
+                                className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-indigo-500/50"
                             />
-
                         </div>
 
                         {/* Link */}
                         <div className="mb-5">
-
                             <label className="mb-2 block text-sm font-medium text-gray-300">
                                 Link
                             </label>
@@ -557,14 +550,12 @@ const GameBannerManager = () => {
                                 value={form.link}
                                 onChange={handleChange}
                                 placeholder="/products/gta-v"
-                                className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none focus:border-indigo-500/50"
+                                className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-indigo-500/50"
                             />
-
                         </div>
 
                         {/* Status + Sort */}
                         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-
                             <div>
                                 <label className="mb-2 block text-sm font-medium text-gray-300">
                                     Status
@@ -600,12 +591,10 @@ const GameBannerManager = () => {
                                     className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none focus:border-indigo-500/50"
                                 />
                             </div>
-
                         </div>
 
                         {/* Actions */}
                         <div className="flex justify-end gap-3">
-
                             <button
                                 type="button"
                                 disabled={saving}
@@ -631,16 +620,12 @@ const GameBannerManager = () => {
                                         ? "Save Changes"
                                         : "Create Banner"}
                             </button>
-
                         </div>
-
                     </div>
-
                 </div>
             )}
-
         </div>
     );
 };
 
-export default GameBannerManager;
+export default PromoBannerManager;

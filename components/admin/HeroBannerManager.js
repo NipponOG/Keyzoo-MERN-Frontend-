@@ -175,6 +175,19 @@ const HeroBannerManager = () => {
     };
 
     // ─────────────────────────────────────────────
+    // Image URL
+    // ─────────────────────────────────────────────
+
+    const handleImageUrlChange = (e) => {
+        const value = e.target.value;
+
+        setForm((prev) => ({
+            ...prev,
+            image: value,
+        }));
+    };
+
+    // ─────────────────────────────────────────────
     // Save
     // ─────────────────────────────────────────────
 
@@ -357,8 +370,8 @@ const HeroBannerManager = () => {
 
                                     <span
                                         className={`rounded-full px-2 py-1 text-[11px] font-medium ${banner.status === "published"
-                                                ? "bg-emerald-500/10 text-emerald-400"
-                                                : "bg-gray-500/10 text-gray-400"
+                                            ? "bg-emerald-500/10 text-emerald-400"
+                                            : "bg-gray-500/10 text-gray-400"
                                             }`}
                                     >
                                         {banner.status === "published"
@@ -444,22 +457,27 @@ const HeroBannerManager = () => {
                         </div>
 
                         {/* Image */}
+                        {/* Image */}
                         <div className="mb-5">
-
                             <label className="mb-2 block text-sm font-medium text-gray-300">
                                 Banner Image
                             </label>
 
+                            {/* Preview */}
                             {form.image && (
-                                <div className="mb-3 overflow-hidden rounded-xl border border-white/10">
+                                <div className="mb-3 overflow-hidden rounded-xl border border-white/10 bg-[#202020]">
                                     <img
                                         src={form.image}
                                         alt="Banner preview"
                                         className="h-48 w-full object-cover"
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = "none";
+                                        }}
                                     />
                                 </div>
                             )}
 
+                            {/* PC upload */}
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -483,10 +501,33 @@ const HeroBannerManager = () => {
                                 {uploading
                                     ? "Uploading..."
                                     : form.image
-                                        ? "Replace Image"
-                                        : "Choose Banner Image"}
+                                        ? "Replace Image from PC"
+                                        : "Choose Image from PC"}
                             </button>
 
+                            {/* Divider */}
+                            <div className="my-4 flex items-center gap-3">
+                                <div className="h-px flex-1 bg-white/10" />
+
+                                <span className="text-xs text-gray-500">
+                                    OR
+                                </span>
+
+                                <div className="h-px flex-1 bg-white/10" />
+                            </div>
+
+                            {/* Image URL */}
+                            <input
+                                type="url"
+                                value={form.image}
+                                onChange={handleImageUrlChange}
+                                placeholder="https://example.com/banner.jpg"
+                                className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-indigo-500/50"
+                            />
+
+                            <p className="mt-2 text-xs text-gray-600">
+                                Upload an image from your PC or paste an existing image URL.
+                            </p>
                         </div>
 
                         {/* Title */}
