@@ -64,7 +64,7 @@ const initialForm = {
     status: 'draft',
 
     isBestSeller: false,
-    hideRecomend: false,
+    isRecommended: false,
     psn: false,
 
     rating: '0',
@@ -635,8 +635,8 @@ export default function AddProductModal({
             isBestSeller:
                 form.isBestSeller,
 
-            hideRecomend:
-                form.hideRecomend,
+            isRecommended:
+                form.isRecommended,
 
             psn:
                 form.psn,
@@ -1327,7 +1327,7 @@ export default function AddProductModal({
                                                 'Best Seller',
                                             ],
                                             [
-                                                'hideRecomend',
+                                                'isRecommended',
                                                 'Hide Recommendation',
                                             ],
                                             [

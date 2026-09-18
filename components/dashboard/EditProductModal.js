@@ -58,7 +58,7 @@ const emptyForm = {
     status: 'draft',
 
     isBestSeller: false,
-    hideRecomend: false,
+    isRecommended: false,
     psn: false,
 
     rating: '0',
@@ -438,7 +438,7 @@ export default function EditProductModal({
             status: product.status ?? 'draft',
 
             isBestSeller: Boolean(product.isBestSeller),
-            hideRecomend: Boolean(product.hideRecomend),
+            isRecommended: Boolean(product.isRecommended),
             psn: Boolean(product.psn),
 
             rating: product.rating ?? '0',
@@ -767,8 +767,8 @@ export default function EditProductModal({
             isBestSeller:
                 form.isBestSeller,
 
-            hideRecomend:
-                form.hideRecomend,
+            isRecommended:
+                form.isRecommended,
 
             psn: form.psn,
 
@@ -1104,8 +1104,8 @@ export default function EditProductModal({
                                                 'Best Seller',
                                             ],
                                             [
-                                                'hideRecomend',
-                                                'Hide Recommendation',
+                                                'isRecommended',
+                                                'Recommended',
                                             ],
                                             [
                                                 'psn',
