@@ -758,6 +758,16 @@ export default function AddProductModal({
         return data.data.url;
     };
 
+    // If you want to url support then add it...
+    const handleImageUrlChange = (field) => (e) => {
+        const value = e.target.value;
+
+        setForm((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
     const handleSingleImageUpload = async (
         event,
         field,
@@ -1328,7 +1338,7 @@ export default function AddProductModal({
                                             ],
                                             [
                                                 'isRecommended',
-                                                'Hide Recommendation',
+                                                'Recommended',
                                             ],
                                             [
                                                 'psn',
@@ -1786,7 +1796,6 @@ export default function AddProductModal({
                         </Section>
 
                         {/* Media */}
-                        {/* Media */}
                         <Section
                             title="Media"
                             description="Upload product images and gallery images. Images are securely stored on Cloudinary."
@@ -1841,20 +1850,20 @@ export default function AddProductModal({
                                         }
                                         disabled={uploading.image}
                                         className="
-                    flex w-full
-                    items-center justify-center
-                    rounded-xl
-                    border border-dashed border-white/15
-                    bg-white/[0.025]
-                    px-4 py-6
-                    text-sm text-gray-400
-                    transition
-                    hover:border-indigo-500/50
-                    hover:bg-indigo-500/5
-                    hover:text-white
-                    disabled:cursor-not-allowed
-                    disabled:opacity-50
-                "
+                                        flex w-full
+                                        items-center justify-center
+                                        rounded-xl
+                                        border border-dashed border-white/15
+                                        bg-white/[0.025]
+                                        px-4 py-6
+                                        text-sm text-gray-400
+                                        transition
+                                        hover:border-indigo-500/50
+                                        hover:bg-indigo-500/5
+                                        hover:text-white
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-50
+                                        "
                                     >
                                         {uploading.image ? (
                                             <span className="flex items-center gap-2">
@@ -1892,6 +1901,29 @@ export default function AddProductModal({
                                             />
                                         </div>
                                     )}
+
+                                    <div className="my-4 flex items-center gap-3">
+                                        <div className="h-px flex-1 bg-white/10" />
+
+                                        <span className="text-xs text-gray-500">
+                                            OR
+                                        </span>
+
+                                        <div className="h-px flex-1 bg-white/10" />
+                                    </div>
+
+                                    <input
+                                        type="url"
+                                        value={form.image}
+                                        onChange={handleImageUrlChange('image')}
+                                        placeholder="https://example.com/banner.jpg"
+                                        className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-indigo-500/50"
+                                    />
+
+                                    <p className="mt-2 text-xs text-gray-600">
+                                        Upload an image from your PC or paste an existing image URL.
+                                    </p>
+
                                 </div>
 
                                 {/* Platform images */}
@@ -1971,6 +2003,29 @@ export default function AddProductModal({
                                                 />
                                             </div>
                                         )}
+
+                                        <div className="my-4 flex items-center gap-3">
+                                            <div className="h-px flex-1 bg-white/10" />
+
+                                            <span className="text-xs text-gray-500">
+                                                OR
+                                            </span>
+
+                                            <div className="h-px flex-1 bg-white/10" />
+                                        </div>
+
+                                        <input
+                                            type="url"
+                                            value={form.platform_image}
+                                            onChange={handleImageUrlChange('platform_image')}
+                                            placeholder="https://example.com/banner.jpg"
+                                            className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-indigo-500/50"
+                                        />
+
+                                        <p className="mt-2 text-xs text-gray-600">
+                                            Upload an image from your PC or paste an existing image URL.
+                                        </p>
+
                                     </div>
 
                                     {/* Platform Icon */}
@@ -2047,7 +2102,31 @@ export default function AddProductModal({
                                                 />
                                             </div>
                                         )}
+
+                                        <div className="my-4 flex items-center gap-3">
+                                            <div className="h-px flex-1 bg-white/10" />
+
+                                            <span className="text-xs text-gray-500">
+                                                OR
+                                            </span>
+
+                                            <div className="h-px flex-1 bg-white/10" />
+                                        </div>
+
+                                        <input
+                                            type="url"
+                                            value={form.platform_icon_image}
+                                            onChange={handleImageUrlChange('platform_icon_image')}
+                                            placeholder="https://example.com/banner.jpg"
+                                            className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-indigo-500/50"
+                                        />
+
+                                        <p className="mt-2 text-xs text-gray-600">
+                                            Upload an image from your PC or paste an existing image URL.
+                                        </p>
+
                                     </div>
+
                                 </div>
 
                                 {/* Gallery */}
@@ -2136,6 +2215,29 @@ export default function AddProductModal({
                                             </div>
                                         </div>
                                     )}
+
+                                    <div className="my-4 flex items-center gap-3">
+                                        <div className="h-px flex-1 bg-white/10" />
+
+                                        <span className="text-xs text-gray-500">
+                                            OR
+                                        </span>
+
+                                        <div className="h-px flex-1 bg-white/10" />
+                                    </div>
+
+                                    <input
+                                        type="url"
+                                        value={form.gallery}
+                                        onChange={handleImageUrlChange('gallery')}
+                                        placeholder="https://example.com/banner.jpg"
+                                        className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-indigo-500/50"
+                                    />
+
+                                    <p className="mt-2 text-xs text-gray-600">
+                                        Upload an image from your PC or paste an existing image URL.
+                                    </p>
+
                                 </div>
 
                             </div>

@@ -571,6 +571,16 @@ export default function EditProductModal({
         return data.data.url;
     };
 
+    // If you want to url support then add it...
+    const handleImageUrlChange = (field) => (e) => {
+        const value = e.target.value;
+
+        setForm((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
     const handleSingleImageUpload = async (
         event,
         field,
@@ -1437,16 +1447,25 @@ export default function EditProductModal({
                         </Section>
 
                         {/* Media */}
-                        <Section
-                            title="Media"
-                            description="Upload replacement images. Existing images are preserved until replaced."
-                        >
+                        <Section title="Media" description="Upload replacement images. Existing images are preserved until replaced.">
+
                             <div className="space-y-6">
+
                                 {/* Main image */}
                                 <div>
                                     <label className="mb-2 block text-xs font-medium text-gray-400">
                                         Product Image
                                     </label>
+
+                                    {form.image && (
+                                        <ImagePreview
+                                            src={
+                                                form.image
+                                            }
+                                            alt="Product image"
+                                            className="mt-3 h-56 w-full max-w-md mb-3"
+                                        />
+                                    )}
 
                                     <input
                                         ref={
@@ -1479,23 +1498,47 @@ export default function EditProductModal({
                                             : 'Click to replace main image'}
                                     </button>
 
-                                    {form.image && (
-                                        <ImagePreview
-                                            src={
-                                                form.image
-                                            }
-                                            alt="Product image"
-                                            className="mt-3 h-56 w-full max-w-md"
-                                        />
-                                    )}
+                                    <div className="my-4 flex items-center gap-3">
+                                        <div className="h-px flex-1 bg-white/10" />
+
+                                        <span className="text-xs text-gray-500">
+                                            OR
+                                        </span>
+
+                                        <div className="h-px flex-1 bg-white/10" />
+                                    </div>
+
+                                    <input
+                                        type="url"
+                                        value={form.image}
+                                        onChange={handleImageUrlChange('image')}
+                                        placeholder="https://example.com/banner.jpg"
+                                        className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-indigo-500/50"
+                                    />
+
+                                    <p className="mt-2 text-xs text-gray-600">
+                                        Upload an image from your PC or paste an existing image URL.
+                                    </p>
+
                                 </div>
 
                                 {/* Platform images */}
                                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+
                                     <div>
                                         <label className="mb-2 block text-xs font-medium text-gray-400">
                                             Platform Image
                                         </label>
+
+                                        {form.platform_image && (
+                                            <ImagePreview
+                                                src={
+                                                    form.platform_image
+                                                }
+                                                alt="Platform"
+                                                className="mt-3 h-32 w-full mb-3"
+                                            />
+                                        )}
 
                                         <input
                                             ref={
@@ -1528,21 +1571,44 @@ export default function EditProductModal({
                                                 : 'Replace Platform Image'}
                                         </button>
 
-                                        {form.platform_image && (
-                                            <ImagePreview
-                                                src={
-                                                    form.platform_image
-                                                }
-                                                alt="Platform"
-                                                className="mt-3 h-32 w-full"
-                                            />
-                                        )}
+                                        <div className="my-4 flex items-center gap-3">
+                                            <div className="h-px flex-1 bg-white/10" />
+
+                                            <span className="text-xs text-gray-500">
+                                                OR
+                                            </span>
+
+                                            <div className="h-px flex-1 bg-white/10" />
+                                        </div>
+
+                                        <input
+                                            type="url"
+                                            value={form.platform_image}
+                                            onChange={handleImageUrlChange('platform_image')}
+                                            placeholder="https://example.com/banner.jpg"
+                                            className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-indigo-500/50"
+                                        />
+
+                                        <p className="mt-2 text-xs text-gray-600">
+                                            Upload an image from your PC or paste an existing image URL.
+                                        </p>
+
                                     </div>
 
                                     <div>
                                         <label className="mb-2 block text-xs font-medium text-gray-400">
                                             Platform Icon
                                         </label>
+
+                                        {form.platform_icon_image && (
+                                            <ImagePreview
+                                                src={
+                                                    form.platform_icon_image
+                                                }
+                                                alt="Platform icon"
+                                                className="mt-3 h-32 w-32 mb-3"
+                                            />
+                                        )}
 
                                         <input
                                             ref={
@@ -1575,23 +1641,61 @@ export default function EditProductModal({
                                                 : 'Replace Platform Icon'}
                                         </button>
 
-                                        {form.platform_icon_image && (
-                                            <ImagePreview
-                                                src={
-                                                    form.platform_icon_image
-                                                }
-                                                alt="Platform icon"
-                                                className="mt-3 h-32 w-32"
-                                            />
-                                        )}
+                                        <div className="my-4 flex items-center gap-3">
+                                            <div className="h-px flex-1 bg-white/10" />
+
+                                            <span className="text-xs text-gray-500">
+                                                OR
+                                            </span>
+
+                                            <div className="h-px flex-1 bg-white/10" />
+                                        </div>
+
+                                        {/* Image URL */}
+                                        <input
+                                            type="url"
+                                            value={form.platform_icon_image}
+                                            onChange={handleImageUrlChange('platform_icon_image')}
+                                            placeholder="https://example.com/banner.jpg"
+                                            className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-indigo-500/50"
+                                        />
+
+                                        <p className="mt-2 text-xs text-gray-600">
+                                            Upload an image from your PC or paste an existing image URL.
+                                        </p>
+
                                     </div>
+
                                 </div>
 
                                 {/* Gallery */}
                                 <div>
+
                                     <label className="mb-2 block text-xs font-medium text-gray-400">
                                         Gallery Images
                                     </label>
+
+                                    {form.gallery && (
+                                        <div className="mt-4 mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                                            {parseCommaSeparated(
+                                                form.gallery
+                                            ).map(
+                                                (
+                                                    url,
+                                                    index
+                                                ) => (
+                                                    <ImagePreview
+                                                        key={`${url}-${index}`}
+                                                        src={
+                                                            url
+                                                        }
+                                                        alt={`Gallery ${index + 1}`}
+                                                        className="h-28 w-full"
+                                                    />
+                                                )
+                                            )}
+                                        </div>
+                                    )}
 
                                     <input
                                         ref={
@@ -1621,29 +1725,33 @@ export default function EditProductModal({
                                             : 'Add Gallery Images'}
                                     </button>
 
-                                    {form.gallery && (
-                                        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                                            {parseCommaSeparated(
-                                                form.gallery
-                                            ).map(
-                                                (
-                                                    url,
-                                                    index
-                                                ) => (
-                                                    <ImagePreview
-                                                        key={`${url}-${index}`}
-                                                        src={
-                                                            url
-                                                        }
-                                                        alt={`Gallery ${index + 1}`}
-                                                        className="h-28 w-full"
-                                                    />
-                                                )
-                                            )}
-                                        </div>
-                                    )}
+                                    <div className="my-4 flex items-center gap-3">
+                                        <div className="h-px flex-1 bg-white/10" />
+
+                                        <span className="text-xs text-gray-500">
+                                            OR
+                                        </span>
+
+                                        <div className="h-px flex-1 bg-white/10" />
+                                    </div>
+
+                                    {/* Image URL */}
+                                    <input
+                                        type="url"
+                                        value={form.gallery}
+                                        onChange={handleImageUrlChange('gallery')}
+                                        placeholder="https://example.com/banner.jpg"
+                                        className="w-full rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-indigo-500/50"
+                                    />
+
+                                    <p className="mt-2 text-xs text-gray-600">
+                                        Upload an image from your PC or paste an existing image URL.
+                                    </p>
+
                                 </div>
+
                             </div>
+
                         </Section>
 
                         {/* SEO */}
