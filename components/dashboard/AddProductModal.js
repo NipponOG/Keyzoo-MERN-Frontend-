@@ -63,6 +63,7 @@ const initialForm = {
 
     status: 'draft',
 
+    available: false,
     isBestSeller: false,
     isRecommended: false,
     psn: false,
@@ -631,6 +632,9 @@ export default function AddProductModal({
 
             status:
                 form.status || 'draft',
+
+            available:
+                form.available,
 
             isBestSeller:
                 form.isBestSeller,
@@ -1339,6 +1343,10 @@ export default function AddProductModal({
                                             [
                                                 'isRecommended',
                                                 'Recommended',
+                                            ],
+                                            [
+                                                'available',
+                                                'Available',
                                             ],
                                             [
                                                 'psn',

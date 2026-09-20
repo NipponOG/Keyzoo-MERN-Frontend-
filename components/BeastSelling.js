@@ -14,6 +14,10 @@ export default function BeastSelling() {
     const [notified, setNotified] = useState({});
     const [showAllModal, setShowAllModal] = useState(false);
 
+    const handleNotify = () => {
+        console.log("Stock notification is not available yet.");
+    };
+
     useEffect(() => {
         async function getProducts() {
             try {
@@ -85,7 +89,7 @@ export default function BeastSelling() {
                                             alt={item.title || "Product"}
                                             fill
                                             sizes="(max-width: 374px) 50vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, 16vw"
-                                            className="object-cover object-center"
+                                            className="object-center"
                                         />
 
                                         {/* Platform badge */}
@@ -126,7 +130,7 @@ export default function BeastSelling() {
                                             alt={item.title || "Product"}
                                             fill
                                             sizes="(max-width: 374px) 50vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, 16vw"
-                                            className="object-cover object-center grayscale opacity-60"
+                                            className="object-center grayscale opacity-60"
                                         />
 
                                         {/* 🔥 Bottom overlay container */}
@@ -303,23 +307,9 @@ export default function BeastSelling() {
                             >
                                 {products.slice(0, 30).map((item) => {
 
-                                    const imgUrl = getStrapiMedia(
-                                        item.image?.url,
-                                        {
-                                            width: 1600,
-                                        }
-                                    );
-
-                                    const blurUrl = getStrapiMedia(
-                                        item.image?.url,
-                                        {
-                                            blur: true,
-                                        }
-                                    );
-
                                     return (
                                         <div
-                                            key={`modal-${item.id}`}
+                                            key={`modal-${item._id}`}
                                             className="mb-2"
                                         >
 
@@ -353,11 +343,12 @@ export default function BeastSelling() {
                                             overflow-hidden
                                         ">
 
-                                                        <ProductCardImage
-                                                            imgUrl={imgUrl}
-                                                            blurUrl={blurUrl}
-                                                            available={item.Available}
-                                                            title={item.title}
+                                                        <OptimizedImage
+                                                            src={item.image || "/images/placeholder.png"}
+                                                            alt={item.title || "Product"}
+                                                            fill
+                                                            sizes="(max-width: 374px) 50vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, 16vw"
+                                                            className="object-center"
                                                         />
 
                                                         {item.platform && (
@@ -471,11 +462,12 @@ export default function BeastSelling() {
                                             overflow-hidden
                                         ">
 
-                                                        <ProductCardImage
-                                                            imgUrl={imgUrl}
-                                                            blurUrl={blurUrl}
-                                                            title={item.title}
-                                                            available={item.Available}
+                                                        <OptimizedImage
+                                                            src={item.image || "/images/placeholder.png"}
+                                                            alt={item.title || "Product"}
+                                                            fill
+                                                            sizes="(max-width: 374px) 50vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, 16vw"
+                                                            className="object-center grayscale opacity-60"
                                                         />
 
                                                         {/* Notify */}
@@ -493,7 +485,7 @@ export default function BeastSelling() {
                                                                 onClick={() =>
                                                                     handleNotify(item)
                                                                 }
-                                                                disabled={notified[item.id]}
+                                                                disabled={notified[item._id]}
                                                                 className="
                                                         flex
                                                         items-center
@@ -513,9 +505,7 @@ export default function BeastSelling() {
                                                         transition
                                                     "
                                                             >
-                                                                {notified[item.id]
-                                                                    ? "✔ Notified"
-                                                                    : "🔔 Notify me"}
+                                                                {notified[item._id] ? "✔ Notified" : "🔔 Notify me"}
                                                             </button>
                                                         </div>
 

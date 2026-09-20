@@ -137,7 +137,7 @@ export default function ProductCarousel() {
                                             alt={item.title || "Product"}
                                             fill
                                             sizes="(max-width: 374px) 50vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, 16vw"
-                                            className="object-cover object-center"
+                                            className="object-center"
                                         />
 
                                         {/* Platform badge */}
@@ -198,7 +198,7 @@ export default function ProductCarousel() {
                                         alt={item.title || "Product"}
                                         fill
                                         sizes="(max-width: 374px) 50vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, 16vw"
-                                        className="object-cover object-center grayscale opacity-60"
+                                        className="object-center grayscale opacity-60"
                                     />
 
                                     {/* Notify button */}

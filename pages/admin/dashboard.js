@@ -10,7 +10,7 @@ import ActiveOffersCard from "@/components/dashboard/ActiveOffersCard";
 import ProductInventoryRow from "@/components/dashboard/ProductInventoryRow";
 import InventoryCard from "@/components/dashboard/InventoryCard";
 import { MdContentCopy, MdCached } from "react-icons/md";
-import { FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp, FiTrash2 } from "react-icons/fi";
 import { useEffect, useState } from "react";
 import GlassCard from "@/components/GlassCard";
 import UploadKeysModal from "@/components/dashboard/UploadKeysModal";
@@ -88,9 +88,95 @@ const dashboard = () => {
     const inventorySearchRef = useRef(null);
     const orderSearchRef = useRef(null);
 
-    // const visibleProducts = inventoryExpanded
-    //     ? products
-    //     : products.slice(0, 5);
+    const [selectedProducts, setSelectedProducts] = useState([]);
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
+    const handleSelectProduct = (id) => {
+        setSelectedProducts((prev) =>
+            prev.includes(id)
+                ? prev.filter((item) => item !== id)
+                : [...prev, id]
+        );
+    };
+
+    const handleSelectAll = () => {
+        const displayedIds = displayedProducts.map(
+            (product) => product._id
+        );
+
+        const allSelected = displayedIds.every((id) =>
+            selectedProducts.includes(id)
+        );
+
+        if (allSelected) {
+            setSelectedProducts((prev) =>
+                prev.filter((id) => !displayedIds.includes(id))
+            );
+        } else {
+            setSelectedProducts((prev) => [
+                ...new Set([...prev, ...displayedIds]),
+            ]);
+        }
+    };
+
+    const handleClearSelection = () => {
+        setSelectedProducts([]);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedProducts.length === 0) return;
+
+        const confirmed = window.confirm(
+            `Are you sure you want to delete ${selectedProducts.length} selected item(s)?`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            setBulkDeleteLoading(true);
+
+            const items = selectedProducts.map((id) => {
+                const product = products.find(
+                    (item) => item._id === id
+                );
+
+                return {
+                    id,
+                    type: product?.type,
+                };
+            });
+
+            const data = await adminFetch(
+                "/admin/inventory/bulk",
+                {
+                    method: "DELETE",
+                    body: JSON.stringify({ items }),
+                }
+            );
+
+            if (data.blocked?.length > 0) {
+                console.warn(
+                    "Some items were not deleted:",
+                    data.blocked
+                );
+            }
+
+            setSelectedProducts([]);
+
+            await fetchInventory();
+        } catch (error) {
+            console.error(
+                "Bulk delete error:",
+                error
+            );
+
+            window.alert(
+                error.message || "Failed to delete selected items."
+            );
+        } finally {
+            setBulkDeleteLoading(false);
+        }
+    };
 
     const filteredProducts = products.filter((product) => {
 
@@ -1318,6 +1404,42 @@ const dashboard = () => {
                             {/* Product Featch */}
                             <div className="rounded-2xl border border-[#23262d] bg-[#1b1b1b] p-6">
 
+                                {selectedProducts.length > 0 && (
+                                    <div className="mb-4 flex items-center justify-between rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm font-medium text-white">
+                                                {selectedProducts.length} selected
+                                            </span>
+
+                                            <button
+                                                type="button"
+                                                onClick={handleSelectAll}
+                                                className="cursor-pointer text-sm text-indigo-400 transition hover:text-indigo-300"
+                                            >
+                                                Select All
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={handleClearSelection}
+                                                className="cursor-pointer text-sm text-gray-400 transition hover:text-white"
+                                            >
+                                                Clear
+                                            </button>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            disabled={bulkDeleteLoading}
+                                            onClick={handleBulkDelete}
+                                            className="cursor-pointer flex items-center gap-2 rounded-lg bg-red-500/15 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            <FiTrash2 />
+                                            Delete Selected
+                                        </button>
+                                    </div>
+                                )}
+
                                 <div className="flex items-center justify-between mb-6">
 
                                     <div>
@@ -1430,25 +1552,6 @@ shadow-lg
 
                                 </div>
 
-                                {/* <div
-                                    className={`space-y-4 ${inventoryExpanded
-                                        ? "max-h-[70vh] overflow-y-auto pr-2"
-                                        : ""
-                                        }`}
-                                >
-                                    <div className="space-y-4">
-                                        {visibleProducts.map((product) => (
-                                            <ProductInventoryRow
-                                                key={product.documentId || product.id}
-                                                product={product}
-                                                onUpload={() => setSelectedProduct(product)}
-                                                onView={() => handleViewKeys(product)}
-                                            />
-                                        ))}
-
-                                    </div>
-                                </div> */}
-
                                 {inventoryExpanded ? (
                                     <div
                                         ref={parentRef}
@@ -1494,6 +1597,8 @@ shadow-lg
                                                             onToggleVisibility={() =>
                                                                 handleToggleVisibility(product)
                                                             }
+                                                            selected={selectedProducts.includes(product._id)}
+                                                            onSelect={handleSelectProduct}
                                                         />
                                                     </div>
                                                 );
@@ -1517,6 +1622,8 @@ shadow-lg
                                                     setShowDeleteProductModal(true);
                                                 }}
                                                 onToggleVisibility={() => handleToggleVisibility(product)}
+                                                selected={selectedProducts.includes(product._id)}
+                                                onSelect={handleSelectProduct}
                                             />
                                         ))}
                                     </div>

@@ -57,6 +57,7 @@ const emptyForm = {
 
     status: 'draft',
 
+    available: false,
     isBestSeller: false,
     isRecommended: false,
     psn: false,
@@ -437,6 +438,7 @@ export default function EditProductModal({
 
             status: product.status ?? 'draft',
 
+            available: Boolean(product.available),
             isBestSeller: Boolean(product.isBestSeller),
             isRecommended: Boolean(product.isRecommended),
             psn: Boolean(product.psn),
@@ -774,6 +776,9 @@ export default function EditProductModal({
             status:
                 form.status || 'draft',
 
+            available:
+                form.available,
+
             isBestSeller:
                 form.isBestSeller,
 
@@ -808,8 +813,13 @@ export default function EditProductModal({
         try {
             const payload = buildPayload();
 
+            const endpoint =
+                product.type === 'gift-card'
+                    ? `/admin/gift-cards/${product._id}`
+                    : `/admin/products/${product._id}`;
+
             const data = await adminFetch(
-                `/admin/products/${product._id}`,
+                endpoint,
                 {
                     method: 'PUT',
                     body: JSON.stringify(payload),
@@ -1116,6 +1126,10 @@ export default function EditProductModal({
                                             [
                                                 'isRecommended',
                                                 'Recommended',
+                                            ],
+                                            [
+                                                'available',
+                                                'available'
                                             ],
                                             [
                                                 'psn',

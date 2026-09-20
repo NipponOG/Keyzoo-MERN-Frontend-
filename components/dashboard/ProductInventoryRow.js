@@ -8,7 +8,7 @@ import {
     FiTrash2,
 } from "react-icons/fi";
 
-export default function ProductInventoryRow({ product, onUpload, onView, onEdit, onDelete, onToggleVisibility }) {
+export default function ProductInventoryRow({ product, onUpload, onView, onEdit, onDelete, onToggleVisibility, selected, onSelect }) {
 
     // const availableKeys = product.availableKeys ?? 10;
     // const soldKeys = product.soldKeys ?? 5;
@@ -33,6 +33,7 @@ export default function ProductInventoryRow({ product, onUpload, onView, onEdit,
     const totalKeys = Number(
         product.totalKeys || (availableKeys + soldKeys)
     );
+    const isAvailable = product.available === true;
 
     const stockStatus =
         product.stockStatus ||
@@ -72,7 +73,20 @@ export default function ProductInventoryRow({ product, onUpload, onView, onEdit,
         statusConfig["Out of Stock"];
 
     return (
+
         <div className="rounded-2xl border border-[#2b2b2b] bg-[#1b1b1b] p-6">
+            <div className="mb-4 flex items-center gap-3">
+                <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={() => onSelect(product._id)}
+                    className="h-4 w-4 cursor-pointer accent-indigo-500"
+                />
+
+                <span className="text-sm text-gray-400">
+                    Select product
+                </span>
+            </div>
 
             <div className="flex flex-col xl:flex-row gap-8">
 
@@ -82,7 +96,7 @@ export default function ProductInventoryRow({ product, onUpload, onView, onEdit,
                 <div className="flex gap-5 basis-[520px] flex-shrink-0">
 
                     <Image
-                        src={getStrapiMedia(product.image)}
+                        src={product.image}
                         alt={product.title}
                         width={110}
                         height={150}
@@ -100,20 +114,29 @@ export default function ProductInventoryRow({ product, onUpload, onView, onEdit,
 
                                 <span
                                     className={`mt-1 flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide ${product.status === "published"
-                                            ? "bg-green-500/15 text-green-400"
-                                            : "bg-red-500/15 text-red-400"
+                                        ? "bg-green-500/15 text-green-400"
+                                        : "bg-red-500/15 text-red-400"
                                         }`}
                                 >
                                     <span
                                         className={`w-1.5 h-1.5 rounded-full ${product.status === "published"
-                                                ? "bg-green-400"
-                                                : "bg-red-400"
+                                            ? "bg-green-400"
+                                            : "bg-red-400"
                                             }`}
                                     />
 
                                     {product.status === "published"
                                         ? "Live"
                                         : "Hidden"}
+                                </span>
+
+                                <span
+                                    className={`rounded-full px-3 py-1 text-xs font-medium ${isAvailable
+                                        ? "bg-green-100 text-green-700"
+                                        : "bg-red-100 text-red-700"
+                                        }`}
+                                >
+                                    {isAvailable ? "Available" : "Unavailable"}
                                 </span>
                             </div>
 

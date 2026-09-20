@@ -36,6 +36,9 @@ export default function ViewKeysModal({
     const [copiedId, setCopiedId] = useState(null);
     const [localKeys, setLocalKeys] = useState(keys);
 
+    const [selectedKeys, setSelectedKeys] = useState([]);
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
     const filteredKeys = useMemo(() => {
 
         return localKeys.filter((key) => {
@@ -172,6 +175,43 @@ export default function ViewKeysModal({
         }
     };
 
+    const handleSelectKey = (id) => {
+        setSelectedKeys((prev) =>
+            prev.includes(id)
+                ? prev.filter((item) => item !== id)
+                : [...prev, id]
+        );
+    };
+
+    const handleSelectAllKeys = () => {
+        const visibleIds = filteredKeys.map(
+            (key) => key._id
+        );
+
+        const allSelected = visibleIds.every((id) =>
+            selectedKeys.includes(id)
+        );
+
+        if (allSelected) {
+            setSelectedKeys((prev) =>
+                prev.filter(
+                    (id) => !visibleIds.includes(id)
+                )
+            );
+        } else {
+            setSelectedKeys((prev) => [
+                ...new Set([
+                    ...prev,
+                    ...visibleIds,
+                ]),
+            ]);
+        }
+    };
+
+    const handleClearKeySelection = () => {
+        setSelectedKeys([]);
+    };
+
     useEffect(() => {
         setLocalKeys(keys);
     }, [keys]);
@@ -226,7 +266,7 @@ export default function ViewKeysModal({
                     <div className="flex gap-5">
 
                         <Image
-                            src={getStrapiMedia(product.image?.url)}
+                            src={product.image}
                             alt={product.title}
                             width={90}
                             height={120}
@@ -309,6 +349,41 @@ export default function ViewKeysModal({
 
                 </div>
 
+                {selectedKeys.length > 0 && (
+                    <div className="px-6 py-3 border-b border-[#2b2b2b] bg-indigo-500/10 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm font-medium text-white">
+                                {selectedKeys.length} selected
+                            </span>
+
+                            <button
+                                type="button"
+                                onClick={handleSelectAllKeys}
+                                className="cursor-pointer text-sm text-indigo-400 hover:text-indigo-300"
+                            >
+                                Select All
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleClearKeySelection}
+                                className="cursor-pointer text-sm text-gray-400 hover:text-white"
+                            >
+                                Clear
+                            </button>
+                        </div>
+
+                        <button
+                            type="button"
+                            disabled={bulkDeleteLoading}
+                            className="cursor-pointer flex items-center gap-2 rounded-lg bg-red-500/15 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <HugeiconsIcon icon={Delete02Icon} />
+                            Delete Selected
+                        </button>
+                    </div>
+                )}
+
                 {/* Search */}
 
                 <div className="p-6 border-b border-[#2b2b2b] flex gap-4">
@@ -338,6 +413,8 @@ export default function ViewKeysModal({
 
                 </div>
 
+
+
                 {/* Table */}
 
                 <div className="flex-1 overflow-y-auto">
@@ -352,6 +429,13 @@ export default function ViewKeysModal({
                             {/* Key */}
 
                             <div className="flex min-w-0 items-center gap-4">
+
+                                <input
+                                    type="checkbox"
+                                    checked={selectedKeys.includes(key._id)}
+                                    onChange={() => handleSelectKey(key._id)}
+                                    className="h-4 w-4 cursor-pointer accent-indigo-500"
+                                />
 
                                 <button
                                     onClick={() =>

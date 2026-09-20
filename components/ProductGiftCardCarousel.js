@@ -1,94 +1,55 @@
 import { useEffect, useState } from 'react';
-import { fetchFromStrapi } from '@/lib/strapi';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import 'swiper/css/navigation';
-import { Autoplay, Navigation } from 'swiper/modules';
-import Image from 'next/image';
+import { Navigation } from 'swiper/modules';
 import Link from 'next/link';
 import useCurrency from '@/hook/useCurrency';
 import HoverCard from '@/components/HoverCard';
-import { getStrapiMedia } from '@/lib/getStrapiMedia';
-import ProductCardImage from '@/components/ProductCardImage';
+import OptimizedImage from "@/components/Image/OptimizedImage";
 
 export default function ProductGiftCardCarousel() {
+
     const { symbol } = useCurrency();
     const [products, setProducts] = useState([]);
+    const [notified, setNotified] = useState({});
 
-    // useEffect(() => {
-    //     async function getProducts() {
-    //         try {
-    //             const res = await fetchFromStrapi('api/gift-cards?populate=*');
-    //             // const res = await fetchFromStrapi('api/products?filters[isGiftCard][$eq]=true&populate=*');
-    //             // const resImage = await fetchFromStrapi('/products?populate=image');
-    //             setProducts(res.data || []);
-    //             // setProducts(resImage.data || []);
-    //         } catch (error) {
-    //             console.error('Failed to fetch products:', error);
-    //         }
-    //     }
-
-    //     getProducts();
-    // }, []);
+    const handleNotify = () => {
+        console.log("Stock notification is not available yet.");
+    };
 
     useEffect(() => {
-        async function getData() {
+        async function getGiftCards() {
             try {
-                // Fetch both collections in parallel
-                const [PlayStationsGiftCardRes, XboxGiftCardRes, SpotifyGiftCardRes, RobloxGiftCardRes, BinanceGiftCardRes, SteamGiftCardRes] = await Promise.all([
-                    // fetchFromStrapi('api/products?populate=*'),
-                    fetchFromStrapi('api/play-station-gift-cards?populate=*'),
-                    fetchFromStrapi('api/xbox-gift-cards?populate=*'),
-                    fetchFromStrapi('api/spotify-gift-cards?populate=*'),
-                    fetchFromStrapi('api/roblox-gift-cards?populate=*'),
-                    fetchFromStrapi('api/binance-gift-cards?populate=*'),
-                    fetchFromStrapi('api/steam-gift-cards?populate=*')
-                ]);
+                const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-                // Normalize gift cards
-                const PlayStationsGiftCard = (PlayStationsGiftCardRes.data || []).map((item) => ({
-                    ...item,
-                    type: "psn"
-                }));
+                const res = await fetch(
+                    `${API_URL}/gift-cards/best-selling`,
+                    {
+                        cache: 'no-store',
+                    }
+                );
 
-                // Normalize gift cards
-                const XboxGiftCard = (XboxGiftCardRes.data || []).map((item) => ({
-                    ...item,
-                    type: 'xbox'
-                }));
+                if (!res.ok) {
+                    throw new Error(
+                        'Failed to fetch best selling gift cards'
+                    );
+                }
 
-                // Normalize gift cards
-                const SpotifyGiftCard = (SpotifyGiftCardRes.data || []).map((item) => ({
-                    ...item,
-                    type: 'spotify'
-                }));
+                const data = await res.json();
 
-                // Normalize gift cards
-                const RobloxGiftCard = (RobloxGiftCardRes.data || []).map((item) => ({
-                    ...item,
-                    type: 'roblox'
-                }));
-
-                // Normalize gift cards
-                const BinanceGiftCard = (BinanceGiftCardRes.data || []).map((item) => ({
-                    ...item,
-                    type: 'binance'
-                }));
-
-                // Normalize gift cards
-                const SteamGiftCard = (SteamGiftCardRes.data || []).map((item) => ({
-                    ...item,
-                    type: 'steam'
-                }));
-
-                // Merge both collections
-                setProducts([...PlayStationsGiftCard, ...XboxGiftCard, ...SpotifyGiftCard, ...RobloxGiftCard, ...BinanceGiftCard, ...SteamGiftCard]);
+                setProducts(data?.data || []);
             } catch (error) {
-                console.error('Failed to fetch items:', error);
+                console.error(
+                    'Failed to fetch best selling gift cards:',
+                    error
+                );
+
+                setProducts([]);
             }
         }
 
-        getData();
+        getGiftCards();
     }, []);
 
     return (
@@ -180,114 +141,23 @@ export default function ProductGiftCardCarousel() {
             >
                 {products.map((item) => {
 
-                    //   const { title, slug, price, coverImage } = item.attributes;
-
-                    const imgUrl = getStrapiMedia(
-                        item.image?.url,
-                        {
-                            width: 1600,
-                        }
-                    );
-
-                    const blurUrl = getStrapiMedia(
-                        item.image?.url,
-                        {
-                            blur: true,
-                        }
-                    );
-
                     return (
-                        // <SwiperSlide key={item.id} className='mb-2 mt-2'>
-                        //     {item.Available ? (<Link
-                        //         href={`/store/category/gift-card/${item.type}/${item.slug}`}
-                        //         // className="block p-1 rounded-lg hover:shadow-md transition bg-white dark:bg-[#1a1a1a] relative max-w-[260px] mx-auto"
-                        //         className="block p-[5px] rounded-xl bg-white dark:bg-[#1a1a1a] relative max-w-[260px] mx-auto shadow-sm dark:shadow-none hover:shadow-lg transition-transform duration-300 transform hover:-translate-y-1">
-                        //         <div className="relative w-full aspect-[3/5] mb-1.5 rounded-md overflow-hidden">
-                        //             {/* {imageUrl && ( */}
-                        //             <Image
-                        //                 src={imgUrl}
-                        //                 alt={item.title}
-                        //                 fill
-                        //                 className={`object-center transition ${item.Available ? '' : 'grayscale opacity-60'}`}
-                        //             />
-                        //             {/* )} */}
 
-                        //             {/* Platform badge */}
-                        //             {item.platform && (
-                        //                 <span className="absolute top-2 left-2 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded uppercase">
-                        //                     {item.platform}
-                        //                 </span>
-                        //             )}
-
-                        //             {/* Discount ribbon */}
-                        //             {item.originalPrice && item.originalPrice > item.price && (
-                        //                 <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded">
-                        //                     -{Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%
-                        //                 </span>
-                        //             )}
-                        //         </div>
-                        //         <div className='bg-gray-100 dark:bg-black/30 backdrop-blur-sm px-1 py-1 rounded-b-md'>
-                        //             <HoverCard title={item.title}><h3 className="text-sm font-semibold line-clamp-2 leading-snug px-3 mt-1 text-black">{item.title}</h3></HoverCard>
-                        //             <h3 className="text-sm font-semibold text-blue-600 px-3 mt-1 line-clamp-1">{item.card_region}</h3>
-                        //             <p className="text-sm text-gray-600 dark:text-gray-300 px-3 mt-2 mb-2">
-                        //                 {symbol} {Number(item.discountPrice).toFixed(2)}
-                        //             </p>
-                        //         </div>
-                        //     </Link>) : (<div
-                        //         // href={`/gift-card/${item.slug}`}
-                        //         // className="block p-1 rounded-lg hover:shadow-md transition bg-white dark:bg-[#1a1a1a] relative max-w-[260px] mx-auto"
-                        //         className="block p-1 rounded-lg bg-white dark:bg-[#1a1a1a] relative max-w-[260px] mx-auto shadow-sm dark:shadow-none hover:shadow-lg transition-transform duration-300 transform hover:-translate-y-1 cursor-not-allowed">
-                        //         <div className="relative w-full aspect-[3/5] mb-1.5 rounded-md overflow-hidden">
-                        //             {/* {imageUrl && ( */}
-                        //             <Image
-                        //                 src={imgUrl}
-                        //                 alt={item.title}
-                        //                 fill
-                        //                 className={`object-center transition ${item.Available ? '' : 'grayscale opacity-60'}`}
-                        //             />
-                        //             {/* )} */}
-
-                        //             {/* Platform badge */}
-                        //             {item.platform && (
-                        //                 <span className="absolute top-2 left-2 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded uppercase">
-                        //                     {item.platform}
-                        //                 </span>
-                        //             )}
-
-                        //             {/* Discount ribbon */}
-                        //             {item.originalPrice && item.originalPrice > item.price && (
-                        //                 <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded">
-                        //                     -{Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%
-                        //                 </span>
-                        //             )}
-                        //         </div>
-                        //         <div className='bg-gray-100 dark:bg-black/30 backdrop-blur-sm px-1 py-1 rounded-b-md'>
-                        //             <HoverCard title={item.title}>
-                        //                 <h3 className="text-md font-semibold line-clamp-2 px-3 mt-1 text-black">{item.title}</h3>
-                        //             </HoverCard>
-                        //             <h3 className="text-lg font-semibold text-blue-600 px-3 mt-1">{item.card_region}</h3>
-                        //             <p className="text-lg text-[#B22222] font-extrabold dark:text-gray-300 px-3 mt-2 mb-2">
-                        //                 Sold Out
-                        //             </p>
-                        //         </div>
-                        //     </div>)}
-                        // </SwiperSlide>
-
-                        <SwiperSlide key={item.id} className='mb-2 mt-2'>
-                            {item.Available ? (<Link
+                        <SwiperSlide key={item._id} className="mb-2 mt-2">
+                            {item.available ? (<Link
                                 href={`/product/${item.slug}`}
                                 // className="block p-1 rounded-lg hover:shadow-md transition bg-white dark:bg-[#1a1a1a] relative max-w-[260px] mx-auto"
                                 className="block p-1 rounded-lg bg-white dark:bg-[#1a1a1a] relative min-w-[200px] mx-auto shadow-sm dark:shadow-none hover:shadow-lg transition-transform duration-300 transform hover:-translate-y-1"
                             >
                                 <div className="relative w-full aspect-[3/5] mb-1.5 rounded-md overflow-hidden">
                                     {/* {imageUrl && ( */}
-                                    <ProductCardImage
-                                        imgUrl={imgUrl}
-                                        blurUrl={blurUrl}
-                                        available={item.Available}
-                                    // alt={item.title}
-                                    // fill
-                                    // className="object-center"
+                                    <OptimizedImage
+                                        src={item.image}
+                                        alt={item.title || "Gift Card"}
+                                        available={item.available}
+                                        sizes="(max-width: 374px) 50vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, 16vw"
+                                        fill
+                                        className="object-center"
                                     />
                                     {/* )} */}
 
@@ -322,16 +192,15 @@ export default function ProductGiftCardCarousel() {
                                 className="block p-1 rounded-lg bg-white dark:bg-[#1a1a1a] relative min-w-[200px] mx-auto shadow-sm dark:shadow-none hover:shadow-lg transition-transform duration-300 transform hover:-translate-y-1 cursor-not-allowed"
                             >
                                 <div className="relative w-full aspect-[3/5] mb-1.5 rounded-md overflow-hidden">
-                                    {/* {imageUrl && ( */}
-                                    <ProductCardImage
-                                        imgUrl={imgUrl}
-                                        blurUrl={blurUrl}
-                                        available={item.Available}
-                                    // alt={item.title}
-                                    // fill
-                                    // className={`object-center transition ${item.Available ? '' : 'grayscale opacity-60'}`}
+
+                                    <OptimizedImage
+                                        src={item.image}
+                                        alt={item.title || "Gift Card"}
+                                        available={item.available}
+                                        sizes="(max-width: 374px) 50vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, 16vw"
+                                        fill
+                                        className="object-center grayscale opacity-60"
                                     />
-                                    {/* )} */}
 
                                     {/* 🔥 Bottom overlay container */}
                                     <div className="absolute bottom-3 left-0 w-full flex justify-center px-3">
