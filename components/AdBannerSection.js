@@ -1,87 +1,10 @@
-// import Image from "next/image";
-
-// export default function AdBannerSection() {
-//     return (
-//         <section className="w-full flex flex-col md:flex-row rounded-3xl overflow-hidden bg-[#18181c]">
-
-//             {/* LEFT IMAGE */}
-//             <div className="w-full md:w-1/2 relative min-h-[350px] md:min-h-[750px]">
-//                 <Image
-//                     src="https://res.cloudinary.com/dblttl9bh/image/upload/v1776266311/the_last_of_us_part_i_desktop_1080x1920_en_14mar23_288b378f06.webp" // 👉 replace with your image
-//                     alt="Game Banner"
-//                     fill
-//                     className="object-cover"
-//                 />
-//             </div>
-
-//             {/* RIGHT CONTENT */}
-//             <div className="w-full md:w-1/2 p-6 sm:p-10 flex flex-col justify-center bg-[#1f1f23]">
-
-//                 {/* LOGO / TITLE */}
-//                 <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-//                     STAR WARS <br /> JEDI SURVIVOR
-//                 </h2>
-
-//                 {/* DESCRIPTION */}
-//                 <p className="text-gray-400 text-sm sm:text-base mb-6 leading-relaxed">
-//                     The story of Cal Kestis continues in STAR WARS Jedi: Survivor™,
-//                     an epic new adventure that will push Cal further than ever.
-//                 </p>
-
-//                 {/* VIDEO PREVIEW */}
-//                 <div className="flex gap-4 mb-6">
-
-//                     <div className="relative w-1/2 h-24 sm:h-28 rounded-lg overflow-hidden">
-//                         <Image
-//                             src="/thumb1.jpg"
-//                             alt="Preview"
-//                             fill
-//                             className="object-cover"
-//                         />
-//                         <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-//                             ▶
-//                         </div>
-//                     </div>
-
-//                     <div className="relative w-1/2 h-24 sm:h-28 rounded-lg overflow-hidden">
-//                         <Image
-//                             src="/thumb2.jpg"
-//                             alt="Preview"
-//                             fill
-//                             className="object-cover"
-//                         />
-//                         <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-//                             ▶
-//                         </div>
-//                     </div>
-
-//                 </div>
-
-//                 {/* CTA */}
-//                 <button className="w-fit px-6 py-2 rounded-full bg-purple-600 hover:bg-purple-700 transition text-white font-medium">
-//                     Take It Now!
-//                 </button>
-
-//             </div>
-//         </section>
-//     );
-// }
-
-
-
-
-
-
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { fetchFromStrapi } from "@/lib/strapi";
-// import { getStrapiMedia } from "@/lib/media";
 import { IoMdCloseCircleOutline } from "react-icons/io";
 import { IoPlay } from "react-icons/io5";
 import { useRouter } from "next/router";
 import Skeleton from "react-loading-skeleton";
-import ProductCardImage from "@/components/ProductCardImage";
-import { getStrapiMedia } from "@/lib/getStrapiMedia";
+import OptimizedImage from "@/components/Image/OptimizedImage";
 
 export default function AdBannerSection() {
 
@@ -92,40 +15,41 @@ export default function AdBannerSection() {
     useEffect(() => {
         async function fetchAds() {
             try {
-
-                // const res = await fetchFromStrapi("api/ad-banner-sections?populate=*");
-                // setAds(res.data || []);
+                const API_URL =
+                    process.env.NEXT_PUBLIC_API_URL;
 
                 const res = await fetch(
-                    "/api/home/ad-banner"
+                    `${API_URL}/home/ad-banners`,
+                    {
+                        cache: "no-store",
+                    }
                 );
+
+                if (!res.ok) {
+                    throw new Error(
+                        "Failed to fetch ad banners"
+                    );
+                }
 
                 const data = await res.json();
 
-                setAds(data || []);
-
+                setAds(data?.data || []);
             } catch (error) {
-                console.error("Failed to fetch ads:", error);
+                console.error(
+                    "Failed to fetch ad banners:",
+                    error
+                );
+
+                setAds([]);
             }
         }
 
         fetchAds();
     }, []);
 
-    // if (!ads.length) return null;
-
     if (!ads.length) {
         return (
-            // <section className="w-full flex flex-col md:flex-row rounded-3xl mb-6">
-            //     <div>
-            //         <Skeleton height={350} borderRadius={16} />
-            //         {/* <Skeleton height={500} borderRadius={16} />
-            //         <Skeleton height={500} borderRadius={16} />
-            //         <Skeleton height={500} borderRadius={16} />
-            //         <Skeleton height={500} borderRadius={16} />
-            //         <Skeleton height={500} borderRadius={16} /> */}
-            //     </div>
-            // </section>
+
             <section className="w-full flex flex-col md:flex-row rounded-3xl overflow-hidden mb-6 gap-0">
 
                 {/* LEFT IMAGE SKELETON */}
@@ -176,21 +100,11 @@ export default function AdBannerSection() {
         <>
             {ads.map((ad, index) => {
 
-                const imgUrl = getStrapiMedia(
-                    ad.image?.url,
-                    {
-                        width: 1600,
-                    }
-                );
+                const imgUrl = ad.image || null;
 
-                const blurUrl = getStrapiMedia(
-                    ad.image?.url,
-                    {
-                        blur: true,
-                    }
-                );
+                const blurUrl = ad.image || null;
 
-                const logoUrl = getStrapiMedia(ad.logo?.url);
+                const logoUrl = ad.logo || null;
 
                 const youtubeVideoId = ad.youtubeVideoId;
 
@@ -206,15 +120,13 @@ export default function AdBannerSection() {
 
                         {/* LEFT IMAGE */}
                         <div className="w-full md:w-1/2 relative min-h-[350px] md:min-h-[750px]">
-                            {imgUrl && (
-                                <ProductCardImage
-                                    imgUrl={imgUrl}
-                                    blurUrl={blurUrl}
-                                    alt="Banner"
-                                    fill
-                                    className="object-cover"
-                                />
-                            )}
+
+                            <OptimizedImage
+                                src={ad.image}
+                                alt="Banner"
+                                fill
+                                className="object-cover"
+                            />
 
                             <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
                         </div>
@@ -226,15 +138,15 @@ export default function AdBannerSection() {
 
                                 {/* TITLE */}
                                 {/* <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4"> */}
-                                {logoUrl && (
-                                    <Image
-                                        src={logoUrl}
-                                        alt="Logo"
-                                        width={200}
-                                        height={100}
-                                        className="mx-auto mb-6"
-                                    />
-                                )}
+
+                                <Image
+                                    src={ad.logo}
+                                    alt="Logo"
+                                    width={200}
+                                    height={100}
+                                    className="mx-auto mb-6"
+                                />
+
                                 {/* </h2> */}
 
                                 {/* DESCRIPTION */}

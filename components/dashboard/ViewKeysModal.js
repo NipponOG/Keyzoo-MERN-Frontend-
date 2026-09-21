@@ -212,6 +212,74 @@ export default function ViewKeysModal({
         setSelectedKeys([]);
     };
 
+    const handleBulkDelete = async () => {
+        if (selectedKeys.length === 0) return;
+
+        const confirmed = window.confirm(
+            `Are you sure you want to delete ${selectedKeys.length} selected key(s)?`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            setBulkDeleteLoading(true);
+
+            const data = await adminFetch(
+                "/admin/game-keys/bulk",
+                {
+                    method: "DELETE",
+                    body: JSON.stringify({
+                        ids: selectedKeys,
+                    }),
+                }
+            );
+
+            if (!data?.success) {
+                throw new Error(
+                    data?.message ||
+                    "Failed to delete selected keys."
+                );
+            }
+
+            const deletedIds = new Set(
+                data.deleted?.map((item) => item.id) || []
+            );
+
+            setLocalKeys((prev) =>
+                prev.filter(
+                    (key) => !deletedIds.has(key._id)
+                )
+            );
+
+            setSelectedKeys([]);
+
+            onDelete?.(
+                localKeys.filter(
+                    (key) => !deletedIds.has(key._id)
+                )
+            );
+
+            if (data.blocked?.length > 0) {
+                alert(
+                    `${data.deleted?.length || 0} key(s) deleted. ` +
+                    `${data.blocked.length} sold/assigned key(s) were not deleted.`
+                );
+            }
+        } catch (err) {
+            console.error(
+                "Bulk game-key delete error:",
+                err
+            );
+
+            alert(
+                err.message ||
+                "Failed to delete selected keys."
+            );
+        } finally {
+            setBulkDeleteLoading(false);
+        }
+    };
+
     useEffect(() => {
         setLocalKeys(keys);
     }, [keys]);
@@ -375,11 +443,15 @@ export default function ViewKeysModal({
 
                         <button
                             type="button"
+                            onClick={handleBulkDelete}
                             disabled={bulkDeleteLoading}
                             className="cursor-pointer flex items-center gap-2 rounded-lg bg-red-500/15 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <HugeiconsIcon icon={Delete02Icon} />
-                            Delete Selected
+
+                            {bulkDeleteLoading
+                                ? "Deleting..."
+                                : "Delete Selected"}
                         </button>
                     </div>
                 )}
