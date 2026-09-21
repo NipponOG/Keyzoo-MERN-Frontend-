@@ -7,7 +7,6 @@ import debounce from "lodash.debounce";
 import Image from "next/image";
 import useCurrency from "@/hook/useCurrency";
 import { useRouter } from "next/router";
-import { getStrapiMedia } from "@/lib/getStrapiMedia";
 
 export default function LiveSearch({ isSearchOpen, setIsSearchOpen }) {
     const [query, setQuery] = useState("");
@@ -96,22 +95,33 @@ export default function LiveSearch({ isSearchOpen, setIsSearchOpen }) {
         }
 
         try {
+            const API_URL =
+                process.env.NEXT_PUBLIC_API_URL;
 
             const res = await fetch(
-                `/api/search/live-search?q=${encodeURIComponent(q)}`
+                `${API_URL}/search/live?q=${encodeURIComponent(q)}`,
+                {
+                    cache: "no-store",
+                }
             );
+
+            if (!res.ok) {
+                throw new Error(
+                    "Failed to fetch search results"
+                );
+            }
 
             const data = await res.json();
 
-            setResults(data || []);
-
+            setResults(data?.data || []);
         } catch (err) {
-
-            console.error("Error fetching search results:", err);
+            console.error(
+                "Error fetching search results:",
+                err
+            );
 
             setResults([]);
         }
-
     }, 300);
 
     useEffect(() => {
@@ -195,22 +205,16 @@ export default function LiveSearch({ isSearchOpen, setIsSearchOpen }) {
                                             >
                                                 {/* Thumbnail */}
                                                 <Image
-                                                    // src={item.image.url}
-                                                    // src={getStrapiMedia(item.image?.url || "/keyzoo-fallback.png")}
-                                                    src={item.image?.url ? getStrapiMedia(item.image.url) : "/keyzoo-fallback.png"
-                                                    }
+                                                    src={item.image || "/keyzoo-fallback.png"}
                                                     alt={item.title}
-                                                    // height={50}
-                                                    // width={50}
-                                                    // className="w-[72px] h-[102px] object-center rounded"
                                                     width={80}
                                                     height={110}
                                                     className="
-                                                w-[80px]
-                                                h-[110px]
-                                                rounded-md
-                                                object-center
-                                                flex-shrink-0"
+                                                    w-[80px]
+                                                    h-[110px]
+                                                    rounded-md
+                                                    object-center
+                                                    flex-shrink-0"
                                                 />
 
                                                 {/* Info */}
