@@ -32,114 +32,46 @@ import HoverCard from "@/components/HoverCard";
 // import { getStrapiMedia } from "@/lib/media";
 import { getStrapiMedia } from '@/lib/getStrapiMedia';
 import RegionFlag from '@/components/RegionFlag';
-import redis from "@/lib/redis";
 
-// export async function getServerSideProps({ params }) {
-//   const { slug } = params;
-
-//   const res = await fetchFromStrapi(`api/products?filters[slug][$eq]=${slug}&populate=*`);
-//   const product = res.data[0] || null;
-
-//   return {
-//     props: {
-//       product,
-//     },
-//   };
-// }
-
-// this is for var not region
-// export async function getServerSideProps({ params }) {
-//   const { slug } = params;
-
-//   // Fetch product with all relations (including variations)
-//   const res = await fetchFromStrapi(
-//     `api/products?filters[slug][$eq]=${slug}&populate=*`
-//   );
-
-//   const product = res?.data?.[0] || null;
-
-//   return {
-//     props: {
-//       product,
-//     },
-//   };
-// }
-
-// export async function getServerSideProps({ params }) {
-
-//   const { slug } = params;
-
-//   const productRes = await fetchFromStrapi(
-//     `api/products?filters[slug][$eq]=${slug}&populate=*`,
-//   );
-
-//   const regionsRes = await fetchFromStrapi(
-//     `api/regions`, // 👈 your region collection
-//   );
-
-//   return {
-//     props: {
-//       product: productRes?.data?.[0] || null,
-//       regionsData: regionsRes?.data || [],
-//     },
-//   };
-// }
 
 export async function getServerSideProps({ params }) {
-
   const { slug } = params;
 
-  const cacheKey = `product:${slug}`;
-
-  // 1. CHECK CACHE
   try {
-    const cachedData = await redis.get(cacheKey);
-
-    if (cachedData) {
-      console.log("✅ Cache HIT");
-
-      return {
-        props: JSON.parse(cachedData),
-      };
-    }
-  } catch (err) {
-    console.error("Redis error:", err);
-  }
-
-  console.log("❌ Cache MISS");
-
-  // 2. FETCH FROM STRAPI
-  const productRes = await fetchFromStrapi(
-    // `api/products?filters[slug][$eq]=${slug}&populate=*`
-    // `api/products?filters[slug][$eq]=${slug}&populate[seo][populate]=*`
-    `api/products?filters[slug][$eq]=${slug}&populate=*`
-  );
-
-  const regionsRes = await fetchFromStrapi(`api/regions`);
-
-  const props = {
-    product: productRes?.data?.[0] || null,
-    regionsData: regionsRes?.data || [],
-  };
-
-  // 3. SAVE CACHE (10 MINUTES)
-  try {
-    await redis.set(
-      cacheKey,
-      JSON.stringify(props),
-      "EX",
-      600
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/products/${slug}`
     );
-  } catch (err) {
-    console.error("Redis save error:", err);
-  }
 
-  return {
-    props,
-  };
+    if (!res.ok) {
+      if (res.status === 404) {
+        return {
+          notFound: true,
+        };
+      }
+
+      throw new Error(
+        `Product API request failed with status ${res.status}`
+      );
+    }
+
+    const result = await res.json();
+
+    return {
+      props: {
+        product: result?.data?.product || null,
+        variations: result?.data?.variations || [],
+      },
+    };
+  } catch (error) {
+    console.error('Product page API error:', error);
+
+    return {
+      notFound: true,
+    };
+  }
 }
 
-export default function ProductPage({ product, regionsData }) {
+export default function ProductPage({ product, variations }) {
 
   // Destructure minimum and recommended requirements safely and languages also...
   const minimumRequirements = product?.minimumRequirement || {};
@@ -147,21 +79,33 @@ export default function ProductPage({ product, regionsData }) {
   const Audio = product?.audio_language || {};
   const Interface = product?.interface_language || {};
   const Subtitles = product?.subtitles_language || {};
-  // const Tags = product?.game_tag_seo || [];
   const Tags = product?.Tags || [];
-  const relatedProducts = product?.relatedProducts || [];
-  const relatedRegionProducts = product?.relatedRegionProducts || [];
 
-  const allEditions = [product, ...relatedProducts];
+  const productVariations = variations || [];
+
+  const allEditions = [product, ...productVariations];
 
   const uniqueEditions = Array.from(
-    new Map(allEditions.map((p) => [p.slug, p])).values(),
+    new Map(
+      allEditions
+        .filter(
+          (p) =>
+            p.region?.toLowerCase() ===
+            product.region?.toLowerCase()
+        )
+        .filter((p) => p.var_title)
+        .map((p) => [p.var_title, p])
+    ).values()
   );
 
   const allVariants = useMemo(
-    () => [product, ...relatedProducts, ...relatedRegionProducts],
-    [product, relatedProducts, relatedRegionProducts],
+    () => [product, ...productVariations].filter(Boolean),
+    [product, productVariations]
   );
+
+  console.log("PRODUCT:", product);
+  console.log("VARIATIONS:", productVariations);
+  console.log("ALL VARIANTS:", allVariants);
 
   const [regionOpen, setRegionOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -169,21 +113,9 @@ export default function ProductPage({ product, regionsData }) {
   const [selectedRegion, setSelectedRegion] = useState(null);
   const dropdownRef = useRef(null);
 
-  // const isOutOfStock = product.isAvailable === false || product.stock === 0;
-
-  // const displayTitle = selectedVariation
-  //   ? `${product.title} - ${selectedVariation.name}`
-  //   : product.title;
-
-  const filteredRegions = regions
-    .filter((region) => region.toLowerCase().includes(search.toLowerCase()))
-    .filter((region) =>
-      allVariants.some(
-        (p) =>
-          p.region?.toLowerCase() === region.toLowerCase() &&
-          p.var_title === product.var_title,
-      ),
-    );
+  const filteredRegions = regions.filter((region) =>
+    region.toLowerCase().includes(search.toLowerCase())
+  );
 
   const dispatch = useDispatch();
   const router = useRouter();
@@ -219,7 +151,7 @@ export default function ProductPage({ product, regionsData }) {
   const handleAddToCart = () => {
     dispatch(
       addToCart({
-        id: product.id,
+        id: product._id,
         type: product.type,
         title: product.title,
         // game_tag: product.item,
@@ -237,7 +169,7 @@ export default function ProductPage({ product, regionsData }) {
     setLoading(true);
     dispatch(
       addToCart({
-        id: product.id,
+        id: product._id,
         type: product.type,
         title: product.title,
         // game_tag: product.item,
@@ -262,93 +194,10 @@ export default function ProductPage({ product, regionsData }) {
 
   if (!product) return null;
 
-  // if (pageLoading) {
-  //   return <ProductPageSkeleton />;
-  // }
+  const imgUrl = product.image || "";
+  const age = product.age?.url || "";
+  const platform_icon_svg = product.platform_icon_image || "";
 
-  // const buildBreadcrumbs = () => {
-  //   const pathname = router.pathname;
-
-  //   // Normal product
-  //   if (pathname === "/product/[slug]") {
-  //     return [
-  //       {
-  //         label: "Home",
-  //         href: "/",
-  //       },
-  //       {
-  //         label: "Store",
-  //         href: "/store",
-  //       },
-  //       {
-  //         label: "Games",
-  //         href: "/store",
-  //       },
-  //       {
-  //         label: product.title,
-  //       },
-  //     ];
-  //   }
-
-  //   // PSN gift card
-  //   if (pathname === "/store/category/gift-card/psn/[slug]") {
-  //     return [
-  //       {
-  //         label: "Home",
-  //         href: "/",
-  //       },
-  //       {
-  //         label: "Gift Cards",
-  //         href: "/store/category/gift-card",
-  //       },
-  //       {
-  //         label: "PlayStation",
-  //         href: "/store/category/gift-card/psn",
-  //       },
-  //       {
-  //         label: product.title,
-  //       },
-  //     ];
-  //   }
-
-  //   // PSN product
-  //   if (pathname === "/store/category/product/psn/[slug]") {
-  //     return [
-  //       {
-  //         label: "Home",
-  //         href: "/",
-  //       },
-  //       {
-  //         label: "Store",
-  //         href: "/store",
-  //       },
-  //       {
-  //         label: "PlayStation",
-  //         href: "/store/category/product/psn",
-  //       },
-  //       {
-  //         label: product.title,
-  //       },
-  //     ];
-  //   }
-
-  //   // Fallback
-  //   return [
-  //     {
-  //       label: "Home",
-  //       href: "/",
-  //     },
-  //     {
-  //       label: product.title,
-  //     },
-  //   ];
-  // };
-
-  const imgUrl = getStrapiMedia(product.image?.url);
-  const age = getStrapiMedia(product.age?.url);
-  const platform_icon_svg = getStrapiMedia(product.platform_icon_image?.url);
-
-  // const seo = product?.seo;
   const seo = product?.seo || {};
 
   const metaTitle =
@@ -479,23 +328,11 @@ export default function ProductPage({ product, regionsData }) {
     if (matched) {
       router.push(`/product/${matched.slug}`);
     } else {
-      toast("This combination is not available");
+      toast("This edition is not available in this region");
     }
 
     setRegionOpen(false);
   };
-
-  // useEffect(() => {
-  //   if (regionsData?.length) {
-  //     const regionList = regionsData.map((r) => r.name);
-
-  //     setRegions(regionList);
-  //   }
-
-  //   if (product?.region) {
-  //     setSelectedRegion(product.region);
-  //   }
-  // }, [regionsData, product]);
 
   const productSchema = {
     "@context": "https://schema.org",
@@ -965,7 +802,7 @@ top-6
             {/* Buttons */}
             <div className="flex gap-3 mt-4">
               {/* Cart icon-only button */}
-              {product.Available ? (
+              {product.available ? (
                 <button
                   onClick={handleAddToCart}
                   className="cursor-pointer bg-neutral-800 p-2 lg:p-3 rounded-lg text-white flex items-center justify-center"
@@ -982,7 +819,7 @@ top-6
               )}
 
               {/* Buy Now full-width button */}
-              {product.Available ? (
+              {product.available ? (
                 <button
                   onClick={handleBuyNow}
                   disabled={loading}
@@ -1081,7 +918,7 @@ w-full
 
               <div className="flex flex-col sm:flex-row gap-3">
                 {uniqueEditions?.map((edition) => {
-                  const isAvailable = edition.Available; // or whatever field indicates availability
+                  const isAvailable = edition.available; // or whatever field indicates availability
 
                   return (
                     <label

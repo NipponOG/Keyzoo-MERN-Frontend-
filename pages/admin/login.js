@@ -12,11 +12,8 @@ export default function AdminLogin() {
     // const { login } = useAdmin();
 
     const [email, setEmail] = useState("");
-
     const [password, setPassword] = useState("");
-
     const [loading, setLoading] = useState(false);
-
     const [error, setError] = useState("");
 
     const handleSubmit = async (e) => {
@@ -133,7 +130,7 @@ export default function AdminLogin() {
 
                 <button
                     disabled={loading}
-                    className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-500 py-3 text-white font-medium transition flex items-center justify-center gap-2"
+                    className="cursor-pointer w-full rounded-lg bg-indigo-600 hover:bg-indigo-500 py-3 text-white font-medium transition flex items-center justify-center gap-2"
                 >
 
                     <HugeiconsIcon icon={AuthorizedIcon} />

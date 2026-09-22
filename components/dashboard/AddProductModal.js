@@ -76,10 +76,16 @@ const initialForm = {
     Tags: '',
 };
 
-const createEmptyVariation = () => ({
+const createEmptyEdition = () => ({
     var_title: '',
+    title: '',
     price: '',
     discountPrice: '',
+});
+
+const createEmptyRegion = () => ({
+    region: '',
+    editions: [createEmptyEdition()],
 });
 
 const inputClass = `
@@ -388,10 +394,9 @@ export default function AddProductModal({
     const [hasVariations, setHasVariations] =
         useState(false);
 
-    const [variations, setVariations] =
-        useState([
-            createEmptyVariation(),
-        ]);
+    const [regions, setRegions] = useState([
+        createEmptyRegion(),
+    ]);
 
     const [loading, setLoading] =
         useState(false);
@@ -452,34 +457,99 @@ export default function AddProductModal({
         }));
     };
 
-    const handleVariationChange = (
-        index,
+    const handleRegionChange = (
+        regionIndex,
         field,
         value
     ) => {
-        setVariations((prev) =>
-            prev.map((variation, i) =>
-                i === index
+        setRegions((prev) =>
+            prev.map((region, index) =>
+                index === regionIndex
                     ? {
-                        ...variation,
+                        ...region,
                         [field]: value,
                     }
-                    : variation
+                    : region
             )
         );
     };
 
-    const addVariation = () => {
-        setVariations((prev) => [
+    const addRegion = () => {
+        setRegions((prev) => [
             ...prev,
-            createEmptyVariation(),
+            createEmptyRegion(),
         ]);
     };
 
-    const removeVariation = (index) => {
-        setVariations((prev) =>
+    const removeRegion = (regionIndex) => {
+        setRegions((prev) =>
             prev.filter(
-                (_, i) => i !== index
+                (_, index) => index !== regionIndex
+            )
+        );
+    };
+
+    const handleEditionChange = (
+        regionIndex,
+        editionIndex,
+        field,
+        value
+    ) => {
+        setRegions((prev) =>
+            prev.map((region, rIndex) => {
+                if (rIndex !== regionIndex) {
+                    return region;
+                }
+
+                return {
+                    ...region,
+                    editions: region.editions.map(
+                        (edition, eIndex) =>
+                            eIndex === editionIndex
+                                ? {
+                                    ...edition,
+                                    [field]: value,
+                                }
+                                : edition
+                    ),
+                };
+            })
+        );
+    };
+
+    const addEdition = (regionIndex) => {
+        setRegions((prev) =>
+            prev.map((region, index) =>
+                index === regionIndex
+                    ? {
+                        ...region,
+                        editions: [
+                            ...region.editions,
+                            createEmptyEdition(),
+                        ],
+                    }
+                    : region
+            )
+        );
+    };
+
+    const removeEdition = (
+        regionIndex,
+        editionIndex
+    ) => {
+        setRegions((prev) =>
+            prev.map((region, index) =>
+                index === regionIndex
+                    ? {
+                        ...region,
+                        editions:
+                            region.editions.filter(
+                                (_, eIndex) =>
+                                    eIndex !==
+                                    editionIndex
+                            ),
+                    }
+                    : region
             )
         );
     };
@@ -491,8 +561,8 @@ export default function AddProductModal({
 
         setHasVariations(false);
 
-        setVariations([
-            createEmptyVariation(),
+        setRegions([
+            createEmptyRegion(),
         ]);
 
         setError('');
@@ -529,138 +599,119 @@ export default function AddProductModal({
     };
 
     const buildPayload = () => {
-        return {
+        const payload = {
             title: form.title,
             slug: form.slug,
-
-            category:
-                form.category || null,
-
-            subCategory:
-                form.subCategory || null,
-
-            platform:
-                form.platform || null,
-
-            workPlatform:
-                form.workPlatform || null,
-
-            item:
-                form.item ||
-                'DIGITAL KEY',
-
+            category: form.category || null,
+            subCategory: form.subCategory || null,
+            platform: form.platform || null,
+            workPlatform: form.workPlatform || null,
+            item: form.item || 'DIGITAL KEY',
             item_type:
                 creationType === 'gift-card'
                     ? 'GIFT CARD'
-                    : form.item_type ||
-                    'GAME',
+                    : form.item_type || 'GAME',
 
             price: form.price,
-            discountPrice:
-                form.discountPrice,
+            discountPrice: form.discountPrice,
+            currency: form.currency || 'INR',
 
-            currency:
-                form.currency || 'INR',
+            region: form.region || null,
+            card_region: form.card_region || null,
 
-            region:
-                form.region || null,
+            notice: form.notice || null,
+            description: form.description || null,
+            descriptionkey: form.descriptionkey || null,
 
-            card_region:
-                form.card_region || null,
+            publisher: form.publisher || null,
+            developer: form.developer || null,
+            releaseDate: form.releaseDate || null,
+            editiondescription: form.editiondescription || null,
+            age: form.age || null,
 
-            notice:
-                form.notice || null,
-
-            description:
-                form.description || null,
-
-            descriptionkey:
-                form.descriptionkey || null,
-
-            publisher:
-                form.publisher || null,
-
-            developer:
-                form.developer || null,
-
-            releaseDate:
-                form.releaseDate || null,
-
-            editiondescription:
-                form.editiondescription ||
-                null,
-
-            age:
-                form.age || null,
-
-            minimumRequirement:
-                form.minimumRequirement,
-
+            minimumRequirement: form.minimumRequirement,
             recommendedRequirement:
                 form.recommendedRequirement,
 
-            audio_language:
-                parseCommaSeparated(
-                    form.audio_language
-                ),
+            audio_language: parseCommaSeparated(
+                form.audio_language
+            ),
+            interface_language: parseCommaSeparated(
+                form.interface_language
+            ),
+            subtitles_language: parseCommaSeparated(
+                form.subtitles_language
+            ),
 
-            interface_language:
-                parseCommaSeparated(
-                    form.interface_language
-                ),
-
-            subtitles_language:
-                parseCommaSeparated(
-                    form.subtitles_language
-                ),
-
-            image:
-                form.image || null,
-
-            gallery:
-                parseCommaSeparated(
-                    form.gallery
-                ),
+            image: form.image || null,
+            gallery: parseCommaSeparated(form.gallery),
 
             platform_image:
-                form.platform_image ||
-                null,
+                form.platform_image || null,
 
             platform_icon_image:
-                form.platform_icon_image ||
-                null,
+                form.platform_icon_image || null,
 
-            status:
-                form.status || 'draft',
+            status: form.status || 'draft',
+            available: form.available,
 
-            available:
-                form.available,
+            isBestSeller: form.isBestSeller,
+            isRecommended: form.isRecommended,
+            psn: form.psn,
 
-            isBestSeller:
-                form.isBestSeller,
+            rating: form.rating || 0,
 
-            isRecommended:
-                form.isRecommended,
+            relatedProducts: parseCommaSeparated(
+                form.relatedProducts
+            ),
 
-            psn:
-                form.psn,
+            seo: parseJson(form.seo),
 
-            rating:
-                form.rating || 0,
-
-            relatedProducts:
-                parseCommaSeparated(
-                    form.relatedProducts
-                ),
-
-            seo:
-                parseJson(form.seo),
-
-            Tags:
-                parseCommaSeparated(
-                    form.Tags
-                ),
+            Tags: parseCommaSeparated(form.Tags),
         };
+
+        /*
+         * Regions → Editions
+         *
+         * Only send this when variations are enabled.
+         *
+         * Example:
+         *
+         * regions: [
+         *   {
+         *     region: "India",
+         *     editions: [
+         *       {
+         *         var_title: "Standard Edition",
+         *         title: "GTA V (India)",
+         *         price: "500",
+         *         discountPrice: "450"
+         *       }
+         *     ]
+         *   }
+         * ]
+         */
+        if (hasVariations) {
+            payload.regions = regions.map((region) => ({
+                region: region.region.trim(),
+
+                editions: region.editions.map((edition) => ({
+                    var_title:
+                        edition.var_title.trim(),
+
+                    title:
+                        edition.title.trim(),
+
+                    price:
+                        edition.price,
+
+                    discountPrice:
+                        edition.discountPrice,
+                })),
+            }));
+        }
+
+        return payload;
     };
 
     const uploadImage = async (
@@ -2322,133 +2373,192 @@ export default function AddProductModal({
                                 }
                             >
                                 <div className="space-y-4">
-                                    {variations.map(
-                                        (
-                                            variation,
-                                            index
-                                        ) => (
-                                            <div
-                                                key={
-                                                    index
-                                                }
-                                                className="
-                                                    rounded-xl
-                                                    border border-white/10
-                                                    bg-white/[0.025]
-                                                    p-4
-                                                "
-                                            >
-                                                <div className="mb-4 flex items-center justify-between">
-                                                    <span className="text-xs font-medium text-gray-400">
-                                                        {creationType ===
-                                                            'gift-card'
-                                                            ? 'Denomination'
-                                                            : 'Variation'}{' '}
-                                                        {index +
-                                                            1}
-                                                    </span>
+                                    {hasVariations && (
+                                        <div className="space-y-6">
 
-                                                    {variations.length >
-                                                        1 && (
+                                            {/* Regions */}
+                                            {regions.map((region, regionIndex) => (
+                                                <div
+                                                    key={regionIndex}
+                                                    className="rounded-xl border border-gray-200 bg-white p-5"
+                                                >
+                                                    {/* Region Header */}
+                                                    <div className="mb-5 flex items-center justify-between">
+                                                        <div>
+                                                            <h3 className="text-sm font-semibold text-gray-900">
+                                                                Region {regionIndex + 1}
+                                                            </h3>
+
+                                                            <p className="mt-1 text-xs text-gray-500">
+                                                                Add the editions available for this region.
+                                                            </p>
+                                                        </div>
+
+                                                        {regions.length > 1 && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() =>
-                                                                    removeVariation(
-                                                                        index
-                                                                    )
+                                                                    removeRegion(regionIndex)
                                                                 }
-                                                                className="text-xs text-red-400 transition hover:text-red-300"
+                                                                className="text-sm font-medium text-red-500 hover:text-red-600"
                                                             >
-                                                                Remove
+                                                                Remove Region
                                                             </button>
                                                         )}
+                                                    </div>
+
+                                                    {/* Region Name */}
+                                                    <div className="mb-6">
+                                                        <Field
+                                                            label="Region"
+                                                            value={region.region}
+                                                            onChange={(e) =>
+                                                                handleRegionChange(
+                                                                    regionIndex,
+                                                                    'region',
+                                                                    e.target.value
+                                                                )
+                                                            }
+                                                            placeholder="GLOBAL"
+                                                        />
+                                                    </div>
+
+                                                    {/* Editions */}
+                                                    <div className="space-y-4">
+                                                        {region.editions.map(
+                                                            (edition, editionIndex) => (
+                                                                <div
+                                                                    key={editionIndex}
+                                                                    className="rounded-lg border border-gray-200 bg-gray-50 p-4"
+                                                                >
+                                                                    <div className="mb-4 flex items-center justify-between">
+                                                                        <h4 className="text-sm font-semibold text-gray-800">
+                                                                            Edition {editionIndex + 1}
+                                                                        </h4>
+
+                                                                        {region.editions.length > 1 && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    removeEdition(
+                                                                                        regionIndex,
+                                                                                        editionIndex
+                                                                                    )
+                                                                                }
+                                                                                className="text-xs font-medium text-red-500 hover:text-red-600"
+                                                                            >
+                                                                                Remove
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+
+                                                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+                                                                        {/* Edition */}
+                                                                        <Field
+                                                                            label="Edition"
+                                                                            value={
+                                                                                edition.var_title
+                                                                            }
+                                                                            onChange={(e) =>
+                                                                                handleEditionChange(
+                                                                                    regionIndex,
+                                                                                    editionIndex,
+                                                                                    'var_title',
+                                                                                    e.target.value
+                                                                                )
+                                                                            }
+                                                                            placeholder="Standard Edition"
+                                                                        />
+
+                                                                        {/* Title */}
+                                                                        <Field
+                                                                            label="Product Title"
+                                                                            value={
+                                                                                edition.title
+                                                                            }
+                                                                            onChange={(e) =>
+                                                                                handleEditionChange(
+                                                                                    regionIndex,
+                                                                                    editionIndex,
+                                                                                    'title',
+                                                                                    e.target.value
+                                                                                )
+                                                                            }
+                                                                            placeholder="Grand Theft Auto V (India) (PC) - Rockstar - Digital Key"
+                                                                        />
+
+                                                                        {/* Price */}
+                                                                        <Field
+                                                                            label="Price"
+                                                                            type="number"
+                                                                            value={
+                                                                                edition.price
+                                                                            }
+                                                                            onChange={(e) =>
+                                                                                handleEditionChange(
+                                                                                    regionIndex,
+                                                                                    editionIndex,
+                                                                                    'price',
+                                                                                    e.target.value
+                                                                                )
+                                                                            }
+                                                                            placeholder="0"
+                                                                        />
+
+                                                                        {/* Discount Price */}
+                                                                        <Field
+                                                                            label="Discount Price"
+                                                                            type="number"
+                                                                            value={
+                                                                                edition.discountPrice
+                                                                            }
+                                                                            onChange={(e) =>
+                                                                                handleEditionChange(
+                                                                                    regionIndex,
+                                                                                    editionIndex,
+                                                                                    'discountPrice',
+                                                                                    e.target.value
+                                                                                )
+                                                                            }
+                                                                            placeholder="0"
+                                                                        />
+
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        )}
+                                                    </div>
+
+                                                    {/* Add Edition */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            addEdition(regionIndex)
+                                                        }
+                                                        className="mt-4 rounded-lg border border-dashed border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:border-gray-400 hover:text-gray-900"
+                                                    >
+                                                        + Add Edition
+                                                    </button>
                                                 </div>
+                                            ))}
 
-                                                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                                    <Field
-                                                        label={
-                                                            creationType ===
-                                                                'gift-card'
-                                                                ? 'Denomination'
-                                                                : 'Variation Title'
-                                                        }
-                                                        value={
-                                                            variation.var_title
-                                                        }
-                                                        onChange={(
-                                                            e
-                                                        ) =>
-                                                            handleVariationChange(
-                                                                index,
-                                                                'var_title',
-                                                                e
-                                                                    .target
-                                                                    .value
-                                                            )
-                                                        }
-                                                        placeholder={
-                                                            creationType ===
-                                                                'gift-card'
-                                                                ? '100 PLN'
-                                                                : 'Standard'
-                                                        }
-                                                        required
-                                                    />
+                                            {/* Add Region */}
+                                            <button
+                                                type="button"
+                                                onClick={addRegion}
+                                                className="w-full rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-600 transition hover:border-gray-400 hover:text-gray-900"
+                                            >
+                                                + Add Region
+                                            </button>
 
-                                                    <Field
-                                                        label="Price"
-                                                        type="number"
-                                                        min="0"
-                                                        step="0.01"
-                                                        value={
-                                                            variation.price
-                                                        }
-                                                        onChange={(
-                                                            e
-                                                        ) =>
-                                                            handleVariationChange(
-                                                                index,
-                                                                'price',
-                                                                e
-                                                                    .target
-                                                                    .value
-                                                            )
-                                                        }
-                                                        placeholder="1999"
-                                                        required
-                                                    />
-
-                                                    <Field
-                                                        label="Discount Price"
-                                                        type="number"
-                                                        min="0"
-                                                        step="0.01"
-                                                        value={
-                                                            variation.discountPrice
-                                                        }
-                                                        onChange={(
-                                                            e
-                                                        ) =>
-                                                            handleVariationChange(
-                                                                index,
-                                                                'discountPrice',
-                                                                e
-                                                                    .target
-                                                                    .value
-                                                            )
-                                                        }
-                                                        placeholder="1499"
-                                                        required
-                                                    />
-                                                </div>
-                                            </div>
-                                        )
+                                        </div>
                                     )}
 
                                     <button
                                         type="button"
                                         onClick={
-                                            addVariation
+                                            regions
                                         }
                                         className="
                                             rounded-xl
