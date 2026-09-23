@@ -6,6 +6,7 @@ import adminFetch from '@/lib/adminFetch';
 const initialForm = {
     title: '',
     slug: '',
+    var_title: '',
 
     category: '',
     subCategory: '',
@@ -79,6 +80,7 @@ const initialForm = {
 const createEmptyEdition = () => ({
     var_title: '',
     title: '',
+    slug: '',
     price: '',
     discountPrice: '',
 });
@@ -602,6 +604,7 @@ export default function AddProductModal({
         const payload = {
             title: form.title,
             slug: form.slug,
+            var_title: form.var_title || null,
             category: form.category || null,
             subCategory: form.subCategory || null,
             platform: form.platform || null,
@@ -693,21 +696,18 @@ export default function AddProductModal({
          */
         if (hasVariations) {
             payload.regions = regions.map((region) => ({
+
                 region: region.region.trim(),
 
                 editions: region.editions.map((edition) => ({
-                    var_title:
-                        edition.var_title.trim(),
 
-                    title:
-                        edition.title.trim(),
-
-                    price:
-                        edition.price,
-
-                    discountPrice:
-                        edition.discountPrice,
+                    var_title: edition.var_title.trim(),
+                    title: edition.title.trim(),
+                    slug: (edition.slug || '').trim(),
+                    price: edition.price,
+                    discountPrice: edition.discountPrice,
                 })),
+
             }));
         }
 
@@ -947,24 +947,17 @@ export default function AddProductModal({
         setLoading(true);
 
         try {
-            const payload =
-                buildPayload();
+            const payload = buildPayload();
 
             let data;
 
-            if (
-                creationType ===
-                'gift-card'
-            ) {
+            if (creationType === 'gift-card') {
                 if (hasVariations) {
                     data = await adminFetch(
                         '/admin/gift-cards/with-variations',
                         {
                             method: 'POST',
-                            body: JSON.stringify({
-                                ...payload,
-                                variations,
-                            }),
+                            body: JSON.stringify(payload),
                         }
                     );
                 } else {
@@ -972,9 +965,7 @@ export default function AddProductModal({
                         '/admin/gift-cards',
                         {
                             method: 'POST',
-                            body: JSON.stringify(
-                                payload
-                            ),
+                            body: JSON.stringify(payload),
                         }
                     );
                 }
@@ -984,10 +975,7 @@ export default function AddProductModal({
                         '/admin/products/with-variations',
                         {
                             method: 'POST',
-                            body: JSON.stringify({
-                                ...payload,
-                                variations,
-                            }),
+                            body: JSON.stringify(payload),
                         }
                     );
                 } else {
@@ -995,9 +983,7 @@ export default function AddProductModal({
                         '/admin/products',
                         {
                             method: 'POST',
-                            body: JSON.stringify(
-                                payload
-                            ),
+                            body: JSON.stringify(payload),
                         }
                     );
                 }
@@ -1461,51 +1447,35 @@ export default function AddProductModal({
                             }
                         >
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                {!hasVariations && (
-                                    <>
-                                        <Field
-                                            label="Price"
-                                            name="price"
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={
-                                                form.price
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
-                                            placeholder="1999"
-                                            required
-                                        />
+                                <Field
+                                    label="Price"
+                                    name="price"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={form.price}
+                                    onChange={handleChange}
+                                    placeholder="1999"
+                                    required
+                                />
 
-                                        <Field
-                                            label="Discount Price"
-                                            name="discountPrice"
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={
-                                                form.discountPrice
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
-                                            placeholder="1499"
-                                            required
-                                        />
-                                    </>
-                                )}
+                                <Field
+                                    label="Discount Price"
+                                    name="discountPrice"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={form.discountPrice}
+                                    onChange={handleChange}
+                                    placeholder="1499"
+                                    required
+                                />
 
                                 <SelectField
                                     label="Currency"
                                     name="currency"
-                                    value={
-                                        form.currency
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
+                                    value={form.currency}
+                                    onChange={handleChange}
                                     options={[
                                         {
                                             value: 'INR',
@@ -1529,27 +1499,36 @@ export default function AddProductModal({
                                 <Field
                                     label="Region"
                                     name="region"
-                                    value={
-                                        form.region
+                                    value={form.region}
+                                    onChange={handleChange}
+                                    placeholder={
+                                        creationType === 'gift-card'
+                                            ? 'India'
+                                            : 'Global'
                                     }
-                                    onChange={
-                                        handleChange
-                                    }
-                                    placeholder="GLOBAL"
+                                    required
                                 />
+
+                                {creationType === 'product' && (
+                                    <Field
+                                        label="Edition"
+                                        name="var_title"
+                                        value={form.var_title}
+                                        onChange={handleChange}
+                                        placeholder="Standard Edition"
+                                        required
+                                    />
+                                )}
 
                                 <Field
                                     label="Card Region"
                                     name="card_region"
-                                    value={
-                                        form.card_region
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
+                                    value={form.card_region}
+                                    onChange={handleChange}
                                     placeholder="PL"
                                 />
                             </div>
+
                         </Section>
 
                         {/* Product details */}
@@ -2380,12 +2359,12 @@ export default function AddProductModal({
                                             {regions.map((region, regionIndex) => (
                                                 <div
                                                     key={regionIndex}
-                                                    className="rounded-xl border border-gray-200 bg-white p-5"
+                                                    className="rounded-xl bg-white/[0.025] p-5"
                                                 >
                                                     {/* Region Header */}
                                                     <div className="mb-5 flex items-center justify-between">
                                                         <div>
-                                                            <h3 className="text-sm font-semibold text-gray-900">
+                                                            <h3 className="text-sm font-semibold text-white">
                                                                 Region {regionIndex + 1}
                                                             </h3>
 
@@ -2429,10 +2408,10 @@ export default function AddProductModal({
                                                             (edition, editionIndex) => (
                                                                 <div
                                                                     key={editionIndex}
-                                                                    className="rounded-lg border border-gray-200 bg-gray-50 p-4"
+                                                                    className="rounded-lg border border-black/10 bg-white/[0.025] p-4"
                                                                 >
                                                                     <div className="mb-4 flex items-center justify-between">
-                                                                        <h4 className="text-sm font-semibold text-gray-800">
+                                                                        <h4 className="text-sm font-semibold text-white">
                                                                             Edition {editionIndex + 1}
                                                                         </h4>
 
@@ -2457,9 +2436,7 @@ export default function AddProductModal({
                                                                         {/* Edition */}
                                                                         <Field
                                                                             label="Edition"
-                                                                            value={
-                                                                                edition.var_title
-                                                                            }
+                                                                            value={edition.var_title}
                                                                             onChange={(e) =>
                                                                                 handleEditionChange(
                                                                                     regionIndex,
@@ -2471,12 +2448,10 @@ export default function AddProductModal({
                                                                             placeholder="Standard Edition"
                                                                         />
 
-                                                                        {/* Title */}
+                                                                        {/* Product Title */}
                                                                         <Field
                                                                             label="Product Title"
-                                                                            value={
-                                                                                edition.title
-                                                                            }
+                                                                            value={edition.title}
                                                                             onChange={(e) =>
                                                                                 handleEditionChange(
                                                                                     regionIndex,
@@ -2486,6 +2461,21 @@ export default function AddProductModal({
                                                                                 )
                                                                             }
                                                                             placeholder="Grand Theft Auto V (India) (PC) - Rockstar - Digital Key"
+                                                                        />
+
+                                                                        {/* Slug */}
+                                                                        <Field
+                                                                            label="Slug"
+                                                                            value={edition.slug}
+                                                                            onChange={(e) =>
+                                                                                handleEditionChange(
+                                                                                    regionIndex,
+                                                                                    editionIndex,
+                                                                                    'slug',
+                                                                                    e.target.value
+                                                                                )
+                                                                            }
+                                                                            placeholder="Leave empty to generate automatically"
                                                                         />
 
                                                                         {/* Price */}
@@ -2536,7 +2526,7 @@ export default function AddProductModal({
                                                         onClick={() =>
                                                             addEdition(regionIndex)
                                                         }
-                                                        className="mt-4 rounded-lg border border-dashed border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:border-gray-400 hover:text-gray-900"
+                                                        className="mt-4 rounded-lg border border-dashed border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:border-gray-400 hover:text-white"
                                                     >
                                                         + Add Edition
                                                     </button>
@@ -2547,7 +2537,7 @@ export default function AddProductModal({
                                             <button
                                                 type="button"
                                                 onClick={addRegion}
-                                                className="w-full rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-600 transition hover:border-gray-400 hover:text-gray-900"
+                                                className="w-full rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-600 transition hover:border-gray-400 hover:text-white"
                                             >
                                                 + Add Region
                                             </button>
@@ -2555,7 +2545,7 @@ export default function AddProductModal({
                                         </div>
                                     )}
 
-                                    <button
+                                    {/*<button
                                         type="button"
                                         onClick={
                                             regions
@@ -2574,7 +2564,8 @@ export default function AddProductModal({
                                         "
                                     >
                                         + Add Variation
-                                    </button>
+                                    </button>*/}
+
                                 </div>
                             </Section>
                         )}
