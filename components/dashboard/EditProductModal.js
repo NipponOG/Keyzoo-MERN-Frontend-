@@ -367,6 +367,9 @@ export default function EditProductModal({ open, product, onClose, onUpdated, })
     const [showAddVariation, setShowAddVariation] = useState(false);
     const [addingVariation, setAddingVariation] = useState(false);
 
+    const [deletingVariationId, setDeletingVariationId] = useState(null);
+    const [variationToDelete, setVariationToDelete] = useState(null);
+
     const [variationForm, setVariationForm] = useState({
         title: '',
         slug: '',
@@ -656,6 +659,57 @@ export default function EditProductModal({ open, product, onClose, onUpdated, })
             );
         } finally {
             setAddingVariation(false);
+        }
+    };
+
+    const handleDeleteVariation = (variation) => {
+        if (!variation?._id) {
+            return;
+        }
+
+        // Parent SKUs cannot be deleted from the variation list.
+        if (variation.isParent) {
+            return;
+        }
+
+        setVariationsError('');
+        setVariationToDelete(variation);
+    };
+
+    const confirmDeleteVariation = async () => {
+        if (!variationToDelete?._id) {
+            return;
+        }
+
+        setVariationsError('');
+        setDeletingVariationId(
+            String(variationToDelete._id)
+        );
+
+        try {
+            const endpoint = isGiftCard
+                ? `/admin/gift-cards/${variationToDelete._id}`
+                : `/admin/products/${variationToDelete._id}`;
+
+            await adminFetch(endpoint, {
+                method: 'DELETE',
+            });
+
+            setVariationToDelete(null);
+
+            await loadVariations();
+        } catch (err) {
+            console.error(
+                `Failed to delete ${resourceName.toLowerCase()} variation:`,
+                err
+            );
+
+            setVariationsError(
+                err.message ||
+                `Failed to delete ${resourceName.toLowerCase()} variation.`
+            );
+        } finally {
+            setDeletingVariationId(null);
         }
     };
 
@@ -1555,7 +1609,7 @@ export default function EditProductModal({ open, product, onClose, onUpdated, })
                                         ">
                                             <div className="
                                                 hidden
-                                                grid-cols-[minmax(0,2fr)_120px_160px_120px_120px]
+                                                grid-cols-[minmax(0,2fr)_120px_160px_120px_120px_100px]
                                                 gap-4
                                                 border-b border-white/10
                                                 bg-white/[0.025]
@@ -1572,6 +1626,7 @@ export default function EditProductModal({ open, product, onClose, onUpdated, })
                                                 <span>Edition</span>
                                                 <span>Price</span>
                                                 <span>Status</span>
+                                                <span>Actions</span>
                                             </div>
 
                                             <div className="divide-y divide-white/10">
@@ -1620,7 +1675,7 @@ export default function EditProductModal({ open, product, onClose, onUpdated, })
                                                                     grid-cols-1
                                                                     gap-3
                                                                     px-4 py-4
-                                                                    md:grid-cols-[minmax(0,2fr)_120px_160px_120px_120px]
+                                                                    md:grid-cols-[minmax(0,2fr)_120px_160px_120px_120px_100px]
                                                                     md:items-center
                                                                     md:gap-4
                                                                 "
@@ -1794,6 +1849,165 @@ export default function EditProductModal({ open, product, onClose, onUpdated, })
                                                                             : 'Draft'}
                                                                     </span>
                                                                 </div>
+
+                                                                {/* Actions */}
+                                                                <div className="flex items-center justify-end">
+                                                                    {!isParent && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                handleDeleteVariation(variation)
+                                                                            }
+                                                                            disabled={
+                                                                                deletingVariationId ===
+                                                                                String(variation._id) ||
+                                                                                addingVariation ||
+                                                                                variationsLoading
+                                                                            }
+                                                                            className="
+                inline-flex
+                items-center
+                justify-center
+                rounded-lg
+                border border-red-500/20
+                bg-red-500/10
+                px-3 py-2
+                text-xs
+                font-medium
+                text-red-400
+                transition
+                hover:border-red-500/40
+                hover:bg-red-500/20
+                hover:text-red-300
+                disabled:cursor-not-allowed
+                disabled:opacity-50
+            "
+                                                                        >
+                                                                            {deletingVariationId ===
+                                                                                String(variation._id)
+                                                                                ? 'Deleting...'
+                                                                                : 'Delete'}
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+
+                                                                {variationToDelete && (
+                                                                    <div
+                                                                        className="
+            fixed inset-0 z-[120]
+            flex items-center justify-center
+            bg-black/20
+            p-4
+        "
+                                                                        onMouseDown={(e) => {
+                                                                            if (e.target === e.currentTarget) {
+                                                                                if (!deletingVariationId) {
+                                                                                    setVariationToDelete(null);
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <div
+                                                                            className="
+                w-full max-w-md
+                rounded-2xl
+                border border-white/10
+                bg-[#202020]
+                p-6
+                shadow-2xl
+            "
+                                                                        >
+                                                                            <div className="flex items-start gap-4">
+                                                                                <div
+                                                                                    className="
+                        flex h-11 w-11
+                        shrink-0
+                        items-center justify-center
+                        rounded-xl
+                        border border-red-500/20
+                        bg-red-500/10
+                        text-red-400
+                    "
+                                                                                >
+                                                                                    !
+                                                                                </div>
+
+                                                                                <div className="min-w-0">
+                                                                                    <h3 className="text-base font-semibold text-white">
+                                                                                        Delete {resourceName} Variation?
+                                                                                    </h3>
+
+                                                                                    <p className="mt-1 text-sm leading-6 text-gray-400">
+                                                                                        Are you sure you want to delete this
+                                                                                        {` ${resourceName.toLowerCase()}`} variation?
+                                                                                    </p>
+
+                                                                                    <p className="mt-3 truncate rounded-lg bg-white/5 px-3 py-2 text-sm font-medium text-gray-200">
+                                                                                        {variationToDelete.title}
+                                                                                    </p>
+
+                                                                                    <p className="mt-3 text-xs leading-5 text-gray-500">
+                                                                                        This action cannot be undone. Any available
+                                                                                        game keys belonging to this SKU will also be
+                                                                                        deleted.
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className="mt-6 flex items-center justify-end gap-3">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() =>
+                                                                                        setVariationToDelete(null)
+                                                                                    }
+                                                                                    disabled={Boolean(deletingVariationId)}
+                                                                                    className="
+                        rounded-xl
+                        border border-white/10
+                        bg-white/5
+                        px-4 py-2.5
+                        text-sm
+                        font-medium
+                        text-gray-300
+                        transition
+                        hover:bg-white/10
+                        hover:text-white
+                        disabled:cursor-not-allowed
+                        disabled:opacity-50
+                    "
+                                                                                >
+                                                                                    Cancel
+                                                                                </button>
+
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={confirmDeleteVariation}
+                                                                                    disabled={Boolean(deletingVariationId)}
+                                                                                    className="
+                        rounded-xl
+                        border border-red-500/20
+                        bg-red-500/10
+                        px-4 py-2.5
+                        text-sm
+                        font-semibold
+                        text-red-400
+                        transition
+                        hover:border-red-500/40
+                        hover:bg-red-500/20
+                        hover:text-red-300
+                        disabled:cursor-not-allowed
+                        disabled:opacity-50
+                    "
+                                                                                >
+                                                                                    {deletingVariationId
+                                                                                        ? 'Deleting...'
+                                                                                        : 'Delete Variation'}
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
                                                             </div>
                                                         );
                                                     }
