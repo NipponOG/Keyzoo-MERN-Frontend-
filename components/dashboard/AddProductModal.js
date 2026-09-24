@@ -694,21 +694,50 @@ export default function AddProductModal({
          *   }
          * ]
          */
+
+        // if (hasVariations) {
+        //     payload.regions = regions.map((region) => ({
+
+        //         region: region.region.trim(),
+
+        //         editions: region.editions.map((edition) => ({
+
+        //             var_title: edition.var_title.trim(),
+        //             title: edition.title.trim(),
+        //             slug: (edition.slug || '').trim(),
+        //             price: edition.price,
+        //             discountPrice: edition.discountPrice,
+        //         })),
+
+        //     }));
+        // }
+
         if (hasVariations) {
-            payload.regions = regions.map((region) => ({
-
-                region: region.region.trim(),
-
-                editions: region.editions.map((edition) => ({
-
+            const variationData = regions.flatMap((region) =>
+                region.editions.map((edition) => ({
+                    region: region.region.trim(),
                     var_title: edition.var_title.trim(),
                     title: edition.title.trim(),
                     slug: (edition.slug || '').trim(),
                     price: edition.price,
                     discountPrice: edition.discountPrice,
-                })),
+                }))
+            );
 
-            }));
+            if (creationType === 'gift-card') {
+                payload.variations = variationData;
+            } else {
+                payload.regions = regions.map((region) => ({
+                    region: region.region.trim(),
+                    editions: region.editions.map((edition) => ({
+                        var_title: edition.var_title.trim(),
+                        title: edition.title.trim(),
+                        slug: (edition.slug || '').trim(),
+                        price: edition.price,
+                        discountPrice: edition.discountPrice,
+                    })),
+                }));
+            }
         }
 
         return payload;
@@ -1509,16 +1538,22 @@ export default function AddProductModal({
                                     required
                                 />
 
-                                {creationType === 'product' && (
-                                    <Field
-                                        label="Edition"
-                                        name="var_title"
-                                        value={form.var_title}
-                                        onChange={handleChange}
-                                        placeholder="Standard Edition"
-                                        required
-                                    />
-                                )}
+                                <Field
+                                    label={
+                                        creationType === 'gift-card'
+                                            ? 'Denomination / Edition'
+                                            : 'Edition'
+                                    }
+                                    name="var_title"
+                                    value={form.var_title}
+                                    onChange={handleChange}
+                                    placeholder={
+                                        creationType === 'gift-card'
+                                            ? '₹1000'
+                                            : 'Standard Edition'
+                                    }
+                                    required
+                                />
 
                                 <Field
                                     label="Card Region"

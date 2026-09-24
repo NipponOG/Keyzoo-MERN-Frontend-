@@ -349,12 +349,11 @@ function RequirementFields({
     );
 }
 
-export default function EditProductModal({
-    open,
-    product,
-    onClose,
-    onUpdated,
-}) {
+export default function EditProductModal({ open, product, onClose, onUpdated, }) {
+
+    const isGiftCard = product?.type === 'gift-card';
+    const resourceName = isGiftCard ? 'Gift Card' : 'Product';
+
     const [form, setForm] = useState(emptyForm);
 
     const [loading, setLoading] = useState(false);
@@ -362,10 +361,67 @@ export default function EditProductModal({
     const [uploadError, setUploadError] = useState('');
     const [uploading, setUploading] = useState({});
 
+    const [variations, setVariations] = useState([]);
+    const [variationsLoading, setVariationsLoading] = useState(false);
+    const [variationsError, setVariationsError] = useState('');
+    const [showAddVariation, setShowAddVariation] = useState(false);
+    const [addingVariation, setAddingVariation] = useState(false);
+
+    const [variationForm, setVariationForm] = useState({
+        title: '',
+        slug: '',
+        var_title: '',
+        region: '',
+        price: '',
+        discountPrice: '',
+    });
+
     const mainImageInputRef = useRef(null);
     const platformImageInputRef = useRef(null);
     const platformIconInputRef = useRef(null);
     const galleryInputRef = useRef(null);
+
+    const loadVariations = async () => {
+        const groupId = isGiftCard
+            ? product?.giftCardGroupId
+            : product?.productGroupId;
+
+        if (!groupId) {
+            setVariations([]);
+            return;
+        }
+
+        setVariationsLoading(true);
+        setVariationsError('');
+
+        try {
+            const endpoint = isGiftCard
+                ? `/admin/gift-cards/group/${groupId}`
+                : `/admin/products/group/${groupId}`;
+
+            const data = await adminFetch(endpoint);
+
+            setVariations(
+                Array.isArray(data)
+                    ? data
+                    : Array.isArray(data?.data)
+                        ? data.data
+                        : []
+            );
+        } catch (err) {
+            console.error(
+                `Failed to load ${resourceName.toLowerCase()} variations:`,
+                err
+            );
+
+            setVariationsError(
+                err.message ||
+                `Failed to load ${resourceName.toLowerCase()} variations.`
+            );
+        } finally {
+            setVariationsLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (!open || !product) {
@@ -459,6 +515,20 @@ export default function EditProductModal({
         setUploadError('');
     }, [open, product]);
 
+    useEffect(() => {
+        const groupId = isGiftCard
+            ? product?.giftCardGroupId
+            : product?.productGroupId;
+
+        if (!open || !groupId) {
+            setVariations([]);
+            setVariationsError('');
+            return;
+        }
+
+        loadVariations();
+    }, [open, product, isGiftCard]);
+
     if (!open || !product) {
         return null;
     }
@@ -478,6 +548,115 @@ export default function EditProductModal({
                     ? checked
                     : value,
         }));
+    };
+
+    const handleVariationChange = (e) => {
+        const {
+            name,
+            value,
+        } = e.target;
+
+        setVariationForm((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
+
+    const resetVariationForm = () => {
+        setVariationForm({
+            title: '',
+            slug: '',
+            var_title: '',
+            region: '',
+            price: '',
+            discountPrice: '',
+        });
+
+        setShowAddVariation(false);
+    };
+
+    const handleAddVariation = async () => {
+
+        const groupId = isGiftCard
+            ? product?.giftCardGroupId
+            : product?.productGroupId;
+
+        if (!groupId) {
+            setVariationsError(
+                `This ${resourceName.toLowerCase()} is not part of a variation group.`
+            );
+            return;
+        }
+
+        setVariationsError('');
+        setAddingVariation(true);
+
+        try {
+            const payload = {
+                title: variationForm.title.trim(),
+                slug: variationForm.slug.trim(),
+                var_title: variationForm.var_title.trim(),
+                region: variationForm.region.trim(),
+                price: variationForm.price,
+                discountPrice: variationForm.discountPrice,
+            };
+
+            if (!payload.title) {
+                throw new Error('Variation title is required.');
+            }
+
+            if (!payload.var_title) {
+                throw new Error(
+                    'Variation / Edition title is required.'
+                );
+            }
+
+            if (!payload.region) {
+                throw new Error('Region is required.');
+            }
+
+            if (
+                payload.price === '' ||
+                Number(payload.price) < 0
+            ) {
+                throw new Error(
+                    'A valid price is required.'
+                );
+            }
+
+            if (
+                payload.discountPrice === '' ||
+                Number(payload.discountPrice) < 0
+            ) {
+                throw new Error(
+                    'A valid discount price is required.'
+                );
+            }
+
+            const endpoint = isGiftCard
+                ? `/admin/gift-cards/${product._id}/variations`
+                : `/admin/products/${product._id}/variations`;
+
+            await adminFetch(endpoint, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+            });
+
+            await loadVariations();
+            resetVariationForm();
+        } catch (err) {
+            console.error(
+                `Failed to add ${resourceName.toLowerCase()} variation:`,
+                err
+            );
+
+            setVariationsError(
+                err.message ||
+                `Failed to add ${resourceName.toLowerCase()} variation.`
+            );
+        } finally {
+            setAddingVariation(false);
+        }
     };
 
     const handleRequirementChange = (
@@ -891,11 +1070,11 @@ export default function EditProductModal({
                 >
                     <div>
                         <h2 className="text-xl font-semibold">
-                            Edit Product
+                            Edit {resourceName}
                         </h2>
 
                         <p className="mt-1 text-sm text-gray-400">
-                            Update product and variation
+                            Update {resourceName.toLowerCase()} and variation
                             details.
                         </p>
                     </div>
@@ -1265,6 +1444,525 @@ export default function EditProductModal({
                                 />
                             </div>
                         </Section>
+
+                        {/* Product Variations */}
+                        {(isGiftCard ? product?.giftCardGroupId : product?.productGroupId) && (
+                            <Section
+                                title={`${resourceName} Variations`}
+                                description={`Manage the sellable SKUs that belong to this ${resourceName.toLowerCase()} group.`}
+                            >
+                                <div className="space-y-4">
+
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p className="text-sm font-medium text-white">
+                                                {variations.length} {resourceName} SKU{variations.length !== 1 ? 's' : ''}
+                                            </p>
+
+                                            <p className="mt-1 text-xs text-gray-500">
+                                                Each variation is a separate
+                                                sellable product.
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setVariationsError('');
+                                                setShowAddVariation(
+                                                    (prev) => !prev
+                                                );
+                                            }}
+                                            disabled={
+                                                addingVariation ||
+                                                variationsLoading
+                                            }
+                                            className="
+                                                inline-flex
+                                                items-center
+                                                gap-2
+                                                rounded-xl
+                                                border border-indigo-500/30
+                                                bg-indigo-500/10
+                                                px-4 py-2.5
+                                                text-sm font-medium
+                                                text-indigo-300
+                                                transition
+                                                hover:border-indigo-500/50
+                                                hover:bg-indigo-500/20
+                                                hover:text-white
+                                                disabled:cursor-not-allowed
+                                                disabled:opacity-50
+                                            "
+                                        >
+                                            <span className="text-lg leading-none">
+                                                +
+                                            </span>
+
+                                            Add Variation
+                                        </button>
+                                    </div>
+
+                                    {/* Error */}
+                                    {variationsError && (
+                                        <div className="
+                                            rounded-xl
+                                            border border-red-500/20
+                                            bg-red-500/10
+                                            px-4 py-3
+                                            text-sm text-red-400
+                                        ">
+                                            {variationsError}
+                                        </div>
+                                    )}
+
+                                    {/* Loading */}
+                                    {variationsLoading ? (
+                                        <div className="
+                                            rounded-xl
+                                            border border-white/10
+                                            bg-white/[0.025]
+                                            px-4 py-8
+                                            text-center
+                                            text-sm text-gray-500
+                                        ">
+                                            Loading variations...
+                                        </div>
+                                    ) : variations.length === 0 ? (
+                                        <div className="
+                                            rounded-xl
+                                            border border-dashed
+                                            border-white/10
+                                            bg-white/[0.015]
+                                            px-4 py-8
+                                            text-center
+                                        ">
+                                            <p className="text-sm text-gray-400">
+                                                No variations found.
+                                            </p>
+
+                                            <p className="mt-1 text-xs text-gray-600">
+                                                Add another sellable SKU to
+                                                this product group.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="
+                                            overflow-hidden
+                                            rounded-xl
+                                            border border-white/10
+                                        ">
+                                            <div className="
+                                                hidden
+                                                grid-cols-[minmax(0,2fr)_120px_160px_120px_120px]
+                                                gap-4
+                                                border-b border-white/10
+                                                bg-white/[0.025]
+                                                px-4 py-3
+                                                text-[11px]
+                                                font-medium
+                                                uppercase
+                                                tracking-wide
+                                                text-gray-500
+                                                md:grid
+                                            ">
+                                                <span>Product</span>
+                                                <span>Region</span>
+                                                <span>Edition</span>
+                                                <span>Price</span>
+                                                <span>Status</span>
+                                            </div>
+
+                                            <div className="divide-y divide-white/10">
+                                                {variations.map(
+                                                    (variation) => {
+                                                        const isCurrent =
+                                                            String(
+                                                                variation._id
+                                                            ) ===
+                                                            String(
+                                                                product._id
+                                                            );
+
+                                                        const isParent =
+                                                            Boolean(
+                                                                variation.isParent
+                                                            );
+
+                                                        const price =
+                                                            Number(
+                                                                variation.price
+                                                            );
+
+                                                        const discountPrice =
+                                                            Number(
+                                                                variation.discountPrice
+                                                            );
+
+                                                        const hasDiscount =
+                                                            Number.isFinite(
+                                                                price
+                                                            ) &&
+                                                            Number.isFinite(
+                                                                discountPrice
+                                                            ) &&
+                                                            discountPrice <
+                                                            price;
+
+                                                        return (
+                                                            <div
+                                                                key={
+                                                                    variation._id
+                                                                }
+                                                                className="
+                                                                    grid
+                                                                    grid-cols-1
+                                                                    gap-3
+                                                                    px-4 py-4
+                                                                    md:grid-cols-[minmax(0,2fr)_120px_160px_120px_120px]
+                                                                    md:items-center
+                                                                    md:gap-4
+                                                                "
+                                                            >
+                                                                {/* Product */}
+                                                                <div className="min-w-0">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <p className="
+                                                                            truncate
+                                                                            text-sm
+                                                                            font-medium
+                                                                            text-white
+                                                                        ">
+                                                                            {
+                                                                                variation.title
+                                                                            }
+                                                                        </p>
+
+                                                                        {isParent && (
+                                                                            <span className="
+                                                                                shrink-0
+                                                                                rounded-md
+                                                                                border
+                                                                                border-indigo-500/20
+                                                                                bg-indigo-500/10
+                                                                                px-1.5
+                                                                                py-0.5
+                                                                                text-[10px]
+                                                                                font-medium
+                                                                                text-indigo-300
+                                                                            ">
+                                                                                Parent
+                                                                            </span>
+                                                                        )}
+
+                                                                        {isCurrent && (
+                                                                            <span className="
+                                                                                shrink-0
+                                                                                rounded-md
+                                                                                border
+                                                                                border-white/10
+                                                                                bg-white/5
+                                                                                px-1.5
+                                                                                py-0.5
+                                                                                text-[10px]
+                                                                                font-medium
+                                                                                text-gray-400
+                                                                            ">
+                                                                                Current
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+
+                                                                    <p className="
+                                                                        mt-1
+                                                                        truncate
+                                                                        text-xs
+                                                                        text-gray-500
+                                                                    ">
+                                                                        {
+                                                                            variation.slug
+                                                                        }
+                                                                    </p>
+
+                                                                    <div className="mt-2 md:hidden">
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            <span className="
+                                                                                rounded-md
+                                                                                bg-white/5
+                                                                                px-2 py-1
+                                                                                text-[11px]
+                                                                                text-gray-400
+                                                                            ">
+                                                                                {
+                                                                                    variation.region ||
+                                                                                    'No region'
+                                                                                }
+                                                                            </span>
+
+                                                                            <span className="
+                                                                                rounded-md
+                                                                                bg-white/5
+                                                                                px-2 py-1
+                                                                                text-[11px]
+                                                                                text-gray-400
+                                                                            ">
+                                                                                {
+                                                                                    variation.var_title ||
+                                                                                    'No edition'
+                                                                                }
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Region */}
+                                                                <div className="hidden md:block">
+                                                                    <span className="text-xs text-gray-300">
+                                                                        {
+                                                                            variation.region ||
+                                                                            '—'
+                                                                        }
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Edition */}
+                                                                <div className="hidden md:block">
+                                                                    <span className="text-xs text-gray-300">
+                                                                        {
+                                                                            variation.var_title ||
+                                                                            '—'
+                                                                        }
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Price */}
+                                                                <div>
+                                                                    {Number.isFinite(
+                                                                        price
+                                                                    ) ? (
+                                                                        <div>
+                                                                            <p className="text-sm font-medium text-white">
+                                                                                {variation.currency ||
+                                                                                    'INR'}{' '}
+                                                                                {hasDiscount
+                                                                                    ? discountPrice.toLocaleString()
+                                                                                    : price.toLocaleString()}
+                                                                            </p>
+
+                                                                            {hasDiscount && (
+                                                                                <p className="
+                                                                                    mt-0.5
+                                                                                    text-[11px]
+                                                                                    text-gray-500
+                                                                                    line-through
+                                                                                ">
+                                                                                    {
+                                                                                        variation.currency
+                                                                                    }{' '}
+                                                                                    {price.toLocaleString()}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span className="text-xs text-gray-500">
+                                                                            —
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Status */}
+                                                                <div>
+                                                                    <span
+                                                                        className={`
+                                                                            inline-flex
+                                                                            rounded-full
+                                                                            border
+                                                                            px-2 py-1
+                                                                            text-[10px]
+                                                                            font-medium
+                                                                            ${variation.status ===
+                                                                                'published'
+                                                                                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+                                                                                : 'border-yellow-500/20 bg-yellow-500/10 text-yellow-400'
+                                                                            }
+                                                                        `}
+                                                                    >
+                                                                        {variation.status ===
+                                                                            'published'
+                                                                            ? 'Published'
+                                                                            : 'Draft'}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Add Variation Form */}
+                                    {showAddVariation && (
+                                        <div
+                                            className="
+                                                rounded-2xl
+                                                border border-indigo-500/20
+                                                bg-indigo-500/[0.03]
+                                                p-5
+                                            "
+                                        >
+                                            <div className="mb-5">
+                                                <h4 className="text-sm font-semibold text-white">
+                                                    Add Variation
+                                                </h4>
+
+                                                <p className="mt-1 text-xs text-gray-500">
+                                                    Create another sellable SKU
+                                                    inside this product group.
+                                                </p>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                <Field
+                                                    label="Title"
+                                                    name="title"
+                                                    value={
+                                                        variationForm.title
+                                                    }
+                                                    onChange={
+                                                        handleVariationChange
+                                                    }
+                                                    placeholder="Grand Theft Auto V (India Deluxe) (PC) - Rockstar - Digital Key"
+                                                    required
+                                                />
+
+                                                <Field
+                                                    label="Variation / Edition Title"
+                                                    name="var_title"
+                                                    value={
+                                                        variationForm.var_title
+                                                    }
+                                                    onChange={
+                                                        handleVariationChange
+                                                    }
+                                                    placeholder="Deluxe Edition"
+                                                    required
+                                                />
+
+                                                <Field
+                                                    label="Slug"
+                                                    name="slug"
+                                                    value={
+                                                        variationForm.slug
+                                                    }
+                                                    onChange={
+                                                        handleVariationChange
+                                                    }
+                                                    placeholder="Leave blank to generate from title"
+                                                />
+
+                                                <Field
+                                                    label="Region"
+                                                    name="region"
+                                                    value={
+                                                        variationForm.region
+                                                    }
+                                                    onChange={
+                                                        handleVariationChange
+                                                    }
+                                                    placeholder="India"
+                                                    required
+                                                />
+
+                                                <Field
+                                                    label="Price"
+                                                    name="price"
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={
+                                                        variationForm.price
+                                                    }
+                                                    onChange={
+                                                        handleVariationChange
+                                                    }
+                                                    placeholder="2499"
+                                                    required
+                                                />
+
+                                                <Field
+                                                    label="Discount Price"
+                                                    name="discountPrice"
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={
+                                                        variationForm.discountPrice
+                                                    }
+                                                    onChange={
+                                                        handleVariationChange
+                                                    }
+                                                    placeholder="2199"
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div className="mt-5 flex items-center justify-end gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={
+                                                        resetVariationForm
+                                                    }
+                                                    disabled={
+                                                        addingVariation
+                                                    }
+                                                    className="
+                                                        rounded-xl
+                                                        border border-white/10
+                                                        bg-white/5
+                                                        px-4 py-2.5
+                                                        text-sm
+                                                        font-medium
+                                                        text-gray-300
+                                                        transition
+                                                        hover:bg-white/10
+                                                        hover:text-white
+                                                        disabled:opacity-50
+                                                    "
+                                                >
+                                                    Cancel
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAddVariation}
+                                                    disabled={
+                                                        addingVariation
+                                                    }
+                                                    className="
+                                                        rounded-xl
+                                                        bg-indigo-500
+                                                        px-4 py-2.5
+                                                        text-sm
+                                                        font-semibold
+                                                        text-white
+                                                        transition
+                                                        hover:bg-indigo-600
+                                                        disabled:cursor-not-allowed
+                                                        disabled:opacity-50
+                                                    "
+                                                >
+                                                    {addingVariation
+                                                        ? 'Adding...'
+                                                        : 'Add Variation'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </Section>
+                        )}
 
                         {/* Details */}
                         <Section
