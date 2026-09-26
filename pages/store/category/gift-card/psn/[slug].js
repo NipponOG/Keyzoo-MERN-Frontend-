@@ -205,15 +205,13 @@ export default function ProductPage({ product, regionsData }) {
     const handleAddToCart = () => {
         dispatch(
             addToCart({
-                id: product.id,
+                id: product._id,
                 type: product.type,
                 title: product.title,
-                // game_tag: product.item,
                 item_type_game: product.item_type,
                 price: product.discountPrice,
                 region: product.region,
                 image: imgUrl,
-                // add more if you want
             }),
         );
         toast.success("Added to cart!");
@@ -223,15 +221,13 @@ export default function ProductPage({ product, regionsData }) {
         setLoading(true);
         dispatch(
             addToCart({
-                id: product.id,
+                id: product._id,
                 type: product.type,
                 title: product.title,
-                // game_tag: product.item,
                 item_type_game: product.item_type,
                 price: product.discountPrice,
                 region: product.region,
                 image: imgUrl,
-                // add more if you want
             }),
         );
         router.push("/checkout");
