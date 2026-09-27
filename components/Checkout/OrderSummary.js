@@ -86,13 +86,19 @@ export default function OrderSummary({
                 }
             );
 
-            if (!data?.url) {
+            if (!data?.checkout?.url) {
+                console.error(
+                    "❌ Stripe checkout response does not contain checkout URL:",
+                    data
+                );
+
                 throw new Error(
                     "Unable to create Stripe checkout."
                 );
             }
 
-            window.location.href = data.url;
+            window.location.href = data.checkout.url;
+
         } catch (error) {
             console.error(
                 "Checkout error:",
@@ -251,9 +257,9 @@ export default function OrderSummary({
                     cartItems.length === 0
                 }
                 className={`w-full ${loading ||
-                        cartItems.length === 0
-                        ? "cursor-not-allowed bg-gray-500"
-                        : "bg-blue-600 hover:bg-blue-500"
+                    cartItems.length === 0
+                    ? "cursor-not-allowed bg-gray-500"
+                    : "bg-blue-600 hover:bg-blue-500"
                     } rounded py-4 font-semibold text-white transition sm:py-3`}
             >
                 {loading
