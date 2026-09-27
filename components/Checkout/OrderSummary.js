@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { CiTrash } from "react-icons/ci";
 import { LuPlus, LuMinus } from "react-icons/lu";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import useCurrency from "@/hook/useCurrency";
@@ -17,6 +17,65 @@ export default function OrderSummary({
     const { symbol } = useCurrency();
 
     const [loading, setLoading] = useState(false);
+    const [cashfree, setCashfree] = useState(null);
+
+    useEffect(() => {
+        const existingScript = document.querySelector(
+            'script[src="https://sdk.cashfree.com/js/v3/cashfree.js"]'
+        );
+
+        const initializeCashfree = () => {
+            if (!window.Cashfree) {
+                console.error(
+                    "❌ Cashfree SDK is not available."
+                );
+                return;
+            }
+
+            const instance = window.Cashfree({
+                mode:
+                    process.env.CASHFREE_ENVIRONMENT ||
+                    "sandbox",
+            });
+
+            setCashfree(instance);
+        };
+
+        if (existingScript) {
+            if (window.Cashfree) {
+                initializeCashfree();
+            } else {
+                existingScript.addEventListener(
+                    "load",
+                    initializeCashfree
+                );
+            }
+
+            return;
+        }
+
+        const script = document.createElement("script");
+
+        script.src =
+            "https://sdk.cashfree.com/js/v3/cashfree.js";
+
+        script.async = true;
+
+        script.onload = initializeCashfree;
+
+        script.onerror = () => {
+            console.error(
+                "❌ Failed to load Cashfree SDK."
+            );
+        };
+
+        document.body.appendChild(script);
+
+        return () => {
+            script.onload = null;
+            script.onerror = null;
+        };
+    }, []);
 
     /*
      * Frontend subtotal is only for display.
@@ -36,9 +95,8 @@ export default function OrderSummary({
         0
     );
 
-    const isStripePayment =
-        selectedPayment === "Debit / Credit Card" ||
-        selectedPayment === "AMEX";
+    const isStripePayment = selectedPayment === "Debit / Credit Card" || selectedPayment === "AMEX";
+    const isCashfreePayment = selectedPayment === "Cashfree";
 
     const handleCheckout = async () => {
         if (loading) {
@@ -55,7 +113,7 @@ export default function OrderSummary({
             return;
         }
 
-        if (!isStripePayment) {
+        if (!isStripePayment && !isCashfreePayment) {
             alert(
                 "This payment method is not available yet."
             );
@@ -71,33 +129,95 @@ export default function OrderSummary({
                 quantity: Number(item.quantity || 1),
             }));
 
-            const data = await apiFetch(
-                "/payments/stripe/create-checkout",
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${jwt}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        items,
-                        currency: "INR",
-                    }),
+            let data;
+
+            if (isStripePayment) {
+                data = await apiFetch(
+                    "/payments/stripe/create-checkout",
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${jwt}`,
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            items,
+                            currency: "INR",
+                        }),
+                    }
+                );
+
+                if (!data?.checkout?.url) {
+                    console.error(
+                        "❌ Stripe checkout response does not contain checkout URL:",
+                        data
+                    );
+
+                    throw new Error(
+                        "Unable to create Stripe checkout."
+                    );
                 }
-            );
 
-            if (!data?.checkout?.url) {
-                console.error(
-                    "❌ Stripe checkout response does not contain checkout URL:",
-                    data
-                );
+                window.location.href =
+                    data.checkout.url;
 
-                throw new Error(
-                    "Unable to create Stripe checkout."
-                );
+                return;
             }
 
-            window.location.href = data.checkout.url;
+            if (isCashfreePayment) {
+                if (!cashfree) {
+                    throw new Error(
+                        "Cashfree checkout is still loading. Please try again."
+                    );
+                }
+
+                data = await apiFetch(
+                    "/payments/cashfree/create-checkout",
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${jwt}`,
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            items,
+                            currency: "INR",
+                        }),
+                    }
+                );
+
+                const paymentSessionId =
+                    data?.checkout?.paymentSessionId;
+
+                if (!paymentSessionId) {
+                    console.error(
+                        "❌ Cashfree checkout response does not contain payment session ID:",
+                        data
+                    );
+
+                    throw new Error(
+                        "Unable to create Cashfree checkout."
+                    );
+                }
+
+                const checkoutResult =
+                    await cashfree.checkout({
+                        paymentSessionId,
+                        redirectTarget: "_self",
+                    });
+
+                if (checkoutResult?.error) {
+                    console.error(
+                        "❌ Cashfree checkout error:",
+                        checkoutResult.error
+                    );
+
+                    throw new Error(
+                        checkoutResult.error.message ||
+                        "Unable to open Cashfree checkout."
+                    );
+                }
+            }
 
         } catch (error) {
             console.error(

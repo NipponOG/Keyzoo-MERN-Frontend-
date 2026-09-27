@@ -11,6 +11,7 @@ export default function SignUpPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,6 +48,7 @@ export default function SignUpPage() {
           firstName,
           lastName,
           email,
+          phone,
           password,
           dateOfBirth,
           turnstileToken,
@@ -191,6 +193,29 @@ export default function SignUpPage() {
                 required
                 className="w-full mt-1 px-4 py-3 bg-neutral-800 rounded-md text-white outline-none focus:ring-2 focus:ring-purple-500 transition"
                 placeholder="Enter your email"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-neutral-400">
+                Phone Number
+              </label>
+
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) =>
+                  setPhone(
+                    e.target.value
+                      .replace(/\D/g, "")
+                      .slice(0, 10)
+                  )
+                }
+                required
+                inputMode="numeric"
+                maxLength={10}
+                className="w-full mt-1 px-4 py-3 bg-neutral-800 rounded-md text-white outline-none focus:ring-2 focus:ring-purple-500 transition"
+                placeholder="Enter your 10-digit phone number"
               />
             </div>
 

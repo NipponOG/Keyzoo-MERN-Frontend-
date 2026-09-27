@@ -13,6 +13,10 @@ export default function PaymentMethods({
             name: "AMEX",
             logo: "/payments_payicon/amex.svg",
         },
+        {
+            name: "Cashfree",
+            logo: "/payments_payicon/Cashfree_Payments_idzBxeINHs_0.svg",
+        },
     ];
 
     return (
@@ -21,8 +25,8 @@ export default function PaymentMethods({
                 <label
                     key={method.name}
                     className={`flex items-center justify-between bg-[#1a1a1a] px-4 py-3 rounded-lg cursor-pointer transition ${selectedPayment === method.name
-                            ? "ring-2 ring-blue-500"
-                            : ""
+                        ? "ring-2 ring-blue-500"
+                        : ""
                         }`}
                     onClick={() =>
                         onSelectPayment(method.name)
