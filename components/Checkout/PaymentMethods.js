@@ -17,6 +17,10 @@ export default function PaymentMethods({
             name: "Cashfree",
             logo: "/payments_payicon/Cashfree_Payments_idzBxeINHs_0.svg",
         },
+        {
+            name: "Razorpay",
+            logo: "/payments_payicon/Razorpay_idJPs0Yq7Y_1.svg",
+        },
     ];
 
     return (
@@ -25,8 +29,8 @@ export default function PaymentMethods({
                 <label
                     key={method.name}
                     className={`flex items-center justify-between bg-[#1a1a1a] px-4 py-3 rounded-lg cursor-pointer transition ${selectedPayment === method.name
-                        ? "ring-2 ring-blue-500"
-                        : ""
+                            ? "ring-2 ring-blue-500"
+                            : ""
                         }`}
                     onClick={() =>
                         onSelectPayment(method.name)
@@ -48,13 +52,15 @@ export default function PaymentMethods({
                             className="form-radio accent-blue-500 w-5 h-5"
                         />
 
-                        <Image
-                            src={method.logo}
-                            alt={method.name}
-                            width={80}
-                            height={50}
-                            className="object-contain bg-white rounded w-[60px] h-[30px] sm:w-[80px] sm:h-[40px]"
-                        />
+                        <div className="flex items-center justify-center w-[88px] h-[42px] sm:w-[100px] sm:h-[44px] bg-white rounded-md overflow-hidden">
+                            <Image
+                                src={method.logo}
+                                alt={method.name}
+                                width={100}
+                                height={44}
+                                className="w-full h-full object-contain p-1"
+                            />
+                        </div>
                     </div>
 
                     <span className="text-[0.875rem] text-gray-300">

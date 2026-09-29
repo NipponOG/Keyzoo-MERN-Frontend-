@@ -18,6 +18,12 @@ export default function OrderSummary({
 
     const [loading, setLoading] = useState(false);
     const [cashfree, setCashfree] = useState(null);
+    const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+
+    const [couponCode, setCouponCode] = useState("");
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [couponLoading, setCouponLoading] = useState(false);
+    const [couponError, setCouponError] = useState("");
 
     useEffect(() => {
         const existingScript = document.querySelector(
@@ -77,6 +83,53 @@ export default function OrderSummary({
         };
     }, []);
 
+    useEffect(() => {
+        const existingScript = document.querySelector(
+            'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+        );
+
+        const handleLoad = () => {
+            setRazorpayLoaded(true);
+        };
+
+        if (existingScript) {
+            if (window.Razorpay) {
+                setRazorpayLoaded(true);
+            } else {
+                existingScript.addEventListener(
+                    "load",
+                    handleLoad
+                );
+            }
+
+            return;
+        }
+
+        const script = document.createElement("script");
+
+        script.src =
+            "https://checkout.razorpay.com/v1/checkout.js";
+
+        script.async = true;
+
+        script.onload = handleLoad;
+
+        script.onerror = () => {
+            console.error(
+                "❌ Failed to load Razorpay Checkout SDK."
+            );
+
+            setRazorpayLoaded(false);
+        };
+
+        document.body.appendChild(script);
+
+        return () => {
+            script.onload = null;
+            script.onerror = null;
+        };
+    }, []);
+
     /*
      * Frontend subtotal is only for display.
      *
@@ -97,6 +150,85 @@ export default function OrderSummary({
 
     const isStripePayment = selectedPayment === "Debit / Credit Card" || selectedPayment === "AMEX";
     const isCashfreePayment = selectedPayment === "Cashfree";
+    const isRazorpayPayment = selectedPayment === "Razorpay";
+
+    const handleApplyCoupon = async () => {
+        if (couponLoading) {
+            return;
+        }
+
+        const code = couponCode.trim();
+
+        if (!code) {
+            setCouponError("Please enter a coupon code.");
+            return;
+        }
+
+        if (subtotal <= 0) {
+            setCouponError("Your cart total must be greater than zero.");
+            return;
+        }
+
+        if (!jwt) {
+            setCouponError("Please log in to apply a coupon.");
+            return;
+        }
+
+        try {
+            setCouponLoading(true);
+            setCouponError("");
+
+            const data = await apiFetch(
+                "/coupons/apply",
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${jwt}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        code,
+                        subtotal,
+                    }),
+                }
+            );
+
+            if (!data?.success || !data?.pricing) {
+                throw new Error(
+                    "Unable to apply coupon."
+                );
+            }
+
+            setAppliedCoupon({
+                id: data.coupon?.id ?? null,
+                code: data.coupon?.code ?? code.toUpperCase(),
+                discountType:
+                    data.coupon?.discountType ?? null,
+                discountValue:
+                    data.coupon?.discountValue ?? null,
+                subtotal:
+                    Number(data.pricing.subtotal || 0),
+                discount:
+                    Number(data.pricing.discount || 0),
+                total:
+                    Number(data.pricing.total || 0),
+            });
+
+            setCouponCode(
+                data.coupon?.code ??
+                code.toUpperCase()
+            );
+        } catch (error) {
+            setAppliedCoupon(null);
+
+            setCouponError(
+                error.message ||
+                "Unable to apply coupon."
+            );
+        } finally {
+            setCouponLoading(false);
+        }
+    };
 
     const handleCheckout = async () => {
         if (loading) {
@@ -113,7 +245,7 @@ export default function OrderSummary({
             return;
         }
 
-        if (!isStripePayment && !isCashfreePayment) {
+        if (!isStripePayment && !isCashfreePayment && !isRazorpayPayment) {
             alert(
                 "This payment method is not available yet."
             );
@@ -143,6 +275,8 @@ export default function OrderSummary({
                         body: JSON.stringify({
                             items,
                             currency: "INR",
+                            couponCode:
+                                appliedCoupon?.code || null,
                         }),
                     }
                 );
@@ -182,6 +316,8 @@ export default function OrderSummary({
                         body: JSON.stringify({
                             items,
                             currency: "INR",
+                            couponCode:
+                                appliedCoupon?.code || null,
                         }),
                     }
                 );
@@ -217,6 +353,124 @@ export default function OrderSummary({
                         "Unable to open Cashfree checkout."
                     );
                 }
+            }
+
+            if (isRazorpayPayment) {
+                if (!razorpayLoaded || !window.Razorpay) {
+                    throw new Error(
+                        "Razorpay checkout is still loading. Please try again."
+                    );
+                }
+
+                data = await apiFetch(
+                    "/payments/razorpay/create-checkout",
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${jwt}`,
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            items,
+                            currency: "INR",
+                            couponCode:
+                                appliedCoupon?.code || null,
+                        }),
+                    }
+                );
+
+                const razorpayOrderId =
+                    data?.checkout?.orderId;
+
+                const razorpayKeyId =
+                    data?.checkout?.keyId;
+
+                const razorpayAmount =
+                    data?.checkout?.amount;
+
+                if (
+                    !razorpayOrderId ||
+                    !razorpayKeyId ||
+                    !razorpayAmount
+                ) {
+                    console.error(
+                        "❌ Razorpay checkout response is incomplete:",
+                        data
+                    );
+
+                    throw new Error(
+                        "Unable to create Razorpay checkout."
+                    );
+                }
+
+                const options = {
+                    key: razorpayKeyId,
+
+                    amount: razorpayAmount,
+
+                    currency:
+                        data?.checkout?.currency ||
+                        "INR",
+
+                    name: "Keyzoo",
+
+                    description:
+                        "Digital Game / Gift Card Purchase",
+
+                    order_id: razorpayOrderId,
+
+                    handler: function (response) {
+                        console.log(
+                            "✅ Razorpay checkout completed:",
+                            response
+                        );
+
+                        /*
+                         * Do not mark the order paid here.
+                         *
+                         * The backend Razorpay webhook is the
+                         * authoritative payment confirmation.
+                         */
+                        window.location.href =
+                            `/checkout/success?order=${encodeURIComponent(
+                                data.order.orderNumber
+                            )}`;
+                    },
+
+                    modal: {
+                        ondismiss: function () {
+                            setLoading(false);
+                        },
+                    },
+
+                    theme: {
+                        color: "#814DE5",
+                    },
+                };
+
+                const razorpay =
+                    new window.Razorpay(options);
+
+                razorpay.on(
+                    "payment.failed",
+                    function (response) {
+                        console.error(
+                            "❌ Razorpay payment failed:",
+                            response?.error
+                        );
+
+                        setLoading(false);
+
+                        alert(
+                            response?.error?.description ||
+                            "Razorpay payment failed. Please try again."
+                        );
+                    }
+                );
+
+                razorpay.open();
+
+                return;
             }
 
         } catch (error) {
@@ -342,23 +596,99 @@ export default function OrderSummary({
                 </ul>
             )}
 
-            <div className="border-t border-gray-700 pt-4 space-y-1 text-sm">
-                <div className="flex justify-between">
-                    <span>Subtotal</span>
+            <div className="border-t border-gray-700 pt-4 space-y-4 text-sm">
+                <div>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={couponCode}
+                            onChange={(event) => {
+                                setCouponCode(
+                                    event.target.value.toUpperCase()
+                                );
+                                setCouponError("");
+                            }}
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                    event.preventDefault();
+                                    handleApplyCoupon();
+                                }
+                            }}
+                            placeholder="Coupon code"
+                            disabled={couponLoading || loading}
+                            className="min-w-0 flex-1 rounded-md border border-gray-700 bg-[#111111] px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-gray-500 focus:border-blue-500 disabled:opacity-50"
+                        />
 
-                    <span>
-                        {symbol}{" "}
-                        {subtotal.toFixed(2)}
-                    </span>
+                        <button
+                            type="button"
+                            onClick={handleApplyCoupon}
+                            disabled={
+                                couponLoading ||
+                                loading ||
+                                !couponCode.trim()
+                            }
+                            className={`rounded-md px-4 py-2.5 text-sm font-semibold text-white transition ${couponLoading ||
+                                loading ||
+                                !couponCode.trim()
+                                ? "cursor-not-allowed bg-gray-600"
+                                : "bg-blue-600 hover:bg-blue-500"
+                                }`}
+                        >
+                            {couponLoading
+                                ? "Applying..."
+                                : "Apply"}
+                        </button>
+                    </div>
+
+                    {couponError && (
+                        <p className="mt-2 text-xs text-red-400">
+                            {couponError}
+                        </p>
+                    )}
+
+                    {appliedCoupon && !couponError && (
+                        <p className="mt-2 text-xs text-green-400">
+                            Coupon{" "}
+                            <span className="font-semibold">
+                                {appliedCoupon.code}
+                            </span>{" "}
+                            applied successfully.
+                        </p>
+                    )}
                 </div>
 
-                <div className="flex justify-between font-bold text-lg">
-                    <span>Total</span>
+                <div className="space-y-1">
+                    <div className="flex justify-between">
+                        <span>Subtotal</span>
 
-                    <span>
-                        {symbol}{" "}
-                        {subtotal.toFixed(2)}
-                    </span>
+                        <span>
+                            {symbol}{" "}
+                            {subtotal.toFixed(2)}
+                        </span>
+                    </div>
+
+                    {appliedCoupon && (
+                        <div className="flex justify-between text-green-400">
+                            <span>Discount</span>
+
+                            <span>
+                                -{symbol}{" "}
+                                {appliedCoupon.discount.toFixed(2)}
+                            </span>
+                        </div>
+                    )}
+
+                    <div className="flex justify-between pt-1 font-bold text-lg">
+                        <span>Total</span>
+
+                        <span>
+                            {symbol}{" "}
+                            {(
+                                appliedCoupon?.total ??
+                                subtotal
+                            ).toFixed(2)}
+                        </span>
+                    </div>
                 </div>
             </div>
 
