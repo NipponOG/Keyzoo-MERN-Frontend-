@@ -230,6 +230,26 @@ export default function OrderSummary({
         }
     };
 
+    const clearAppliedCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponError("");
+    };
+
+    const handleRemoveItem = (itemId) => {
+        clearAppliedCoupon();
+        onRemove(itemId);
+    };
+
+    const handleIncreaseItem = (itemId) => {
+        clearAppliedCoupon();
+        onIncrease(itemId);
+    };
+
+    const handleDecreaseItem = (itemId) => {
+        clearAppliedCoupon();
+        onDecrease(itemId);
+    };
+
     const handleCheckout = async () => {
         if (loading) {
             return;
@@ -540,7 +560,7 @@ export default function OrderSummary({
                                         <button
                                             type="button"
                                             onClick={() =>
-                                                onRemove(
+                                                handleRemoveItem(
                                                     item.id
                                                 )
                                             }
@@ -554,7 +574,7 @@ export default function OrderSummary({
                                         <button
                                             type="button"
                                             onClick={() =>
-                                                onDecrease(
+                                                handleDecreaseItem(
                                                     item.id
                                                 )
                                             }
@@ -578,7 +598,7 @@ export default function OrderSummary({
                                         <button
                                             type="button"
                                             onClick={() =>
-                                                onIncrease(
+                                                handleIncreaseItem(
                                                     item.id
                                                 )
                                             }
