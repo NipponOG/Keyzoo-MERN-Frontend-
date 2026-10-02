@@ -1,12 +1,16 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
+import PasswordInput from "@/components/PasswordInput";
 import Image from "next/image";
 import { apiFetch } from "@/lib/api";
 
-export default function ForgotPasswordPage() {
+export default function ResetPasswordPage() {
     const router = useRouter();
+    const { token } = router.query;
 
-    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState("");
     const [error, setError] = useState("");
@@ -16,24 +20,50 @@ export default function ForgotPasswordPage() {
 
         setError("");
         setSuccess("");
+
+        if (!token) {
+            setError("Invalid or missing reset token.");
+            return;
+        }
+
+        if (password.length < 8) {
+            setError(
+                "Password must be at least 8 characters long."
+            );
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match.");
+            return;
+        }
+
         setLoading(true);
 
         try {
-            const data = await apiFetch("/auth/forgot-password", {
-                method: "POST",
-                body: JSON.stringify({
-                    email: email.trim(),
-                }),
-            });
+            const data = await apiFetch(
+                "/auth/reset-password",
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        token,
+                        password,
+                    }),
+                }
+            );
 
             setSuccess(
                 data?.message ||
-                "If an account exists with that email, a password reset link has been sent."
+                "Password reset successful! Redirecting..."
             );
+
+            setTimeout(() => {
+                router.push("/sign-in");
+            }, 1200);
         } catch (err) {
             setError(
                 err?.message ||
-                "Something went wrong. Please try again."
+                "Unable to reset your password. The link may have expired."
             );
         } finally {
             setLoading(false);
@@ -49,12 +79,11 @@ export default function ForgotPasswordPage() {
 
                     <div>
                         <h2 className="text-2xl font-bold">
-                            Forgot your password 🔐
+                            Reset your password 🔐
                         </h2>
 
                         <p className="text-sm text-neutral-400 mt-2">
-                            Enter your email address and we&apos;ll send you
-                            a link to reset your password.
+                            Enter your new password below.
                         </p>
                     </div>
 
@@ -63,22 +92,30 @@ export default function ForgotPasswordPage() {
                         onSubmit={handleSubmit}
                     >
                         <div>
-                            <label
-                                htmlFor="email"
-                                className="text-sm"
-                            >
-                                Email Address
+                            <label className="text-sm">
+                                New Password
                             </label>
 
-                            <input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="Enter your email"
-                                autoComplete="email"
-                                required
-                                className="mt-2 w-full rounded border border-neutral-700 bg-neutral-800 px-4 py-3 text-white outline-none transition focus:border-purple-500"
+                            <PasswordInput
+                                value={password}
+                                onChange={(e) =>
+                                    setPassword(e.target.value)
+                                }
+                                placeholder="Enter new password"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-sm">
+                                Confirm New Password
+                            </label>
+
+                            <PasswordInput
+                                value={confirmPassword}
+                                onChange={(e) =>
+                                    setConfirmPassword(e.target.value)
+                                }
+                                placeholder="Confirm new password"
                             />
                         </div>
 
@@ -103,15 +140,17 @@ export default function ForgotPasswordPage() {
                                 }`}
                         >
                             {loading
-                                ? "Sending..."
-                                : "Send Reset Link"}
+                                ? "Resetting..."
+                                : "Reset Password"}
                         </button>
                     </form>
 
                     <div className="text-sm text-neutral-400">
                         <button
                             type="button"
-                            onClick={() => router.push("/sign-in")}
+                            onClick={() =>
+                                router.push("/sign-in")
+                            }
                             className="hover:text-purple-400 transition"
                         >
                             Back to login
@@ -125,7 +164,7 @@ export default function ForgotPasswordPage() {
                         src="/3d/reset_password.png"
                         width={450}
                         height={450}
-                        alt="Forgot Password"
+                        alt="Reset Password"
                         className="object-contain"
                     />
                 </div>
