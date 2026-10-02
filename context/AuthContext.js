@@ -17,6 +17,14 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("jwt", token);
     };
 
+    const updateUser = (updatedUser) => {
+        setUser(updatedUser);
+        localStorage.setItem(
+            "user",
+            JSON.stringify(updatedUser)
+        );
+    };
+
     const logout = () => {
         setUser(null);
         setJwt(null);
@@ -53,7 +61,7 @@ export const AuthProvider = ({ children }) => {
 
                 console.error("Auth verification failed:", err);
                 logout();
-                
+
             } finally {
 
                 setLoading(false);
@@ -65,7 +73,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, jwt, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, jwt, login, logout, updateUser, loading }}>
             {children}
         </AuthContext.Provider>
     );
