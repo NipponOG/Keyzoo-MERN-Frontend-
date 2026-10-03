@@ -15,6 +15,7 @@ import {
 } from "react-icons/fi";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { QRCodeSVG } from "qrcode.react";
 
 const ProfileStat = ({ icon, value, label }) => (
     <div className="rounded-2xl border border-neutral-800 bg-[#202020] p-5 transition-all duration-300 hover:border-purple-500/40 hover:bg-[#242424]">
@@ -73,6 +74,14 @@ export default function ProfilePage() {
     const [savingProfile, setSavingProfile] = useState(false);
     const [profileMessage, setProfileMessage] = useState("");
     const [profileError, setProfileError] = useState("");
+
+    const [mfaStep, setMfaStep] = useState("idle");
+    const [mfaSetupUrl, setMfaSetupUrl] = useState("");
+    const [mfaCode, setMfaCode] = useState("");
+    const [mfaRecoveryCodes, setMfaRecoveryCodes] = useState([]);
+    const [mfaMessage, setMfaMessage] = useState("");
+    const [mfaError, setMfaError] = useState("");
+    const [mfaLoading, setMfaLoading] = useState(false);
 
     const [formData, setFormData] = useState({
         firstName: "",
@@ -260,6 +269,149 @@ export default function ProfilePage() {
         }
     };
 
+    const handleStartMfaSetup = async () => {
+        setMfaError("");
+        setMfaMessage("");
+        setMfaCode("");
+        setMfaRecoveryCodes([]);
+        setMfaLoading(true);
+
+        try {
+            const response = await apiFetch("/auth/2fa/setup", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${jwt}`,
+                },
+            });
+
+            if (!response?.success || !response?.data?.otpauthUrl) {
+                throw new Error(
+                    response?.message || "Failed to start two-factor authentication."
+                );
+            }
+
+            setMfaSetupUrl(response.data.otpauthUrl);
+            setMfaStep("setup");
+        } catch (error) {
+            console.error("Failed to start MFA setup:", error);
+            setMfaError(
+                error.message || "Failed to start two-factor authentication."
+            );
+        } finally {
+            setMfaLoading(false);
+        }
+    };
+
+    const handleEnableMfa = async (event) => {
+        event.preventDefault();
+
+        setMfaError("");
+        setMfaMessage("");
+
+        if (!/^\d{6}$/.test(mfaCode.trim())) {
+            setMfaError("Enter the 6-digit code from your authenticator app.");
+            return;
+        }
+
+        setMfaLoading(true);
+
+        try {
+            const response = await apiFetch("/auth/2fa/enable", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${jwt}`,
+                },
+                body: JSON.stringify({
+                    code: mfaCode.trim(),
+                }),
+            });
+
+            if (!response?.success || !response?.user) {
+                throw new Error(
+                    response?.message || "Failed to enable two-factor authentication."
+                );
+            }
+
+            updateUser(response.user);
+
+            setMfaRecoveryCodes(response.recoveryCodes || []);
+            setMfaCode("");
+            setMfaStep("recovery");
+            setMfaMessage(
+                "Two-factor authentication has been enabled successfully."
+            );
+        } catch (error) {
+            console.error("Failed to enable MFA:", error);
+            setMfaError(
+                error.message || "Failed to enable two-factor authentication."
+            );
+        } finally {
+            setMfaLoading(false);
+        }
+    };
+
+    const handleDisableMfa = async (event) => {
+        event.preventDefault();
+
+        setMfaError("");
+        setMfaMessage("");
+
+        if (!/^\d{6}$/.test(mfaCode.trim())) {
+            setMfaError("Enter the 6-digit code from your authenticator app.");
+            return;
+        }
+
+        setMfaLoading(true);
+
+        try {
+            const response = await apiFetch("/auth/2fa/disable", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${jwt}`,
+                },
+                body: JSON.stringify({
+                    code: mfaCode.trim(),
+                }),
+            });
+
+            if (!response?.success || !response?.user) {
+                throw new Error(
+                    response?.message || "Failed to disable two-factor authentication."
+                );
+            }
+
+            updateUser(response.user);
+
+            setMfaCode("");
+            setMfaSetupUrl("");
+            setMfaRecoveryCodes([]);
+            setMfaStep("idle");
+            setMfaMessage(
+                "Two-factor authentication has been disabled."
+            );
+        } catch (error) {
+            console.error("Failed to disable MFA:", error);
+            setMfaError(
+                error.message || "Failed to disable two-factor authentication."
+            );
+        } finally {
+            setMfaLoading(false);
+        }
+    };
+
+    const handleCopyRecoveryCodes = async () => {
+        try {
+            await navigator.clipboard.writeText(
+                mfaRecoveryCodes.join("\n")
+            );
+
+            setMfaMessage("Recovery codes copied to clipboard.");
+        } catch (error) {
+            console.error("Failed to copy recovery codes:", error);
+            setMfaError("Failed to copy recovery codes.");
+        }
+    };
+
     if (loading) {
         return (
             <main className="min-h-screen bg-[#1e1e1e] px-4 py-10">
@@ -380,7 +532,7 @@ export default function ProfilePage() {
                         </div>
 
                         <Link
-                            href="/orders"
+                            href="/account/orders"
                             className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900/70 px-5 py-3 text-sm font-semibold text-white transition-all duration-300 hover:border-purple-500/50 hover:text-purple-400"
                         >
                             <FiPackage />
@@ -418,7 +570,8 @@ export default function ProfilePage() {
                 </section>
 
                 {/* Main content */}
-                <div className="mt-6 grid gap-6 lg:grid-cols-3">
+                <div className="mt-6 grid gap-6 lg:grid-cols-2">
+
                     {/* Personal information */}
                     <section className="lg:col-span-2 rounded-3xl border border-neutral-800 bg-[#202020] p-6 md:p-7">
                         <div className="flex items-center justify-between gap-4">
@@ -612,7 +765,7 @@ export default function ProfilePage() {
 
                         <div className="mt-5 space-y-3">
                             <Link
-                                href="/orders"
+                                href="/account/orders"
                                 className="group flex items-center justify-between rounded-2xl border border-neutral-800 bg-neutral-900/50 p-4 transition-all duration-300 hover:border-purple-500/40 hover:bg-neutral-900"
                             >
                                 <div className="flex items-center gap-3">
@@ -635,7 +788,7 @@ export default function ProfilePage() {
                             </Link>
 
                             <Link
-                                href="/favourites"
+                                href="/account/favourites"
                                 className="group flex items-center justify-between rounded-2xl border border-neutral-800 bg-neutral-900/50 p-4 transition-all duration-300 hover:border-purple-500/40 hover:bg-neutral-900"
                             >
                                 <div className="flex items-center gap-3">
@@ -681,6 +834,281 @@ export default function ProfilePage() {
                             </Link>
                         </div>
                     </section>
+
+                    {/* Security */}
+                    <section className="rounded-3xl border border-neutral-800 bg-[#202020] p-6 md:p-7">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-white">
+                                    Security
+                                </h2>
+
+                                <p className="mt-1 text-sm text-neutral-400">
+                                    Protect your account with two-factor authentication.
+                                </p>
+                            </div>
+
+                            <div
+                                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${user.twoFactorEnabled
+                                        ? "bg-emerald-500/10 text-emerald-400"
+                                        : "bg-purple-500/10 text-purple-400"
+                                    }`}
+                            >
+                                <FiShield />
+                            </div>
+                        </div>
+
+                        <div className="mt-5 rounded-2xl border border-neutral-800 bg-neutral-900/50 p-4">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-semibold text-white">
+                                        Two-Factor Authentication
+                                    </p>
+
+                                    <p className="mt-1 text-xs leading-5 text-neutral-500">
+                                        Use an authenticator app to add an extra layer of
+                                        protection when signing in.
+                                    </p>
+                                </div>
+
+                                <span
+                                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${user.twoFactorEnabled
+                                            ? "bg-emerald-500/10 text-emerald-400"
+                                            : "bg-neutral-800 text-neutral-400"
+                                        }`}
+                                >
+                                    {user.twoFactorEnabled ? "Enabled" : "Disabled"}
+                                </span>
+                            </div>
+
+                            {!user.twoFactorEnabled && mfaStep === "idle" && (
+                                <button
+                                    type="button"
+                                    onClick={handleStartMfaSetup}
+                                    disabled={mfaLoading}
+                                    className="mt-4 w-full rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 px-4 py-3 text-sm font-semibold text-white transition-all duration-300 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {mfaLoading ? "Starting setup..." : "Enable 2FA"}
+                                </button>
+                            )}
+
+                            {!user.twoFactorEnabled && mfaStep === "setup" && (
+                                <div className="mt-5">
+                                    <div className="rounded-2xl border border-neutral-800 bg-[#181818] p-5">
+                                        <p className="text-sm font-semibold text-white">
+                                            1. Scan the QR code
+                                        </p>
+
+                                        <p className="mt-1 text-xs leading-5 text-neutral-500">
+                                            Open Google Authenticator, Microsoft Authenticator,
+                                            or another compatible authenticator app and scan
+                                            this QR code.
+                                        </p>
+
+                                        <div className="mt-5 flex justify-center">
+                                            <div className="rounded-2xl bg-white p-4">
+                                                <QRCodeSVG
+                                                    value={mfaSetupUrl}
+                                                    size={220}
+                                                    includeMargin
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <p className="mt-5 text-center text-xs text-neutral-500">
+                                            After scanning, enter the 6-digit code shown in
+                                            your authenticator app.
+                                        </p>
+
+                                        <form
+                                            onSubmit={handleEnableMfa}
+                                            className="mt-4"
+                                        >
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                autoComplete="one-time-code"
+                                                value={mfaCode}
+                                                onChange={(event) =>
+                                                    setMfaCode(
+                                                        event.target.value
+                                                            .replace(/\D/g, "")
+                                                            .slice(0, 6)
+                                                    )
+                                                }
+                                                maxLength={6}
+                                                placeholder="Enter 6-digit code"
+                                                className="w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-center text-lg tracking-[0.35em] text-white outline-none transition-all focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30"
+                                            />
+
+                                            {mfaError && (
+                                                <div className="mt-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
+                                                    {mfaError}
+                                                </div>
+                                            )}
+
+                                            <button
+                                                type="submit"
+                                                disabled={mfaLoading}
+                                                className="mt-4 w-full rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 px-4 py-3 text-sm font-semibold text-white transition-all duration-300 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                                            >
+                                                {mfaLoading
+                                                    ? "Verifying..."
+                                                    : "Verify & Enable 2FA"}
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!user.twoFactorEnabled && mfaStep === "recovery" && (
+                                <div className="mt-5">
+                                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+                                        <p className="text-sm font-semibold text-white">
+                                            Save your recovery codes
+                                        </p>
+
+                                        <p className="mt-1 text-xs leading-5 text-neutral-500">
+                                            Store these codes somewhere safe. Each recovery
+                                            code can only be used once if you lose access to
+                                            your authenticator.
+                                        </p>
+
+                                        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                                            {mfaRecoveryCodes.map((code) => (
+                                                <div
+                                                    key={code}
+                                                    className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-center font-mono text-xs text-neutral-200"
+                                                >
+                                                    {code}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {mfaMessage && (
+                                            <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-400">
+                                                {mfaMessage}
+                                            </div>
+                                        )}
+
+                                        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                                            <button
+                                                type="button"
+                                                onClick={handleCopyRecoveryCodes}
+                                                className="flex-1 rounded-xl border border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-300 transition-all hover:border-purple-500/50 hover:text-purple-400"
+                                            >
+                                                Copy Recovery Codes
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setMfaRecoveryCodes([]);
+                                                    setMfaSetupUrl("");
+                                                    setMfaStep("idle");
+                                                    setMfaMessage("");
+                                                    setMfaError("");
+                                                }}
+                                                className="flex-1 rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 px-4 py-3 text-sm font-semibold text-white transition-all hover:opacity-90"
+                                            >
+                                                I've Saved Them
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {user.twoFactorEnabled && mfaStep === "idle" && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setMfaCode("");
+                                        setMfaError("");
+                                        setMfaMessage("");
+                                        setMfaStep("disable");
+                                    }}
+                                    className="mt-4 w-full rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm font-semibold text-red-400 transition-all duration-300 hover:border-red-500/40 hover:bg-red-500/10"
+                                >
+                                    Disable 2FA
+                                </button>
+                            )}
+
+                            {user.twoFactorEnabled && mfaStep === "disable" && (
+                                <form
+                                    onSubmit={handleDisableMfa}
+                                    className="mt-5 rounded-2xl border border-neutral-800 bg-[#181818] p-5"
+                                >
+                                    <p className="text-sm font-semibold text-white">
+                                        Disable two-factor authentication
+                                    </p>
+
+                                    <p className="mt-1 text-xs leading-5 text-neutral-500">
+                                        Enter the current 6-digit code from your authenticator
+                                        app to disable 2FA.
+                                    </p>
+
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        autoComplete="one-time-code"
+                                        value={mfaCode}
+                                        onChange={(event) =>
+                                            setMfaCode(
+                                                event.target.value
+                                                    .replace(/\D/g, "")
+                                                    .slice(0, 6)
+                                            )
+                                        }
+                                        maxLength={6}
+                                        placeholder="Enter 6-digit code"
+                                        className="mt-4 w-full rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3 text-center text-lg tracking-[0.35em] text-white outline-none transition-all focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30"
+                                    />
+
+                                    {mfaError && (
+                                        <div className="mt-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
+                                            {mfaError}
+                                        </div>
+                                    )}
+
+                                    <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMfaStep("idle");
+                                                setMfaCode("");
+                                                setMfaError("");
+                                            }}
+                                            disabled={mfaLoading}
+                                            className="flex-1 rounded-xl border border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-300 transition-all hover:border-neutral-500 hover:text-white disabled:opacity-50"
+                                        >
+                                            Cancel
+                                        </button>
+
+                                        <button
+                                            type="submit"
+                                            disabled={mfaLoading}
+                                            className="flex-1 rounded-xl bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400 transition-all hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            {mfaLoading ? "Disabling..." : "Disable 2FA"}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+
+                            {mfaMessage && mfaStep !== "recovery" && (
+                                <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-400">
+                                    {mfaMessage}
+                                </div>
+                            )}
+
+                            {mfaError && mfaStep === "idle" && (
+                                <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
+                                    {mfaError}
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
                 </div>
             </div>
         </main>

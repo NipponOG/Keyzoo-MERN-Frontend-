@@ -16,10 +16,65 @@ export default function SignInPage() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaChallengeToken, setMfaChallengeToken] = useState("");
+  const [mfaMode, setMfaMode] = useState("totp");
+
   const router = useRouter();
   const { login } = useAuth();
   const turnstileRef = useRef(null);
 
+
+  // const handleLogin = async (e) => {
+  //   e.preventDefault();
+  //   setError("");
+  //   setLoading(true);
+  //   setSuccess("");
+
+  //   if (!turnstileToken) {
+  //     setError("Please complete the security check");
+  //     setLoading(false);
+  //     return;
+  //   }
+
+
+  //   try {
+  //     const data = await apiFetch("/auth/login", {
+  //       method: "POST",
+  //       body: JSON.stringify({
+  //         identifier: email,
+  //         password,
+  //         turnstileToken,
+  //       }),
+  //     });
+
+  //     localStorage.setItem("jwt", data.jwt);
+  //     localStorage.setItem("user", JSON.stringify(data.user));
+
+  //     login(data.user, data.jwt);
+  //     setSuccess("Login successful!");
+
+  //     const isAdmin = data.user.role?.name === "Admin";
+
+  //     setTimeout(() => {
+  //       if (isAdmin) {
+  //         router.push("/admin/orders");
+  //       } else {
+  //         router.push("/");
+  //       }
+  //     }, 600);
+  //   } catch (err) {
+  //     setError(err.message || "Login failed");
+
+  //     turnstileRef.current?.reset();
+  //     setTurnstileToken("");
+  //     setCaptchaKey(Date.now());
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -33,7 +88,6 @@ export default function SignInPage() {
       return;
     }
 
-
     try {
       const data = await apiFetch("/auth/login", {
         method: "POST",
@@ -43,6 +97,15 @@ export default function SignInPage() {
           turnstileToken,
         }),
       });
+
+      if (data.requiresTwoFactor) {
+        setMfaRequired(true);
+        setMfaChallengeToken(data.challengeToken);
+        setSuccess(
+          "Password verified. Enter your authenticator code to continue."
+        );
+        return;
+      }
 
       localStorage.setItem("jwt", data.jwt);
       localStorage.setItem("user", JSON.stringify(data.user));
@@ -65,6 +128,43 @@ export default function SignInPage() {
       turnstileRef.current?.reset();
       setTurnstileToken("");
       setCaptchaKey(Date.now());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMfaVerification = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    setSuccess("");
+
+    try {
+      const data = await apiFetch("/auth/2fa/verify", {
+        method: "POST",
+        body: JSON.stringify({
+          challengeToken: mfaChallengeToken,
+          code: mfaCode.trim().toUpperCase(),
+        }),
+      });
+
+      localStorage.setItem("jwt", data.jwt);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      login(data.user, data.jwt);
+      setSuccess("Login successful!");
+
+      const isAdmin = data.user.role?.name === "Admin";
+
+      setTimeout(() => {
+        if (isAdmin) {
+          router.push("/admin/orders");
+        } else {
+          router.push("/");
+        }
+      }, 600);
+    } catch (err) {
+      setError(err.message || "Invalid verification code");
     } finally {
       setLoading(false);
     }
@@ -125,53 +225,139 @@ export default function SignInPage() {
 
           {/* Email & Password Form */}
           <form className="flex flex-col gap-4" onSubmit={handleLogin}>
-            <div>
-              <label className="text-sm text-neutral-400">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full mt-1 px-4 py-3 bg-neutral-800 rounded-md text-white outline-none focus:ring-2 focus:ring-purple-500 transition"
-                placeholder="Enter your email"
-              />
-            </div>
+            {!mfaRequired ? (
+              <>
+                <div>
+                  <label className="text-sm text-neutral-400">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full mt-1 px-4 py-3 bg-neutral-800 rounded-md text-white outline-none focus:ring-2 focus:ring-purple-500 transition"
+                    placeholder="Enter your email"
+                  />
+                </div>
 
-            <div>
-              <label className="text-sm text-neutral-400">Password</label>
-              <PasswordInput
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-              />
-            </div>
+                <div>
+                  <label className="text-sm text-neutral-400">Password</label>
+                  <PasswordInput
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                  />
+                </div>
 
-            {/* Feedback */}
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            {success && <p className="text-green-500 text-sm">{success}</p>}
+                {error && (
+                  <p className="text-red-500 text-sm">{error}</p>
+                )}
 
-            {/* Submit Button */}
-            {/* <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-3 rounded-md font-semibold text-white text-sm transition-all ${
-                loading
-                  ? "bg-neutral-700 cursor-not-allowed"
-                  : "bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90 shadow-md shadow-purple-500/20"
-              }`}
-            >
-              {loading ? "Logging in..." : "Login"}
-            </button> */}
-            <Turnstile
-              key={captchaKey}
-              ref={turnstileRef}
-              sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-              onVerify={(token) => setTurnstileToken(token)}
-            />
+                {success && (
+                  <p className="text-green-500 text-sm">{success}</p>
+                )}
 
-            <LoadingButton type="submit" loading={loading}>
-              {loading ? "Logging in..." : "Login"}
-            </LoadingButton>
+                <Turnstile
+                  key={captchaKey}
+                  ref={turnstileRef}
+                  sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  onVerify={(token) => setTurnstileToken(token)}
+                />
+
+                <LoadingButton type="submit" loading={loading}>
+                  {loading ? "Logging in..." : "Login"}
+                </LoadingButton>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="text-sm text-neutral-400">
+                    {mfaMode === "totp"
+                      ? "Authentication Code"
+                      : "Recovery Code"}
+                  </label>
+
+                  <input
+                    type="text"
+                    inputMode={mfaMode === "totp" ? "numeric" : "text"}
+                    autoComplete={
+                      mfaMode === "totp"
+                        ? "one-time-code"
+                        : "off"
+                    }
+                    value={mfaCode}
+                    onChange={(e) => {
+                      const value =
+                        mfaMode === "totp"
+                          ? e.target.value
+                            .replace(/\D/g, "")
+                            .slice(0, 6)
+                          : e.target.value
+                            .toUpperCase()
+                            .slice(0, 19);
+
+                      setMfaCode(value);
+                    }}
+                    required
+                    maxLength={mfaMode === "totp" ? 6 : 19}
+                    className="w-full mt-1 px-4 py-3 bg-neutral-800 rounded-md text-white outline-none focus:ring-2 focus:ring-purple-500 transition tracking-widest text-center"
+                    placeholder={
+                      mfaMode === "totp"
+                        ? "Enter 6-digit code"
+                        : "KZ-XXXXXXXX-XXXXXXXX"
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMfaMode(
+                        mfaMode === "totp"
+                          ? "recovery"
+                          : "totp"
+                      );
+                      setMfaCode("");
+                      setError("");
+                    }}
+                    className="text-sm text-purple-400 hover:text-purple-300 transition text-center"
+                  >
+                    {mfaMode === "totp"
+                      ? "Use a recovery code instead"
+                      : "Use authenticator code instead"}
+                  </button>
+                </div>
+
+                {error && (
+                  <p className="text-red-500 text-sm">{error}</p>
+                )}
+
+                {success && (
+                  <p className="text-green-500 text-sm">{success}</p>
+                )}
+
+                <LoadingButton
+                  type="button"
+                  loading={loading}
+                  onClick={handleMfaVerification}
+                >
+                  {loading ? "Verifying..." : "Verify & Login"}
+                </LoadingButton>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMfaRequired(false);
+                    setMfaChallengeToken("");
+                    setMfaCode("");
+                    setMfaMode("totp");
+                    setError("");
+                    setSuccess("");
+                  }}
+                  className="text-sm text-neutral-400 hover:text-white transition"
+                >
+                  Back to login
+                </button>
+              </>
+            )}
           </form>
 
           {/* Footer Links */}
