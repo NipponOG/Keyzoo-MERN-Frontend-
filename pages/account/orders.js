@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { FiMessageCircle } from "react-icons/fi";
 import { apiFetch } from "@/lib/api";
 
 export default function OrdersPage() {
@@ -234,6 +235,16 @@ export default function OrdersPage() {
                                                     "en-IN"
                                                 )}
                                             </p>
+
+                                            <Link
+                                                href={`/account/tickets/new?orderId=${encodeURIComponent(
+                                                    order._id
+                                                )}`}
+                                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/10 px-4 py-2.5 text-sm font-semibold text-purple-300 transition hover:border-purple-500/50 hover:bg-purple-500/20 hover:text-purple-200"
+                                            >
+                                                <FiMessageCircle />
+                                                Support
+                                            </Link>
 
                                             <Link
                                                 href={`/orders/${encodeURIComponent(

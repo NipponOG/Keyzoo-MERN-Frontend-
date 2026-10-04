@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "@/context/AuthContext";
+import { FiMessageCircle } from "react-icons/fi";
 import { apiFetch } from "@/lib/api";
 
 export default function OrderDetailsPage() {
@@ -12,6 +13,10 @@ export default function OrderDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [copiedKey, setCopiedKey] = useState("");
+
+    const [tickets, setTickets] = useState([]);
+    const [ticketsLoading, setTicketsLoading] = useState(true);
+    const [ticketsError, setTicketsError] = useState("");
 
     const orderNumber = router.query.orderNumber;
 
@@ -61,6 +66,40 @@ export default function OrderDetailsPage() {
                 const fetchedOrder = data.order;
 
                 setOrder(fetchedOrder);
+
+                setTicketsLoading(true);
+                setTicketsError("");
+
+                try {
+                    const ticketResponse = await apiFetch(
+                        `/tickets/order/${encodeURIComponent(fetchedOrder._id)}`,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${jwt}`,
+                            },
+                        }
+                    );
+
+                    if (ticketResponse?.success) {
+                        setTickets(
+                            Array.isArray(ticketResponse.data)
+                                ? ticketResponse.data
+                                : []
+                        );
+                    }
+                } catch (ticketError) {
+                    if (!cancelled) {
+                        setTicketsError(
+                            ticketError.message ||
+                            "Unable to load support tickets."
+                        );
+                    }
+                } finally {
+                    if (!cancelled) {
+                        setTicketsLoading(false);
+                    }
+                }
+
                 setLoading(false);
 
                 const shouldPoll =
@@ -204,9 +243,9 @@ export default function OrderDetailsPage() {
                     <div className="flex flex-wrap gap-2">
                         <span
                             className={`rounded-full px-3 py-1.5 text-xs font-medium ${order.paymentStatus ===
-                                    "paid"
-                                    ? "bg-green-500/10 text-green-400"
-                                    : "bg-yellow-500/10 text-yellow-400"
+                                "paid"
+                                ? "bg-green-500/10 text-green-400"
+                                : "bg-yellow-500/10 text-yellow-400"
                                 }`}
                         >
                             {order.paymentStatus ===
@@ -217,9 +256,9 @@ export default function OrderDetailsPage() {
 
                         <span
                             className={`rounded-full px-3 py-1.5 text-xs font-medium ${order.deliveryStatus ===
-                                    "ready"
-                                    ? "bg-green-500/10 text-green-400"
-                                    : "bg-white/10 text-white/60"
+                                "ready"
+                                ? "bg-green-500/10 text-green-400"
+                                : "bg-white/10 text-white/60"
                                 }`}
                         >
                             {order.deliveryStatus ===
@@ -290,6 +329,117 @@ export default function OrderDetailsPage() {
                                 )
                             )}
                         </div>
+                    </section>
+
+                    {/* Support tickets */}
+                    <section className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 className="text-base font-semibold">
+                                    Support Tickets
+                                </h2>
+
+                                <p className="mt-1 text-sm text-white/40">
+                                    Get help with an issue related to this order.
+                                </p>
+                            </div>
+
+                            <Link
+                                href={`/account/tickets/new?orderId=${encodeURIComponent(
+                                    order._id
+                                )}`}
+                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-500"
+                            >
+                                <FiMessageCircle />
+                                Raise Ticket
+                            </Link>
+                        </div>
+
+                        {ticketsLoading ? (
+                            <div className="mt-5 space-y-3">
+                                <div className="h-16 animate-pulse rounded-lg bg-white/5" />
+                                <div className="h-16 animate-pulse rounded-lg bg-white/5" />
+                            </div>
+                        ) : ticketsError ? (
+                            <div className="mt-5 rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
+                                {ticketsError}
+                            </div>
+                        ) : tickets.length === 0 ? (
+                            <div className="mt-5 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-sm text-white/40">
+                                No support tickets have been raised for this order yet.
+                            </div>
+                        ) : (
+                            <div className="mt-5 space-y-3">
+                                {tickets.map((ticket) => {
+                                    const statusClass = {
+                                        open: "bg-purple-500/10 text-purple-400",
+                                        in_progress: "bg-blue-500/10 text-blue-400",
+                                        waiting_for_customer:
+                                            "bg-yellow-500/10 text-yellow-400",
+                                        resolved: "bg-green-500/10 text-green-400",
+                                        closed: "bg-white/10 text-white/50",
+                                    };
+
+                                    const priorityClass = {
+                                        urgent: "bg-red-500/10 text-red-400",
+                                        high: "bg-orange-500/10 text-orange-400",
+                                        normal: "bg-blue-500/10 text-blue-400",
+                                        low: "bg-white/10 text-white/50",
+                                    };
+
+                                    return (
+                                        <Link
+                                            key={ticket._id}
+                                            href={`/account/tickets/${ticket._id}`}
+                                            className="block rounded-lg border border-white/10 bg-white/[0.02] p-4 transition hover:border-purple-500/30 hover:bg-white/[0.04]"
+                                        >
+                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                <div className="min-w-0">
+                                                    <p className="text-xs text-white/30">
+                                                        {ticket.ticketNumber}
+                                                    </p>
+
+                                                    <p className="mt-1 truncate text-sm font-medium text-white">
+                                                        {ticket.subject}
+                                                    </p>
+
+                                                    {ticket.item?.title && (
+                                                        <p className="mt-1 truncate text-xs text-white/40">
+                                                            {ticket.item.title}
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex shrink-0 flex-wrap gap-2">
+                                                    <span
+                                                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass[ticket.status] ||
+                                                            "bg-white/10 text-white/50"
+                                                            }`}
+                                                    >
+                                                        {ticket.status
+                                                            ?.replaceAll("_", " ")
+                                                            .replace(/\b\w/g, (char) =>
+                                                                char.toUpperCase()
+                                                            )}
+                                                    </span>
+
+                                                    <span
+                                                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${priorityClass[ticket.priority] ||
+                                                            "bg-white/10 text-white/50"
+                                                            }`}
+                                                    >
+                                                        {ticket.priority
+                                                            ?.replace(/\b\w/g, (char) =>
+                                                                char.toUpperCase()
+                                                            )}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </section>
 
                     {/* Game keys */}
