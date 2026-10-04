@@ -38,8 +38,12 @@ export default function AZDirectory({ data, search, onActiveChange, type }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-24">
               {filtered.map((item) => (
                 <Link
-                  key={item.slug}
-                  href={`/product/${item.slug}`}
+                  key={`${item.type}-${item.slug}`}
+                  href={
+                    item.type === "gift-card"
+                      ? `/gift-card/${item.slug}`
+                      : `/product/${item.slug}`
+                  }
                   className="text-white/80 hover:text-white transition text-lg"
                 >
                   {item.title}

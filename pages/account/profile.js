@@ -12,13 +12,14 @@ import {
     FiCheckCircle,
     FiEdit3,
     FiArrowRight,
+    FiLogOut,
 } from "react-icons/fi";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { QRCodeSVG } from "qrcode.react";
 
 const ProfileStat = ({ icon, value, label }) => (
-    <div className="rounded-2xl border border-neutral-800 bg-[#202020] p-5 transition-all duration-300 hover:border-purple-500/40 hover:bg-[#242424]">
+    <div className="cursor-pointer rounded-2xl border border-neutral-800 bg-[#202020] p-5 transition-all duration-300 hover:border-purple-500/40 hover:bg-[#242424]">
         <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
             {icon}
         </div>
@@ -62,7 +63,7 @@ const InfoRow = ({ icon, label, value, verified }) => (
 
 export default function ProfilePage() {
 
-    const { user, jwt, loading, setUser, updateUser } = useAuth();
+    const { user, jwt, loading, setUser, updateUser, logout } = useAuth();
 
     const [stats, setStats] = useState({
         orders: 0,
@@ -412,6 +413,38 @@ export default function ProfilePage() {
         }
     };
 
+    const handleDownloadRecoveryCodes = () => {
+        const content = [
+            "Keyzoo Two-Factor Authentication Recovery Codes",
+            "",
+            `Account: ${user.email}`,
+            "",
+            "Keep these codes somewhere safe.",
+            "Each recovery code can only be used once.",
+            "",
+            ...mfaRecoveryCodes,
+            "",
+        ].join("\n");
+
+        const blob = new Blob([content], {
+            type: "text/plain;charset=utf-8",
+        });
+
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "keyzoo-recovery-codes.txt";
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+
+        setMfaMessage("Recovery codes downloaded successfully.");
+    };
+
     if (loading) {
         return (
             <main className="min-h-screen bg-[#1e1e1e] px-4 py-10">
@@ -502,13 +535,13 @@ export default function ProfilePage() {
                     <div className="relative flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between md:p-8">
                         <div className="flex items-center gap-5">
                             {/* Avatar */}
-                            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-blue-500 text-2xl font-bold text-white shadow-lg shadow-purple-500/20">
+                            <div className="cursor-pointer flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-blue-500 text-2xl font-bold text-white shadow-lg shadow-purple-500/20">
                                 {initials || "U"}
                             </div>
 
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <h2 className="text-2xl font-bold text-white">
+                                    <h2 className="text-2xl font-bold text-white" title={fullName}>
                                         {fullName}
                                     </h2>
 
@@ -589,7 +622,7 @@ export default function ProfilePage() {
                                 <button
                                     type="button"
                                     onClick={handleEditProfile}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 transition-all duration-300 hover:border-purple-500/50 hover:text-purple-400"
+                                    className="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 transition-all duration-300 hover:border-purple-500/50 hover:text-purple-400"
                                 >
                                     <FiEdit3 />
                                     Edit
@@ -703,7 +736,7 @@ export default function ProfilePage() {
                                         type="button"
                                         onClick={handleCancelEdit}
                                         disabled={savingProfile}
-                                        className="rounded-xl border border-neutral-700 px-5 py-3 text-sm font-medium text-neutral-300 transition-all duration-300 hover:border-neutral-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="cursor-pointer rounded-xl border border-neutral-700 px-5 py-3 text-sm font-medium text-neutral-300 transition-all duration-300 hover:border-neutral-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         Cancel
                                     </button>
@@ -711,7 +744,7 @@ export default function ProfilePage() {
                                     <button
                                         type="submit"
                                         disabled={savingProfile}
-                                        className="rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 px-5 py-3 text-sm font-semibold text-white transition-all duration-300 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="cursor-pointer rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 px-5 py-3 text-sm font-semibold text-white transition-all duration-300 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         {savingProfile ? "Saving..." : "Save Changes"}
                                     </button>
@@ -832,6 +865,31 @@ export default function ProfilePage() {
 
                                 <FiArrowRight className="text-neutral-500 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-blue-400" />
                             </Link>
+
+                            <button
+                                type="button"
+                                onClick={logout}
+                                className="group cursor-pointer flex w-full items-center justify-between rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-left transition-all duration-300 hover:border-red-500/40 hover:bg-red-500/10"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 text-red-400">
+                                        <FiLogOut />
+                                    </div>
+
+                                    <div>
+                                        <p className="text-sm font-semibold text-red-400">
+                                            Logout
+                                        </p>
+
+                                        <p className="mt-0.5 text-xs text-neutral-500">
+                                            Sign out of your Keyzoo account
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <FiArrowRight className="text-red-400/60 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-red-400" />
+                            </button>
+
                         </div>
                     </section>
 
@@ -850,8 +908,8 @@ export default function ProfilePage() {
 
                             <div
                                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${user.twoFactorEnabled
-                                        ? "bg-emerald-500/10 text-emerald-400"
-                                        : "bg-purple-500/10 text-purple-400"
+                                    ? "bg-emerald-500/10 text-emerald-400"
+                                    : "bg-purple-500/10 text-purple-400"
                                     }`}
                             >
                                 <FiShield />
@@ -873,8 +931,8 @@ export default function ProfilePage() {
 
                                 <span
                                     className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${user.twoFactorEnabled
-                                            ? "bg-emerald-500/10 text-emerald-400"
-                                            : "bg-neutral-800 text-neutral-400"
+                                        ? "bg-emerald-500/10 text-emerald-400"
+                                        : "bg-neutral-800 text-neutral-400"
                                         }`}
                                 >
                                     {user.twoFactorEnabled ? "Enabled" : "Disabled"}
@@ -961,7 +1019,7 @@ export default function ProfilePage() {
                                 </div>
                             )}
 
-                            {!user.twoFactorEnabled && mfaStep === "recovery" && (
+                            {mfaStep === "recovery" && mfaRecoveryCodes.length > 0 && (
                                 <div className="mt-5">
                                     <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
                                         <p className="text-sm font-semibold text-white">
@@ -1002,6 +1060,14 @@ export default function ProfilePage() {
 
                                             <button
                                                 type="button"
+                                                onClick={handleDownloadRecoveryCodes}
+                                                className="flex-1 rounded-xl border border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-300 transition-all hover:border-purple-500/50 hover:text-purple-400"
+                                            >
+                                                Download Recovery Codes
+                                            </button>
+
+                                            <button
+                                                type="button"
                                                 onClick={() => {
                                                     setMfaRecoveryCodes([]);
                                                     setMfaSetupUrl("");
@@ -1027,7 +1093,7 @@ export default function ProfilePage() {
                                         setMfaMessage("");
                                         setMfaStep("disable");
                                     }}
-                                    className="mt-4 w-full rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm font-semibold text-red-400 transition-all duration-300 hover:border-red-500/40 hover:bg-red-500/10"
+                                    className="cursor-pointer mt-4 w-full rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm font-semibold text-red-400 transition-all duration-300 hover:border-red-500/40 hover:bg-red-500/10"
                                 >
                                     Disable 2FA
                                 </button>
@@ -1079,7 +1145,7 @@ export default function ProfilePage() {
                                                 setMfaError("");
                                             }}
                                             disabled={mfaLoading}
-                                            className="flex-1 rounded-xl border border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-300 transition-all hover:border-neutral-500 hover:text-white disabled:opacity-50"
+                                            className="cursor-pointer flex-1 rounded-xl border border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-300 transition-all hover:border-neutral-500 hover:text-white disabled:opacity-50"
                                         >
                                             Cancel
                                         </button>
@@ -1087,7 +1153,7 @@ export default function ProfilePage() {
                                         <button
                                             type="submit"
                                             disabled={mfaLoading}
-                                            className="flex-1 rounded-xl bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400 transition-all hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                            className="cursor-pointer flex-1 rounded-xl bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400 transition-all hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             {mfaLoading ? "Disabling..." : "Disable 2FA"}
                                         </button>
@@ -1110,6 +1176,7 @@ export default function ProfilePage() {
                     </section>
 
                 </div>
+
             </div>
         </main>
     );

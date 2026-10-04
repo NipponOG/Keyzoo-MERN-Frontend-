@@ -3,6 +3,7 @@ import Head from "next/head"
 import AZNav from "@/components/AZNav"
 import AZDirectoryProduct from "@/components/AZDirectoryProduct"
 import { buildAZMap } from "@/lib/buildAZMap"
+import { apiFetch } from "@/lib/api"
 
 export default function ProductCollectionListPage() {
     const [search, setSearch] = useState("")
@@ -11,19 +12,42 @@ export default function ProductCollectionListPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const fetchProducts = async () => {
-            const res = await fetch(
-                // `${process.env.NEXT_PUBLIC_STRAPI_URL}/products?fields[0]=title&fields[1]=slug&pagination[pageSize]=1000`
-                `${process.env.NEXT_PUBLIC_STRAPI_URL}api/products?fields[0]=title&fields[1]=slug&pagination[pageSize]=1000`
-            )
-            const json = await res.json()
+        const fetchCatalog = async () => {
+            try {
+                console.log(
+                    "Catalog API:",
+                    process.env.NEXT_PUBLIC_API_URL
+                )
+                const [productsJson, giftCardsJson] =
+                    await Promise.all([
+                        apiFetch("/products/catalog"),
+                        apiFetch("/gift-cards/catalog"),
+                    ])
+                const products = (productsJson?.data || []).map((item) => ({
+                    ...item,
+                    type: "product",
+                }))
 
-            const products = json?.data || []
-            setAzData(buildAZMap(products))
-            setLoading(false)
+                const giftCards = (giftCardsJson?.data || []).map((item) => ({
+                    ...item,
+                    type: "gift-card",
+                }))
+
+                setAzData(
+                    buildAZMap([
+                        ...products,
+                        ...giftCards,
+                    ])
+                )
+            } catch (error) {
+                console.error("Failed to fetch catalog:", error)
+                setAzData({})
+            } finally {
+                setLoading(false)
+            }
         }
 
-        fetchProducts()
+        fetchCatalog()
     }, [])
 
     return (
@@ -38,7 +62,7 @@ export default function ProductCollectionListPage() {
                     {/* Header */}
                     <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                         <h1 className="text-3xl font-semibold tracking-tight">
-                            All Listed Products 
+                            All Listed Products
                         </h1>
 
                         <div className="w-full max-w-md">

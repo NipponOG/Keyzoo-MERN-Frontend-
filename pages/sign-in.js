@@ -26,56 +26,6 @@ export default function SignInPage() {
   const { login } = useAuth();
   const turnstileRef = useRef(null);
 
-
-  // const handleLogin = async (e) => {
-  //   e.preventDefault();
-  //   setError("");
-  //   setLoading(true);
-  //   setSuccess("");
-
-  //   if (!turnstileToken) {
-  //     setError("Please complete the security check");
-  //     setLoading(false);
-  //     return;
-  //   }
-
-
-  //   try {
-  //     const data = await apiFetch("/auth/login", {
-  //       method: "POST",
-  //       body: JSON.stringify({
-  //         identifier: email,
-  //         password,
-  //         turnstileToken,
-  //       }),
-  //     });
-
-  //     localStorage.setItem("jwt", data.jwt);
-  //     localStorage.setItem("user", JSON.stringify(data.user));
-
-  //     login(data.user, data.jwt);
-  //     setSuccess("Login successful!");
-
-  //     const isAdmin = data.user.role?.name === "Admin";
-
-  //     setTimeout(() => {
-  //       if (isAdmin) {
-  //         router.push("/admin/orders");
-  //       } else {
-  //         router.push("/");
-  //       }
-  //     }, 600);
-  //   } catch (err) {
-  //     setError(err.message || "Login failed");
-
-  //     turnstileRef.current?.reset();
-  //     setTurnstileToken("");
-  //     setCaptchaKey(Date.now());
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -98,22 +48,30 @@ export default function SignInPage() {
         }),
       });
 
-      if (data.requiresTwoFactor) {
+      const authData = data.data ?? data;
+
+      if (authData.requiresTwoFactor) {
         setMfaRequired(true);
-        setMfaChallengeToken(data.challengeToken);
+        setMfaChallengeToken(authData.challengeToken);
         setSuccess(
           "Password verified. Enter your authenticator code to continue."
         );
         return;
       }
 
-      localStorage.setItem("jwt", data.jwt);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("jwt", authData.jwt);
+      localStorage.setItem(
+        "user",
+        JSON.stringify(authData.user)
+      );
 
-      login(data.user, data.jwt);
+      login(authData.user, authData.jwt);
       setSuccess("Login successful!");
 
-      const isAdmin = data.user.role?.name === "Admin";
+      const isAdmin =
+        authData.user?.role?.name === "Admin";
+
+      setSuccess("Login successful!");
 
       setTimeout(() => {
         if (isAdmin) {
@@ -122,6 +80,7 @@ export default function SignInPage() {
           router.push("/");
         }
       }, 600);
+
     } catch (err) {
       setError(err.message || "Login failed");
 
@@ -140,6 +99,7 @@ export default function SignInPage() {
     setSuccess("");
 
     try {
+
       const data = await apiFetch("/auth/2fa/verify", {
         method: "POST",
         body: JSON.stringify({
@@ -148,13 +108,19 @@ export default function SignInPage() {
         }),
       });
 
-      localStorage.setItem("jwt", data.jwt);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      const authData = data.data ?? data;
 
-      login(data.user, data.jwt);
+      localStorage.setItem("jwt", authData.jwt);
+      localStorage.setItem(
+        "user",
+        JSON.stringify(authData.user)
+      );
+
+      login(authData.user, authData.jwt);
       setSuccess("Login successful!");
 
-      const isAdmin = data.user.role?.name === "Admin";
+      const isAdmin =
+        authData.user?.role?.name === "Admin";
 
       setTimeout(() => {
         if (isAdmin) {
@@ -224,7 +190,10 @@ export default function SignInPage() {
           </div>
 
           {/* Email & Password Form */}
-          <form className="flex flex-col gap-4" onSubmit={handleLogin}>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={mfaRequired ? handleMfaVerification : handleLogin}
+          >
             {!mfaRequired ? (
               <>
                 <div>
@@ -293,12 +262,12 @@ export default function SignInPage() {
                             .slice(0, 6)
                           : e.target.value
                             .toUpperCase()
-                            .slice(0, 19);
+                            .slice(0, 20);
 
                       setMfaCode(value);
                     }}
                     required
-                    maxLength={mfaMode === "totp" ? 6 : 19}
+                    maxLength={mfaMode === "totp" ? 6 : 20}
                     className="w-full mt-1 px-4 py-3 bg-neutral-800 rounded-md text-white outline-none focus:ring-2 focus:ring-purple-500 transition tracking-widest text-center"
                     placeholder={
                       mfaMode === "totp"

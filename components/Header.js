@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { FaShoppingCart, FaUserCircle, FaHeart } from "react-icons/fa";
 import { useAuth } from "@/context/AuthContext";
-import UserMenu from "./UserMenu";
+// import UserMenu from "./UserMenu";
 import LiveSearch from "./LiveSearch";
 import AccountOverlayMenu from "@/components/AccountOverlayMenu";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
@@ -58,7 +58,7 @@ export default function Header() {
       <div className="px-4 py-3 flex items-center justify-between min-h-[72px] gap-3">
         {/* Left: Logo */}
         <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="cursor-pointer flex items-center gap-2">
             <Image src="https://res.cloudinary.com/dblttl9bh/image/upload/v1778325665/Chat_GPT_Image_May_9_2026_04_48_26_PM_1_113ae62610.png" alt="Logo" width={120} height={100} />
           </Link>
         </div>
@@ -108,9 +108,9 @@ export default function Header() {
             {user ? (
               <>
                 {/* Desktop user menu */}
-                <div className="hidden md:block">
-                  <UserMenu user={user} />
-                </div>
+                <Link href="/account/profile" className="hidden md:block">
+                  <FaUserCircle className="cursor-pointer text-2xl text-white focus:outline-none" />
+                </Link>
 
                 {/* Mobile user overlay trigger */}
                 <button

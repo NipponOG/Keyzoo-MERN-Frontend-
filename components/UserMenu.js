@@ -28,7 +28,7 @@ export default function UserMenu() {
         <>
           {/* User Icon Button */}
           <PopoverButton className="text-2xl text-white focus:outline-none">
-            <FaUserCircle className="cursor-pointer" />
+            
           </PopoverButton>
 
           {/* Dropdown Panel */}
@@ -37,7 +37,7 @@ export default function UserMenu() {
             className="absolute right-0 z-50 mt-2 w-75 divide-y divide-gray-700 rounded-lg bg-[#1a1a1a] shadow-lg ring-1 ring-black/5"
           >
             {/* Top Menu Links */}
-            <div className="p-2">
+            {/* <div className="p-2">
               <Link
                 href="/user/profile"
                 onClick={() => close()}
@@ -85,10 +85,10 @@ export default function UserMenu() {
               >
                 <FaHandsHelping className="text-2xl" /> Help Center
               </Link>
-            </div>
+            </div> */}
 
             {/* Logout Button */}
-            <div className="p-2">
+            {/* <div className="p-2">
               {user && (
                 <button
                   onClick={() => handleLogout(close)}
@@ -97,7 +97,7 @@ export default function UserMenu() {
                   <IoLogOut className="text-2xl text-red-400" /> Logout
                 </button>
               )}
-            </div>
+            </div> */}
           </PopoverPanel>
         </>
       )}
