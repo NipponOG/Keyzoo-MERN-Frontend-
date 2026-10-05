@@ -346,7 +346,7 @@ export default function OrderDetailsPage() {
 
                             <Link
                                 href={`/account/tickets/new?orderId=${encodeURIComponent(
-                                    order._id
+                                    order.orderNumber
                                 )}`}
                                 className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-500"
                             >
@@ -390,7 +390,9 @@ export default function OrderDetailsPage() {
                                     return (
                                         <Link
                                             key={ticket._id}
-                                            href={`/account/tickets/${ticket._id}`}
+                                            href={`/account/tickets/${encodeURIComponent(
+                                                ticket.ticketNumber
+                                            )}`}
                                             className="block rounded-lg border border-white/10 bg-white/[0.02] p-4 transition hover:border-purple-500/30 hover:bg-white/[0.04]"
                                         >
                                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

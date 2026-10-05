@@ -51,6 +51,14 @@ const dashboard = () => {
     const [loadingId, setLoadingId] = useState(null);
     const [selectedOrder, setSelectedOrder] = useState(null);
 
+    const [tickets, setTickets] = useState([]);
+    const [ticketsLoading, setTicketsLoading] = useState(false);
+    const [ticketSearch, setTicketSearch] = useState("");
+    const [ticketStatus, setTicketStatus] = useState("");
+    const [ticketPriority, setTicketPriority] = useState("");
+    const [ticketPage, setTicketPage] = useState(1);
+    const [ticketTotalPages, setTicketTotalPages] = useState(1);
+
     const [viewProduct, setViewProduct] = useState(null);
     const [viewKeys, setViewKeys] = useState([]);
 
@@ -281,6 +289,52 @@ const dashboard = () => {
 
     };
 
+    const fetchTickets = async () => {
+        try {
+            setTicketsLoading(true);
+
+            const params = new URLSearchParams({
+                page: ticketPage,
+                pageSize: 8,
+                search: ticketSearch,
+                status: ticketStatus,
+                priority: ticketPriority,
+            });
+
+            const data = await adminFetch(
+                `/admin/tickets?${params.toString()}`
+            );
+
+            const ticketData = Array.isArray(data?.data)
+                ? data.data
+                : Array.isArray(data?.data?.tickets)
+                    ? data.data.tickets
+                    : Array.isArray(data?.tickets)
+                        ? data.tickets
+                        : [];
+
+            setTickets(ticketData);
+
+            const totalPages =
+                data?.data?.totalPages ||
+                data?.meta?.pagination?.pageCount ||
+                data?.totalPages ||
+                1;
+
+            setTicketTotalPages(totalPages);
+        } catch (error) {
+            console.error(
+                "Failed to fetch support tickets:",
+                error
+            );
+
+            setTickets([]);
+            setTicketTotalPages(1);
+        } finally {
+            setTicketsLoading(false);
+        }
+    };
+
     const fetchProductsCount = async () => {
 
         const data = await adminFetch("/admin/products-count");
@@ -313,18 +367,28 @@ const dashboard = () => {
     }, [page, search, status]);
 
     useEffect(() => {
+        fetchTickets();
+    }, [
+        ticketPage,
+        ticketSearch,
+        ticketStatus,
+        ticketPriority,
+    ]);
+
+    useEffect(() => {
         fetchDashboardStats();
         fetchProductsCount();
         fetchInventory();
+        fetchTickets();
 
         const interval = setInterval(() => {
             fetchDashboardStats();
             fetchInventory();
+            fetchTickets();
         }, 60000);
 
         return () => clearInterval(interval);
     }, []);
-
 
     const handleOpenMaintenance = async () => {
         await fetchMaintenanceStatus();
@@ -1384,6 +1448,275 @@ const dashboard = () => {
 
                                         </div>
                                     </div>
+                                </div>
+                            )}
+
+                        </div>
+
+                    </div>
+
+                    {/* SUPPORT TICKETS */}
+                    <div className="col-span-12">
+                        <div className="rounded-2xl border border-[#23262d] bg-[#1b1b1b] p-6">
+
+                            {/* HEADER */}
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
+                                <div>
+                                    <h2 className="text-xl font-semibold text-white">
+                                        Support Tickets
+                                    </h2>
+
+                                    <p className="mt-1 text-sm text-gray-400">
+                                        Manage customer support requests and complaints.
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-col gap-3 sm:flex-row">
+
+                                    {/* SEARCH */}
+                                    <input
+                                        type="text"
+                                        value={ticketSearch}
+                                        onChange={(e) => {
+                                            setTicketPage(1);
+                                            setTicketSearch(e.target.value);
+                                        }}
+                                        placeholder="Search tickets..."
+                                        className="h-10 w-full rounded-lg border border-white/10 bg-[#232323] px-3 text-sm text-white outline-none placeholder:text-gray-500 focus:border-indigo-500/50 sm:w-[240px]"
+                                    />
+
+                                    {/* STATUS */}
+                                    <select
+                                        value={ticketStatus}
+                                        onChange={(e) => {
+                                            setTicketPage(1);
+                                            setTicketStatus(e.target.value);
+                                        }}
+                                        className="h-10 rounded-lg border border-white/10 bg-[#232323] px-3 text-sm text-gray-300 outline-none focus:border-indigo-500/50"
+                                    >
+                                        <option value="">All Status</option>
+                                        <option value="open">Open</option>
+                                        <option value="in_progress">
+                                            In Progress
+                                        </option>
+                                        <option value="waiting_for_customer">
+                                            Waiting for Customer
+                                        </option>
+                                        <option value="resolved">
+                                            Resolved
+                                        </option>
+                                        <option value="closed">
+                                            Closed
+                                        </option>
+                                    </select>
+
+                                    {/* PRIORITY */}
+                                    <select
+                                        value={ticketPriority}
+                                        onChange={(e) => {
+                                            setTicketPage(1);
+                                            setTicketPriority(e.target.value);
+                                        }}
+                                        className="h-10 rounded-lg border border-white/10 bg-[#232323] px-3 text-sm text-gray-300 outline-none focus:border-indigo-500/50"
+                                    >
+                                        <option value="">All Priority</option>
+                                        <option value="low">Low</option>
+                                        <option value="normal">
+                                            Normal
+                                        </option>
+                                        <option value="high">High</option>
+                                        <option value="urgent">Urgent</option>
+                                    </select>
+
+                                </div>
+                            </div>
+
+                            {/* TICKETS */}
+                            <div className="mt-6 space-y-3">
+
+                                {ticketsLoading ? (
+                                    <>
+                                        {[1, 2, 3].map((item) => (
+                                            <div
+                                                key={item}
+                                                className="h-24 animate-pulse rounded-xl border border-white/5 bg-white/[0.03]"
+                                            />
+                                        ))}
+                                    </>
+                                ) : tickets.length === 0 ? (
+                                    <div className="rounded-xl border border-dashed border-white/10 py-12 text-center">
+                                        <p className="text-sm text-gray-500">
+                                            No support tickets found.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    tickets.map((ticket) => (
+                                        <div
+                                            key={ticket._id}
+                                            className="rounded-xl border border-white/5 bg-white/[0.03] p-4 transition hover:border-white/10 hover:bg-white/[0.05]"
+                                        >
+                                            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
+                                                {/* LEFT */}
+                                                <div className="min-w-0">
+
+                                                    <div className="flex flex-wrap items-center gap-2">
+
+                                                        <span className="text-sm font-semibold text-white">
+                                                            {ticket.ticketNumber}
+                                                        </span>
+
+                                                        <span
+                                                            className={`rounded-full border px-2.5 py-1 text-[10px] font-medium ${ticket.status === "open"
+                                                                ? "border-blue-500/20 bg-blue-500/10 text-blue-400"
+                                                                : ticket.status === "in_progress"
+                                                                    ? "border-purple-500/20 bg-purple-500/10 text-purple-400"
+                                                                    : ticket.status === "waiting_for_customer"
+                                                                        ? "border-yellow-500/20 bg-yellow-500/10 text-yellow-400"
+                                                                        : ticket.status === "resolved"
+                                                                            ? "border-green-500/20 bg-green-500/10 text-green-400"
+                                                                            : "border-gray-500/20 bg-gray-500/10 text-gray-400"
+                                                                }`}
+                                                        >
+                                                            {ticket.status
+                                                                ?.split("_")
+                                                                .map(
+                                                                    (word) =>
+                                                                        word
+                                                                            .charAt(0)
+                                                                            .toUpperCase() +
+                                                                        word.slice(1)
+                                                                )
+                                                                .join(" ")}
+                                                        </span>
+
+                                                        <span
+                                                            className={`text-[11px] font-medium ${ticket.priority === "urgent"
+                                                                ? "text-red-400"
+                                                                : ticket.priority === "high"
+                                                                    ? "text-orange-400"
+                                                                    : ticket.priority === "normal"
+                                                                        ? "text-blue-400"
+                                                                        : "text-gray-500"
+                                                                }`}
+                                                        >
+                                                            {ticket.priority
+                                                                ?.charAt(0)
+                                                                .toUpperCase() +
+                                                                ticket.priority?.slice(1)}
+                                                        </span>
+
+                                                    </div>
+
+                                                    <h3 className="mt-2 truncate text-sm font-medium text-gray-200">
+                                                        {ticket.subject ||
+                                                            "No subject"}
+                                                    </h3>
+
+                                                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+
+                                                        <span>
+                                                            Order:{" "}
+                                                            <span className="text-gray-400">
+                                                                {ticket.orderNumber ||
+                                                                    "N/A"}
+                                                            </span>
+                                                        </span>
+
+                                                        {ticket.item?.title && (
+                                                            <span className="max-w-[300px] truncate">
+                                                                {ticket.item.title}
+                                                            </span>
+                                                        )}
+
+                                                    </div>
+
+                                                </div>
+
+                                                {/* RIGHT */}
+                                                <div className="flex shrink-0 items-center gap-3">
+
+                                                    <div className="hidden text-right sm:block">
+                                                        <p className="text-[11px] text-gray-600">
+                                                            Updated
+                                                        </p>
+
+                                                        <p className="mt-1 text-xs text-gray-400">
+                                                            {ticket.updatedAt
+                                                                ? new Date(
+                                                                    ticket.updatedAt
+                                                                ).toLocaleString(
+                                                                    "en-IN",
+                                                                    {
+                                                                        day: "2-digit",
+                                                                        month: "short",
+                                                                        hour: "2-digit",
+                                                                        minute: "2-digit",
+                                                                    }
+                                                                )
+                                                                : "—"}
+                                                        </p>
+                                                    </div>
+
+                                                    <Link
+                                                        href={`/admin/tickets/${encodeURIComponent(
+                                                            ticket.ticketNumber
+                                                        )}`}
+                                                        className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-600"
+                                                    >
+                                                        Manage
+                                                    </Link>
+
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+
+                            </div>
+
+                            {/* PAGINATION */}
+                            {ticketTotalPages > 1 && (
+                                <div className="mt-5 flex items-center justify-center gap-2">
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setTicketPage((current) =>
+                                                Math.max(1, current - 1)
+                                            )
+                                        }
+                                        disabled={ticketPage === 1}
+                                        className="rounded-lg bg-white/5 p-2 text-gray-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+                                    >
+                                        <MdOutlineKeyboardArrowLeft className="text-xl" />
+                                    </button>
+
+                                    <span className="px-3 text-xs text-gray-500">
+                                        Page {ticketPage} of{" "}
+                                        {ticketTotalPages}
+                                    </span>
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setTicketPage((current) =>
+                                                Math.min(
+                                                    ticketTotalPages,
+                                                    current + 1
+                                                )
+                                            )
+                                        }
+                                        disabled={
+                                            ticketPage === ticketTotalPages
+                                        }
+                                        className="rounded-lg bg-white/5 p-2 text-gray-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
+                                    >
+                                        <MdOutlineKeyboardArrowRight className="text-xl" />
+                                    </button>
+
                                 </div>
                             )}
 
