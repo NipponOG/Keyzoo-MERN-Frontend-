@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+
 import { useRouter } from "next/router";
+
 import {
     FiArrowLeft,
     FiX,
@@ -7,6 +9,8 @@ import {
     FiCheckCircle,
     FiClock,
     FiAlertCircle,
+    FiPaperclip,
+    FiFileText,
 } from "react-icons/fi";
 
 import adminFetch from "@/lib/adminFetch";
@@ -41,12 +45,16 @@ const CATEGORY_LABELS = {
 
 const STATUS_STYLES = {
     open: "border-blue-500/20 bg-blue-500/10 text-blue-400",
+
     in_progress:
         "border-purple-500/20 bg-purple-500/10 text-purple-400",
+
     waiting_for_customer:
         "border-yellow-500/20 bg-yellow-500/10 text-yellow-400",
+
     resolved:
         "border-green-500/20 bg-green-500/10 text-green-400",
+
     closed:
         "border-gray-500/20 bg-gray-500/10 text-gray-400",
 };
@@ -57,6 +65,16 @@ const PRIORITY_STYLES = {
     high: "text-orange-400",
     urgent: "text-red-400",
 };
+
+const ALLOWED_FILE_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "application/pdf",
+];
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILES = 5;
 
 function formatLabel(value) {
     if (!value) return "";
@@ -107,8 +125,41 @@ function isAdminMessage(message) {
         message?.role ||
         "";
 
-    return ["admin", "support", "staff"].includes(
+    return [
+        "admin",
+        "support",
+        "staff",
+    ].includes(
         String(sender).toLowerCase()
+    );
+}
+
+function formatFileSize(size) {
+    if (!size) {
+        return "0 KB";
+    }
+
+    if (size < 1024 * 1024) {
+        return `${Math.round(size / 1024)} KB`;
+    }
+
+    return `${(
+        size /
+        1024 /
+        1024
+    ).toFixed(2)} MB`;
+}
+
+function isImageAttachment(attachment) {
+    return (
+        attachment?.mimeType?.startsWith(
+            "image/"
+        ) ||
+        /\.(jpg|jpeg|png|webp)$/i.test(
+            attachment?.name ||
+            attachment?.originalName ||
+            ""
+        )
     );
 }
 
@@ -116,19 +167,38 @@ export default function AdminTicketDetailsPage() {
     const router = useRouter();
     const { id } = router.query;
 
-    const [ticket, setTicket] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const [ticket, setTicket] =
+        useState(null);
 
-    const [reply, setReply] = useState("");
-    const [replyLoading, setReplyLoading] = useState(false);
+    const [loading, setLoading] =
+        useState(true);
 
-    const [statusLoading, setStatusLoading] = useState(false);
-    const [priorityLoading, setPriorityLoading] = useState(false);
-    const [resolveLoading, setResolveLoading] = useState(false);
-    const [closeLoading, setCloseLoading] = useState(false);
+    const [error, setError] =
+        useState("");
 
-    const [resolution, setResolution] = useState("");
+    const [reply, setReply] =
+        useState("");
+
+    const [replyAttachments, setReplyAttachments] =
+        useState([]);
+
+    const [replyLoading, setReplyLoading] =
+        useState(false);
+
+    const [statusLoading, setStatusLoading] =
+        useState(false);
+
+    const [priorityLoading, setPriorityLoading] =
+        useState(false);
+
+    const [resolveLoading, setResolveLoading] =
+        useState(false);
+
+    const [closeLoading, setCloseLoading] =
+        useState(false);
+
+    const [resolution, setResolution] =
+        useState("");
 
     useEffect(() => {
         if (!id) {
@@ -142,9 +212,12 @@ export default function AdminTicketDetailsPage() {
                 setLoading(true);
                 setError("");
 
-                const response = await adminFetch(
-                    `/admin/tickets/${encodeURIComponent(id)}`
-                );
+                const response =
+                    await adminFetch(
+                        `/admin/tickets/${encodeURIComponent(
+                            id
+                        )}`
+                    );
 
                 if (cancelled) {
                     return;
@@ -162,8 +235,10 @@ export default function AdminTicketDetailsPage() {
                 }
 
                 setTicket(fetchedTicket);
+
                 setResolution(
-                    fetchedTicket.resolution || ""
+                    fetchedTicket.resolution ||
+                    ""
                 );
             } catch (err) {
                 if (!cancelled) {
@@ -186,21 +261,141 @@ export default function AdminTicketDetailsPage() {
         };
     }, [id]);
 
-    const updateTicketState = (updatedTicket) => {
+    const updateTicketState = (
+        updatedTicket
+    ) => {
         if (!updatedTicket) {
             return;
         }
 
         setTicket(updatedTicket);
-        setResolution(updatedTicket.resolution || "");
+
+        setResolution(
+            updatedTicket.resolution || ""
+        );
     };
+
+    const handleAttachmentChange = (
+        event
+    ) => {
+        const selectedFiles = Array.from(
+            event.target.files || []
+        );
+
+        setError("");
+
+        if (!selectedFiles.length) {
+            return;
+        }
+
+        if (
+            replyAttachments.length +
+            selectedFiles.length >
+            MAX_FILES
+        ) {
+            setError(
+                `You can attach a maximum of ${MAX_FILES} files.`
+            );
+
+            event.target.value = "";
+            return;
+        }
+
+        for (const file of selectedFiles) {
+            if (
+                !ALLOWED_FILE_TYPES.includes(
+                    file.type
+                )
+            ) {
+                setError(
+                    "Unsupported file type. Only JPG, PNG, WEBP, and PDF files are allowed."
+                );
+
+                event.target.value = "";
+                return;
+            }
+
+            if (file.size > MAX_FILE_SIZE) {
+                setError(
+                    `"${file.name}" is larger than 10 MB.`
+                );
+
+                event.target.value = "";
+                return;
+            }
+        }
+
+        setReplyAttachments(
+            (current) => [
+                ...current,
+                ...selectedFiles,
+            ]
+        );
+
+        event.target.value = "";
+    };
+
+    const removeReplyAttachment = (
+        index
+    ) => {
+        setReplyAttachments(
+            (current) =>
+                current.filter(
+                    (_, currentIndex) =>
+                        currentIndex !== index
+                )
+        );
+    };
+
+    const uploadReplyAttachments =
+        async () => {
+            if (!replyAttachments.length) {
+                return [];
+            }
+
+            const formData = new FormData();
+
+            replyAttachments.forEach(
+                (file) => {
+                    formData.append(
+                        "attachments",
+                        file
+                    );
+                }
+            );
+
+            const response =
+                await adminFetch(
+                    "/uploads/attachments",
+                    {
+                        method: "POST",
+                        body: formData,
+                    }
+                );
+
+            return (
+                response?.data ||
+                response?.attachments ||
+                []
+            );
+        };
 
     const handleReply = async (event) => {
         event.preventDefault();
 
         const message = reply.trim();
 
-        if (!message || !ticket?._id) {
+        if (
+            !message &&
+            !replyAttachments.length
+        ) {
+            setError(
+                "Please enter a message or attach a file."
+            );
+            return;
+        }
+
+        if (!ticket?._id) {
             return;
         }
 
@@ -208,17 +403,23 @@ export default function AdminTicketDetailsPage() {
             setReplyLoading(true);
             setError("");
 
-            const response = await adminFetch(
-                `/admin/tickets/${encodeURIComponent(
-                    ticket._id
-                )}/messages`,
-                {
-                    method: "POST",
-                    body: JSON.stringify({
-                        message,
-                    }),
-                }
-            );
+            const uploadedAttachments =
+                await uploadReplyAttachments();
+
+            const response =
+                await adminFetch(
+                    `/admin/tickets/${encodeURIComponent(
+                        ticket._id
+                    )}/messages`,
+                    {
+                        method: "POST",
+                        body: JSON.stringify({
+                            message,
+                            attachments:
+                                uploadedAttachments,
+                        }),
+                    }
+                );
 
             const updatedTicket =
                 response?.data ||
@@ -226,13 +427,16 @@ export default function AdminTicketDetailsPage() {
                 null;
 
             if (updatedTicket) {
-                updateTicketState(updatedTicket);
-            } else {
-                const refreshed = await adminFetch(
-                    `/admin/tickets/${encodeURIComponent(
-                        ticket._id
-                    )}`
+                updateTicketState(
+                    updatedTicket
                 );
+            } else {
+                const refreshed =
+                    await adminFetch(
+                        `/admin/tickets/${encodeURIComponent(
+                            ticket._id
+                        )}`
+                    );
 
                 updateTicketState(
                     refreshed?.data ||
@@ -242,6 +446,7 @@ export default function AdminTicketDetailsPage() {
             }
 
             setReply("");
+            setReplyAttachments([]);
         } catch (err) {
             setError(
                 err?.message ||
@@ -252,7 +457,9 @@ export default function AdminTicketDetailsPage() {
         }
     };
 
-    const handleStatusChange = async (newStatus) => {
+    const handleStatusChange = async (
+        newStatus
+    ) => {
         if (
             !ticket?._id ||
             newStatus === ticket.status
@@ -264,17 +471,18 @@ export default function AdminTicketDetailsPage() {
             setStatusLoading(true);
             setError("");
 
-            const response = await adminFetch(
-                `/admin/tickets/${encodeURIComponent(
-                    ticket._id
-                )}/status`,
-                {
-                    method: "PATCH",
-                    body: JSON.stringify({
-                        status: newStatus,
-                    }),
-                }
-            );
+            const response =
+                await adminFetch(
+                    `/admin/tickets/${encodeURIComponent(
+                        ticket._id
+                    )}/status`,
+                    {
+                        method: "PATCH",
+                        body: JSON.stringify({
+                            status: newStatus,
+                        }),
+                    }
+                );
 
             const updatedTicket =
                 response?.data ||
@@ -282,7 +490,9 @@ export default function AdminTicketDetailsPage() {
                 null;
 
             if (updatedTicket) {
-                updateTicketState(updatedTicket);
+                updateTicketState(
+                    updatedTicket
+                );
             } else {
                 setTicket((current) =>
                     current
@@ -303,59 +513,67 @@ export default function AdminTicketDetailsPage() {
         }
     };
 
-    const handlePriorityChange = async (newPriority) => {
-        if (
-            !ticket?._id ||
-            newPriority === ticket.priority
-        ) {
-            return;
-        }
-
-        try {
-            setPriorityLoading(true);
-            setError("");
-
-            const response = await adminFetch(
-                `/admin/tickets/${encodeURIComponent(
-                    ticket._id
-                )}/priority`,
-                {
-                    method: "PATCH",
-                    body: JSON.stringify({
-                        priority: newPriority,
-                    }),
-                }
-            );
-
-            const updatedTicket =
-                response?.data ||
-                response?.ticket ||
-                null;
-
-            if (updatedTicket) {
-                updateTicketState(updatedTicket);
-            } else {
-                setTicket((current) =>
-                    current
-                        ? {
-                            ...current,
-                            priority: newPriority,
-                        }
-                        : current
-                );
+    const handlePriorityChange =
+        async (newPriority) => {
+            if (
+                !ticket?._id ||
+                newPriority ===
+                ticket.priority
+            ) {
+                return;
             }
-        } catch (err) {
-            setError(
-                err?.message ||
-                "Failed to update ticket priority."
-            );
-        } finally {
-            setPriorityLoading(false);
-        }
-    };
+
+            try {
+                setPriorityLoading(true);
+                setError("");
+
+                const response =
+                    await adminFetch(
+                        `/admin/tickets/${encodeURIComponent(
+                            ticket._id
+                        )}/priority`,
+                        {
+                            method: "PATCH",
+                            body: JSON.stringify({
+                                priority:
+                                    newPriority,
+                            }),
+                        }
+                    );
+
+                const updatedTicket =
+                    response?.data ||
+                    response?.ticket ||
+                    null;
+
+                if (updatedTicket) {
+                    updateTicketState(
+                        updatedTicket
+                    );
+                } else {
+                    setTicket((current) =>
+                        current
+                            ? {
+                                ...current,
+                                priority:
+                                    newPriority,
+                            }
+                            : current
+                    );
+                }
+            } catch (err) {
+                setError(
+                    err?.message ||
+                    "Failed to update ticket priority."
+                );
+            } finally {
+                setPriorityLoading(false);
+            }
+        };
 
     const handleResolve = async () => {
-        const value = resolution.trim();
+        const value =
+            resolution.trim();
 
         if (!ticket?._id) {
             return;
@@ -372,17 +590,18 @@ export default function AdminTicketDetailsPage() {
             setResolveLoading(true);
             setError("");
 
-            const response = await adminFetch(
-                `/admin/tickets/${encodeURIComponent(
-                    ticket._id
-                )}/resolve`,
-                {
-                    method: "PATCH",
-                    body: JSON.stringify({
-                        resolution: value,
-                    }),
-                }
-            );
+            const response =
+                await adminFetch(
+                    `/admin/tickets/${encodeURIComponent(
+                        ticket._id
+                    )}/resolve`,
+                    {
+                        method: "PATCH",
+                        body: JSON.stringify({
+                            resolution: value,
+                        }),
+                    }
+                );
 
             const updatedTicket =
                 response?.data ||
@@ -390,13 +609,16 @@ export default function AdminTicketDetailsPage() {
                 null;
 
             if (updatedTicket) {
-                updateTicketState(updatedTicket);
-            } else {
-                const refreshed = await adminFetch(
-                    `/admin/tickets/${encodeURIComponent(
-                        ticket._id
-                    )}`
+                updateTicketState(
+                    updatedTicket
                 );
+            } else {
+                const refreshed =
+                    await adminFetch(
+                        `/admin/tickets/${encodeURIComponent(
+                            ticket._id
+                        )}`
+                    );
 
                 updateTicketState(
                     refreshed?.data ||
@@ -423,14 +645,15 @@ export default function AdminTicketDetailsPage() {
             setCloseLoading(true);
             setError("");
 
-            const response = await adminFetch(
-                `/admin/tickets/${encodeURIComponent(
-                    ticket._id
-                )}/close`,
-                {
-                    method: "PATCH",
-                }
-            );
+            const response =
+                await adminFetch(
+                    `/admin/tickets/${encodeURIComponent(
+                        ticket._id
+                    )}/close`,
+                    {
+                        method: "PATCH",
+                    }
+                );
 
             const updatedTicket =
                 response?.data ||
@@ -438,7 +661,9 @@ export default function AdminTicketDetailsPage() {
                 null;
 
             if (updatedTicket) {
-                updateTicketState(updatedTicket);
+                updateTicketState(
+                    updatedTicket
+                );
             } else {
                 setTicket((current) =>
                     current
@@ -470,7 +695,9 @@ export default function AdminTicketDetailsPage() {
                 <button
                     type="button"
                     onClick={() =>
-                        router.push("/admin/dashboard")
+                        router.push(
+                            "/admin/dashboard"
+                        )
                     }
                     className="mb-5 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#181818] px-4 py-2.5 text-sm font-medium text-gray-300 transition hover:bg-white/5 hover:text-white"
                 >
@@ -481,14 +708,18 @@ export default function AdminTicketDetailsPage() {
                 {loading ? (
                     <div className="space-y-5">
                         <div className="h-20 animate-pulse rounded-2xl bg-white/5" />
+
                         <div className="h-32 animate-pulse rounded-2xl bg-white/5" />
+
                         <div className="h-64 animate-pulse rounded-2xl bg-white/5" />
+
                         <div className="h-48 animate-pulse rounded-2xl bg-white/5" />
                     </div>
                 ) : error && !ticket ? (
                     <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5">
                         <div className="flex items-start gap-3 text-sm text-red-300">
                             <FiAlertCircle className="mt-0.5 shrink-0" />
+
                             <span>{error}</span>
                         </div>
                     </div>
@@ -507,9 +738,11 @@ export default function AdminTicketDetailsPage() {
                                         {ticket.status && (
                                             <span
                                                 className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${STATUS_STYLES[
-                                                    ticket.status
+                                                    ticket
+                                                        .status
                                                     ] ||
-                                                    STATUS_STYLES.open
+                                                    STATUS_STYLES
+                                                        .open
                                                     }`}
                                             >
                                                 {formatLabel(
@@ -520,8 +753,8 @@ export default function AdminTicketDetailsPage() {
                                     </div>
 
                                     <p className="mt-1 text-sm text-gray-500">
-                                        Ticket details and customer
-                                        conversation
+                                        Ticket details and
+                                        customer conversation
                                     </p>
                                 </div>
 
@@ -544,6 +777,7 @@ export default function AdminTicketDetailsPage() {
                         {error && (
                             <div className="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-300">
                                 <FiAlertCircle className="mt-0.5 shrink-0" />
+
                                 <span>{error}</span>
                             </div>
                         )}
@@ -614,14 +848,21 @@ export default function AdminTicketDetailsPage() {
 
                                 <select
                                     value={
-                                        ticket.status || ""
+                                        ticket.status ||
+                                        ""
                                     }
-                                    onChange={(event) =>
+                                    onChange={(
+                                        event
+                                    ) =>
                                         handleStatusChange(
-                                            event.target.value
+                                            event
+                                                .target
+                                                .value
                                         )
                                     }
-                                    disabled={statusLoading}
+                                    disabled={
+                                        statusLoading
+                                    }
                                     className={`w-full rounded-lg border bg-[#181818] px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500/50 ${STATUS_STYLES[
                                             ticket.status
                                         ]?.replace(
@@ -634,8 +875,12 @@ export default function AdminTicketDetailsPage() {
                                     {STATUS_OPTIONS.map(
                                         (status) => (
                                             <option
-                                                key={status}
-                                                value={status}
+                                                key={
+                                                    status
+                                                }
+                                                value={
+                                                    status
+                                                }
                                                 className="bg-[#181818] text-white"
                                             >
                                                 {formatLabel(
@@ -657,9 +902,13 @@ export default function AdminTicketDetailsPage() {
                                         ticket.priority ||
                                         "normal"
                                     }
-                                    onChange={(event) =>
+                                    onChange={(
+                                        event
+                                    ) =>
                                         handlePriorityChange(
-                                            event.target.value
+                                            event
+                                                .target
+                                                .value
                                         )
                                     }
                                     disabled={
@@ -668,14 +917,19 @@ export default function AdminTicketDetailsPage() {
                                     className={`w-full rounded-lg border border-white/10 bg-[#181818] px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500/50 ${PRIORITY_STYLES[
                                         ticket.priority
                                         ] ||
-                                        PRIORITY_STYLES.normal
+                                        PRIORITY_STYLES
+                                            .normal
                                         }`}
                                 >
                                     {PRIORITY_OPTIONS.map(
                                         (priority) => (
                                             <option
-                                                key={priority}
-                                                value={priority}
+                                                key={
+                                                    priority
+                                                }
+                                                value={
+                                                    priority
+                                                }
                                                 className="bg-[#181818] text-white"
                                             >
                                                 {formatLabel(
@@ -694,7 +948,8 @@ export default function AdminTicketDetailsPage() {
                                 {ticket.category && (
                                     <span className="rounded-lg border border-white/10 bg-[#181818] px-3 py-1.5 text-xs text-gray-300">
                                         {CATEGORY_LABELS[
-                                            ticket.category
+                                            ticket
+                                                .category
                                         ] ||
                                             formatLabel(
                                                 ticket.category
@@ -728,7 +983,9 @@ export default function AdminTicketDetailsPage() {
                                         {Array.isArray(
                                             ticket.messages
                                         )
-                                            ? ticket.messages.length
+                                            ? ticket
+                                                .messages
+                                                .length
                                             : 0}{" "}
                                         messages
                                     </span>
@@ -754,6 +1011,13 @@ export default function AdminTicketDetailsPage() {
                                                 isAdminMessage(
                                                     message
                                                 );
+
+                                            const messageAttachments =
+                                                Array.isArray(
+                                                    message.attachments
+                                                )
+                                                    ? message.attachments
+                                                    : [];
 
                                             return (
                                                 <div
@@ -789,11 +1053,99 @@ export default function AdminTicketDetailsPage() {
                                                             )}
                                                         </div>
 
-                                                        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-300">
-                                                            {getMessageText(
-                                                                message
+                                                        {getMessageText(
+                                                            message
+                                                        ) && (
+                                                                <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-300">
+                                                                    {getMessageText(
+                                                                        message
+                                                                    )}
+                                                                </p>
                                                             )}
-                                                        </p>
+
+                                                        {messageAttachments.length >
+                                                            0 && (
+                                                                <div className="mt-3 space-y-2">
+                                                                    {messageAttachments.map(
+                                                                        (
+                                                                            attachment,
+                                                                            attachmentIndex
+                                                                        ) => {
+                                                                            const image =
+                                                                                isImageAttachment(
+                                                                                    attachment
+                                                                                );
+
+                                                                            return (
+                                                                                <div
+                                                                                    key={
+                                                                                        attachment.fileId ||
+                                                                                        `${attachment.name}-${attachmentIndex}`
+                                                                                    }
+                                                                                >
+                                                                                    {image &&
+                                                                                        attachment.url ? (
+                                                                                        <a
+                                                                                            href={
+                                                                                                attachment.url
+                                                                                            }
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            className="block overflow-hidden rounded-lg border border-white/10 transition hover:border-indigo-500/40"
+                                                                                        >
+                                                                                            <img
+                                                                                                src={
+                                                                                                    attachment.thumbnailUrl ||
+                                                                                                    attachment.url
+                                                                                                }
+                                                                                                alt={
+                                                                                                    attachment.originalName ||
+                                                                                                    attachment.name ||
+                                                                                                    "Attachment"
+                                                                                                }
+                                                                                                className="max-h-72 w-full object-contain"
+                                                                                            />
+
+                                                                                            <div className="border-t border-white/10 px-3 py-2">
+                                                                                                <p className="truncate text-xs text-gray-300">
+                                                                                                    {attachment.originalName ||
+                                                                                                        attachment.name ||
+                                                                                                        "Attachment"}
+                                                                                                </p>
+                                                                                            </div>
+                                                                                        </a>
+                                                                                    ) : (
+                                                                                        <a
+                                                                                            href={
+                                                                                                attachment.url
+                                                                                            }
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 transition hover:border-indigo-500/30 hover:bg-white/[0.05]"
+                                                                                        >
+                                                                                            <FiFileText className="shrink-0 text-indigo-400" />
+
+                                                                                            <div className="min-w-0">
+                                                                                                <p className="truncate text-xs font-medium text-gray-300">
+                                                                                                    {attachment.originalName ||
+                                                                                                        attachment.name ||
+                                                                                                        "Attachment"}
+                                                                                                </p>
+
+                                                                                                <p className="mt-0.5 text-[10px] text-gray-600">
+                                                                                                    {formatFileSize(
+                                                                                                        attachment.size
+                                                                                                    )}
+                                                                                                </p>
+                                                                                            </div>
+                                                                                        </a>
+                                                                                    )}
+                                                                                </div>
+                                                                            );
+                                                                        }
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                     </div>
                                                 </div>
                                             );
@@ -804,58 +1156,151 @@ export default function AdminTicketDetailsPage() {
                         </div>
 
                         {/* Reply */}
-                        {ticket.status !== "closed" && (
-                            <form
-                                onSubmit={handleReply}
-                                className="rounded-xl border border-white/10 bg-[#202020] p-4"
-                            >
-                                <label className="mb-2 block text-sm font-medium text-white">
-                                    Reply to Customer
-                                </label>
-
-                                <textarea
-                                    value={reply}
-                                    onChange={(event) =>
-                                        setReply(
-                                            event.target
-                                                .value
-                                        )
+                        {ticket.status !==
+                            "closed" && (
+                                <form
+                                    onSubmit={
+                                        handleReply
                                     }
-                                    rows={5}
-                                    maxLength={5000}
-                                    disabled={
-                                        replyLoading
-                                    }
-                                    placeholder="Write a reply..."
-                                    className="w-full resize-none rounded-lg border border-white/10 bg-[#181818] px-3 py-3 text-sm text-white outline-none placeholder:text-gray-600 transition focus:border-indigo-500/50"
-                                />
+                                    className="rounded-xl border border-white/10 bg-[#202020] p-4"
+                                >
+                                    <label className="mb-2 block text-sm font-medium text-white">
+                                        Reply to Customer
+                                    </label>
 
-                                <div className="mt-3 flex items-center justify-between">
-                                    <span className="text-[11px] text-gray-600">
-                                        {reply.length}/5000
-                                    </span>
-
-                                    <button
-                                        type="submit"
-                                        disabled={
-                                            replyLoading ||
-                                            !reply.trim()
+                                    <textarea
+                                        value={reply}
+                                        onChange={(
+                                            event
+                                        ) =>
+                                            setReply(
+                                                event
+                                                    .target
+                                                    .value
+                                            )
                                         }
-                                        className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        <FiSend />
+                                        rows={5}
+                                        maxLength={5000}
+                                        disabled={
+                                            replyLoading
+                                        }
+                                        placeholder="Write a reply..."
+                                        className="w-full resize-none rounded-lg border border-white/10 bg-[#181818] px-3 py-3 text-sm text-white outline-none placeholder:text-gray-600 transition focus:border-indigo-500/50"
+                                    />
 
-                                        {replyLoading
-                                            ? "Sending..."
-                                            : "Send Reply"}
-                                    </button>
-                                </div>
-                            </form>
-                        )}
+                                    {replyAttachments.length >
+                                        0 && (
+                                            <div className="mt-3 space-y-2">
+                                                {replyAttachments.map(
+                                                    (
+                                                        file,
+                                                        index
+                                                    ) => (
+                                                        <div
+                                                            key={`${file.name}-${file.size}-${index}`}
+                                                            className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#181818] px-3 py-2"
+                                                        >
+                                                            <div className="flex min-w-0 items-center gap-3">
+                                                                <FiFileText className="shrink-0 text-indigo-400" />
+
+                                                                <div className="min-w-0">
+                                                                    <p className="truncate text-xs text-gray-300">
+                                                                        {
+                                                                            file.name
+                                                                        }
+                                                                    </p>
+
+                                                                    <p className="mt-0.5 text-[10px] text-gray-600">
+                                                                        {formatFileSize(
+                                                                            file.size
+                                                                        )}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    removeReplyAttachment(
+                                                                        index
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    replyLoading
+                                                                }
+                                                                className="shrink-0 rounded-md p-1 text-gray-500 transition hover:bg-white/5 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                aria-label={`Remove ${file.name}`}
+                                                            >
+                                                                <FiX />
+                                                            </button>
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        )}
+
+                                    <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <label
+                                                htmlFor="admin-reply-attachments"
+                                                className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-[#181818] px-3 py-2 text-xs font-medium text-gray-400 transition hover:border-white/20 hover:text-white ${replyLoading ||
+                                                        replyAttachments.length >=
+                                                        MAX_FILES
+                                                        ? "pointer-events-none opacity-50"
+                                                        : ""
+                                                    }`}
+                                            >
+                                                <FiPaperclip />
+
+                                                Attach files
+                                            </label>
+
+                                            <input
+                                                id="admin-reply-attachments"
+                                                type="file"
+                                                multiple
+                                                accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+                                                onChange={
+                                                    handleAttachmentChange
+                                                }
+                                                disabled={
+                                                    replyLoading ||
+                                                    replyAttachments.length >=
+                                                    MAX_FILES
+                                                }
+                                                className="hidden"
+                                            />
+
+                                            <span className="text-[11px] text-gray-600">
+                                                {reply.length}
+                                                /5000
+                                            </span>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            disabled={
+                                                replyLoading ||
+                                                (!reply.trim() &&
+                                                    !replyAttachments.length)
+                                            }
+                                            className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            <FiSend />
+
+                                            {replyLoading
+                                                ? "Uploading & Sending..."
+                                                : "Send Reply"}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
 
                         {/* Resolution */}
-                        {(ticket.status === "resolved" ||
-                            ticket.status === "closed") && (
+                        {(ticket.status ===
+                            "resolved" ||
+                            ticket.status ===
+                            "closed") && (
                                 <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4">
                                     <div className="flex items-center gap-2">
                                         <FiCheckCircle className="text-green-400" />
@@ -882,23 +1327,32 @@ export default function AdminTicketDetailsPage() {
                             )}
 
                         {/* Resolve */}
-                        {ticket.status !== "closed" &&
-                            ticket.status !== "resolved" && (
+                        {ticket.status !==
+                            "closed" &&
+                            ticket.status !==
+                            "resolved" && (
                                 <div className="rounded-xl border border-white/10 bg-[#202020] p-4">
                                     <label className="mb-2 block text-sm font-medium text-white">
                                         Resolve Ticket
                                     </label>
 
                                     <textarea
-                                        value={resolution}
-                                        onChange={(event) =>
+                                        value={
+                                            resolution
+                                        }
+                                        onChange={(
+                                            event
+                                        ) =>
                                             setResolution(
-                                                event.target
+                                                event
+                                                    .target
                                                     .value
                                             )
                                         }
                                         rows={4}
-                                        maxLength={5000}
+                                        maxLength={
+                                            5000
+                                        }
                                         placeholder="Enter the resolution..."
                                         className="w-full resize-none rounded-lg border border-white/10 bg-[#181818] px-3 py-3 text-sm text-white outline-none placeholder:text-gray-600 transition focus:border-green-500/40"
                                     />
@@ -926,24 +1380,27 @@ export default function AdminTicketDetailsPage() {
                             )}
 
                         {/* Close */}
-                        {ticket.status !== "closed" && (
-                            <div className="flex justify-end border-t border-white/10 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={
-                                        handleCloseTicket
-                                    }
-                                    disabled={closeLoading}
-                                    className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    <FiX />
+                        {ticket.status !==
+                            "closed" && (
+                                <div className="flex justify-end border-t border-white/10 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={
+                                            handleCloseTicket
+                                        }
+                                        disabled={
+                                            closeLoading
+                                        }
+                                        className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <FiX />
 
-                                    {closeLoading
-                                        ? "Closing..."
-                                        : "Close Ticket"}
-                                </button>
-                            </div>
-                        )}
+                                        {closeLoading
+                                            ? "Closing..."
+                                            : "Close Ticket"}
+                                    </button>
+                                </div>
+                            )}
                     </div>
                 ) : null}
             </div>
