@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "@/context/AuthContext";
-import { FiMessageCircle } from "react-icons/fi";
+import { FiMessageCircle, FiDownload } from "react-icons/fi";
 import { apiFetch } from "@/lib/api";
 
 export default function OrderDetailsPage() {
@@ -13,6 +13,8 @@ export default function OrderDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [copiedKey, setCopiedKey] = useState("");
+
+    const [invoiceDownloading, setInvoiceDownloading] = useState(false);
 
     const [tickets, setTickets] = useState([]);
     const [ticketsLoading, setTicketsLoading] = useState(true);
@@ -159,6 +161,118 @@ export default function OrderDetailsPage() {
         }
     };
 
+    const downloadInvoice = async () => {
+        if (invoiceDownloading) {
+            return;
+        }
+
+        if (!jwt) {
+            setError("Please sign in to download your invoice.");
+            return;
+        }
+
+        if (!orderNumber) {
+            setError("Order number is missing.");
+            return;
+        }
+
+        if (order?.paymentStatus !== "paid") {
+            setError(
+                "Invoice is available only after payment is confirmed."
+            );
+            return;
+        }
+
+        try {
+            setInvoiceDownloading(true);
+            setError("");
+
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/invoices/${encodeURIComponent(
+                    orderNumber
+                )}`,
+                {
+                    method: "GET",
+                    cache: "no-store",
+                    headers: {
+                        Authorization: `Bearer ${jwt}`,
+                        Accept: "application/pdf",
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                let message =
+                    "Unable to download invoice.";
+
+                try {
+                    const data =
+                        await response.json();
+
+                    message =
+                        data?.message ||
+                        message;
+                } catch {
+                    // Response was not JSON.
+                }
+
+                throw new Error(message);
+            }
+
+            const blob =
+                await response.blob();
+
+            const contentDisposition =
+                response.headers.get(
+                    "Content-Disposition"
+                );
+
+            let fileName =
+                `KZ-INV-${orderNumber}.pdf`;
+
+            const fileNameMatch =
+                contentDisposition?.match(
+                    /filename="([^"]+)"/i
+                );
+
+            if (fileNameMatch?.[1]) {
+                fileName =
+                    fileNameMatch[1];
+            }
+
+            const blobUrl =
+                window.URL.createObjectURL(blob);
+
+            const link =
+                document.createElement("a");
+
+            link.href = blobUrl;
+            link.download = fileName;
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            link.remove();
+
+            window.URL.revokeObjectURL(
+                blobUrl
+            );
+        } catch (err) {
+            console.error(
+                "Invoice download error:",
+                err
+            );
+
+            setError(
+                err.message ||
+                "Unable to download invoice."
+            );
+        } finally {
+            setInvoiceDownloading(false);
+        }
+    };
+
     if (authLoading || loading) {
         return (
             <main className="min-h-screen px-4 py-10 text-white sm:px-6">
@@ -240,7 +354,7 @@ export default function OrderDetailsPage() {
                         )}
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    {/* <div className="flex flex-wrap gap-2">
                         <span
                             className={`rounded-full px-3 py-1.5 text-xs font-medium ${order.paymentStatus ===
                                 "paid"
@@ -266,7 +380,53 @@ export default function OrderDetailsPage() {
                                 ? "Ready"
                                 : order.deliveryStatus}
                         </span>
+                    </div> */}
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        {order.paymentStatus === "paid" && (
+                            <button
+                                type="button"
+                                onClick={downloadInvoice}
+                                disabled={invoiceDownloading}
+                                className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-xs font-semibold text-purple-300 transition hover:border-purple-500/50 hover:bg-purple-500/20 hover:text-purple-200 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                <FiDownload
+                                    className={
+                                        invoiceDownloading
+                                            ? "animate-pulse"
+                                            : ""
+                                    }
+                                />
+
+                                {invoiceDownloading
+                                    ? "Generating..."
+                                    : "Download Invoice"}
+                            </button>
+                        )}
+
+                        <span
+                            className={`rounded-full px-3 py-1.5 text-xs font-medium ${order.paymentStatus === "paid"
+                                    ? "bg-green-500/10 text-green-400"
+                                    : "bg-yellow-500/10 text-yellow-400"
+                                }`}
+                        >
+                            {order.paymentStatus === "paid"
+                                ? "Payment successful"
+                                : order.paymentStatus}
+                        </span>
+
+                        <span
+                            className={`rounded-full px-3 py-1.5 text-xs font-medium ${order.deliveryStatus === "ready"
+                                    ? "bg-green-500/10 text-green-400"
+                                    : "bg-white/10 text-white/60"
+                                }`}
+                        >
+                            {order.deliveryStatus === "ready"
+                                ? "Ready"
+                                : order.deliveryStatus}
+                        </span>
                     </div>
+
                 </div>
 
                 <div className="mt-8 space-y-5">

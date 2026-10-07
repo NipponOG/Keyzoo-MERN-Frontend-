@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { FiMessageCircle } from "react-icons/fi";
+import { FiMessageCircle, FiDownload } from "react-icons/fi";
 import { apiFetch } from "@/lib/api";
 
 export default function OrdersPage() {
@@ -10,6 +10,119 @@ export default function OrdersPage() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [invoiceDownloading, setInvoiceDownloading] = useState(null);
+
+    const downloadInvoice = async (orderNumber) => {
+        if (
+            !orderNumber ||
+            invoiceDownloading
+        ) {
+            return;
+        }
+
+        if (!jwt) {
+            setError(
+                "Please sign in to download your invoice."
+            );
+            return;
+        }
+
+        try {
+            setInvoiceDownloading(
+                orderNumber
+            );
+
+            setError("");
+
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/invoices/${encodeURIComponent(
+                    orderNumber
+                )}`,
+                {
+                    method: "GET",
+                    cache: "no-store",
+                    headers: {
+                        Authorization:
+                            `Bearer ${jwt}`,
+                        Accept:
+                            "application/pdf",
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                let message =
+                    "Unable to download invoice.";
+
+                try {
+                    const data =
+                        await response.json();
+
+                    message =
+                        data?.message ||
+                        message;
+                } catch {
+                    // Response was not JSON.
+                }
+
+                throw new Error(message);
+            }
+
+            const blob =
+                await response.blob();
+
+            const contentDisposition =
+                response.headers.get(
+                    "Content-Disposition"
+                );
+
+            let fileName =
+                `KZ-INV-${orderNumber}.pdf`;
+
+            const fileNameMatch =
+                contentDisposition?.match(
+                    /filename="([^"]+)"/i
+                );
+
+            if (fileNameMatch?.[1]) {
+                fileName =
+                    fileNameMatch[1];
+            }
+
+            const blobUrl =
+                window.URL.createObjectURL(
+                    blob
+                );
+
+            const link =
+                document.createElement("a");
+
+            link.href = blobUrl;
+            link.download = fileName;
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            link.remove();
+
+            window.URL.revokeObjectURL(
+                blobUrl
+            );
+        } catch (err) {
+            console.error(
+                "Invoice download error:",
+                err
+            );
+
+            setError(
+                err.message ||
+                "Unable to download invoice."
+            );
+        } finally {
+            setInvoiceDownloading(null);
+        }
+    };
 
     useEffect(() => {
         if (authLoading) {
@@ -235,6 +348,35 @@ export default function OrdersPage() {
                                                     "en-IN"
                                                 )}
                                             </p>
+
+                                            {order.paymentStatus === "paid" && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        downloadInvoice(
+                                                            order.orderNumber
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        invoiceDownloading !== null
+                                                    }
+                                                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/10 px-4 py-2.5 text-sm font-semibold text-purple-300 transition hover:border-purple-500/50 hover:bg-purple-500/20 hover:text-purple-200 disabled:cursor-not-allowed disabled:opacity-60"
+                                                >
+                                                    <FiDownload
+                                                        className={
+                                                            invoiceDownloading ===
+                                                                order.orderNumber
+                                                                ? "animate-pulse"
+                                                                : ""
+                                                        }
+                                                    />
+
+                                                    {invoiceDownloading ===
+                                                        order.orderNumber
+                                                        ? "Generating..."
+                                                        : "Invoice"}
+                                                </button>
+                                            )}
 
                                             <Link
                                                 href={`/account/tickets/new?orderId=${encodeURIComponent(
