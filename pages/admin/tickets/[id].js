@@ -699,7 +699,7 @@ export default function AdminTicketDetailsPage() {
                             "/admin/dashboard"
                         )
                     }
-                    className="mb-5 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#181818] px-4 py-2.5 text-sm font-medium text-gray-300 transition hover:bg-white/5 hover:text-white"
+                    className="cursor-pointer mb-5 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#181818] px-4 py-2.5 text-sm font-medium text-gray-300 transition hover:bg-white/5 hover:text-white"
                 >
                     <FiArrowLeft size={17} />
                     Back to Dashboard
@@ -765,7 +765,7 @@ export default function AdminTicketDetailsPage() {
                                             "/admin/dashboard"
                                         )
                                     }
-                                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 text-gray-400 transition hover:bg-white/5 hover:text-white"
+                                    className="cursor-pointer inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 text-gray-400 transition hover:bg-white/5 hover:text-white"
                                     title="Back to dashboard"
                                 >
                                     <FiX size={19} />
@@ -863,7 +863,7 @@ export default function AdminTicketDetailsPage() {
                                     disabled={
                                         statusLoading
                                     }
-                                    className={`w-full rounded-lg border bg-[#181818] px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500/50 ${STATUS_STYLES[
+                                    className={` cursor-pointer w-full rounded-lg border bg-[#181818] px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500/50 ${STATUS_STYLES[
                                             ticket.status
                                         ]?.replace(
                                             /bg-\S+|border-\S+/g,
@@ -881,7 +881,7 @@ export default function AdminTicketDetailsPage() {
                                                 value={
                                                     status
                                                 }
-                                                className="bg-[#181818] text-white"
+                                                className="bg-[#181818] text-white cursor-pointer"
                                             >
                                                 {formatLabel(
                                                     status
@@ -914,7 +914,7 @@ export default function AdminTicketDetailsPage() {
                                     disabled={
                                         priorityLoading
                                     }
-                                    className={`w-full rounded-lg border border-white/10 bg-[#181818] px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500/50 ${PRIORITY_STYLES[
+                                    className={`cursor-pointer w-full rounded-lg border border-white/10 bg-[#181818] px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500/50 ${PRIORITY_STYLES[
                                         ticket.priority
                                         ] ||
                                         PRIORITY_STYLES
@@ -930,7 +930,7 @@ export default function AdminTicketDetailsPage() {
                                                 value={
                                                     priority
                                                 }
-                                                className="bg-[#181818] text-white"
+                                                className="bg-[#181818] text-white cursor-pointer"
                                             >
                                                 {formatLabel(
                                                     priority
