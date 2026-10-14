@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { fetchFromStrapi } from '@/lib/strapi';
 import toast from "react-hot-toast";
 import Image from 'next/image';
+import OptimizedImage from "@/components/Image/OptimizedImage";
 import Link from 'next/link';
 import useCurrency from '@/hook/useCurrency';
 import HoverCard from '@/components/HoverCard';
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { useRouter } from "next/router";
-import { getStrapiMedia } from "@/lib/getStrapiMedia";
 import ProductCardImage from "@/components/ProductCardImage";
 import {
   Pagination,
@@ -18,26 +17,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { getStrapiMedia } from '@/lib/getStrapiMedia';
 
 export default function index() {
 
   const { symbol } = useCurrency();
   const router = useRouter();
-
-  // useEffect(() => {
-  //   async function getProducts() {
-  //     try {
-  //       const res = await fetchFromStrapi('api/products?populate=*');
-  //       // const resImage = await fetchFromStrapi('/products?populate=image');
-  //       setProducts(res.data || []);
-  //       // setProducts(resImage.data || []);
-  //     } catch (error) {
-  //       console.error('Failed to fetch products:', error);
-  //     }
-  //   }
-
-  //   getProducts();
-  // }, []);
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -63,53 +48,16 @@ export default function index() {
 
   const [page, setPage] = useState(1);
 
-  const handleNotify = async (item) => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user"));
-      const token = localStorage.getItem("jwt");
+  const handleNotify = async () => {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    const token = localStorage.getItem("jwt");
 
-      if (!user || !token) {
-        toast.error("Please login first");
-        return;
-      }
-
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_STRAPI_URL}api/stock-alerts`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            data: {
-              product: item.id,
-            },
-          }),
-        }
-      );
-
-      const data = await res.json();
-
-      // console.log("API RESPONSE:", data);
-      // console.log("USER:", user);
-      // console.log("PRODUCT:", item);
-
-      if (!res.ok) {
-        throw new Error(data.error?.message || "Already subscribed");
-      }
-
-      toast.success("We’ll notify you 🔔");
-
-      setNotified((prev) => ({
-        ...prev,
-        [item.id]: true,
-      }));
-
-    } catch (err) {
-      console.error(err);
-      toast.error(err.message || "Something went wrong");
+    if (!user || !token) {
+      toast.error("Please login first");
+      return;
     }
+
+    toast.error("Stock alerts are temporarily unavailable.");
   };
 
   useEffect(() => {
@@ -124,53 +72,40 @@ export default function index() {
   const buildQuery = () => {
     const query = new URLSearchParams();
 
-    // 📦 PRODUCT TYPE
-    selectedProductTypes.forEach((p, i) => {
-      query.append(`filters[item_type][$in][${i}]`, p);
-    });
-
-    // 🖥️ WORKS ON
-    selectedWorksOn.forEach((w, i) => {
-      query.append(`filters[work_platform][$in][${i}]`, w);
-    });
-
-    // 🔍 SEARCH
-    if (search) {
-      query.append("filters[title][$containsi]", search);
+    if (search.trim()) {
+      query.set("search", search.trim());
     }
 
-    // 🎮 PLATFORM
-    selectedPlatforms.forEach((p, i) => {
-      query.append(`filters[platform][$in][${i}]`, p);
-    });
+    if (selectedPlatforms.length) {
+      query.set("platform", selectedPlatforms.join(","));
+    }
 
-    // 🌍 REGION
-    selectedRegions.forEach((r, i) => {
-      query.append(`filters[card_region][$in][${i}]`, r);
-    });
+    if (selectedRegions.length) {
+      query.set("region", selectedRegions.join(","));
+    }
 
-    // ✅ AVAILABLE
+    if (selectedProductTypes.length) {
+      query.set("productType", selectedProductTypes.join(","));
+    }
+
+    if (selectedWorksOn.length) {
+      query.set("worksOn", selectedWorksOn.join(","));
+    }
+
     if (onlyAvailable) {
-      query.append("filters[Available][$eq]", true);
+      query.set("available", "true");
     }
 
-    // 💰 MIN PRICE
     if (minPrice > 0) {
-      query.append("filters[$or][0][discountPrice][$gte]", minPrice);
-      query.append("filters[$or][1][price][$gte]", minPrice);
+      query.set("minPrice", String(minPrice));
     }
 
-    // 💰 MAX PRICE
     if (maxPrice < 999999) {
-      query.append("filters[$or][0][discountPrice][$lte]", maxPrice);
-      query.append("filters[$or][1][price][$lte]", maxPrice);
+      query.set("maxPrice", String(maxPrice));
     }
 
-    // query.append("pagination[page]", page);
-    // query.append("pagination[pageSize]", 10);
-
-    // 🖼️ POPULATE
-    query.append("populate", "*");
+    query.set("page", String(page));
+    query.set("pageSize", "10");
 
     return query.toString();
   };
@@ -189,113 +124,88 @@ export default function index() {
   ]);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function getData() {
       setLoading(true);
 
       try {
-
         const query = buildQuery();
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-        // 🔥 FETCH MULTIPLE COLLECTIONS WITH SAME FILTERS
-        const [
-          productRes,
-          giftCardRes,
-          playStationRes
-        ] = await Promise.all([
+        if (!apiUrl) {
+          throw new Error("NEXT_PUBLIC_API_URL is not configured");
+        }
 
-          fetchFromStrapi(`api/products?${query}`),
+        const response = await fetch(
+          `${apiUrl.replace(/\/$/, "")}/store?${query}`
+        );
 
-          fetchFromStrapi(`api/gift-cards?${query}`),
+        const result = await response.json();
 
-          fetchFromStrapi(`api/play-stations?${query}`)
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message || "Failed to fetch store items"
+          );
+        }
 
-        ]);
+        if (cancelled) return;
 
-        // 🎮 PRODUCTS
-        const products = (productRes.data || []).map((item) => ({
+        const merged = (result.data || []).map((item) => ({
           ...item,
-          type: "product",  // Adjust the type(slug) for Product items
+          Available: item.available ?? item.Available ?? false,
+          card_region: item.card_region ?? item.region ?? "",
+          work_platform: item.workPlatform ?? item.work_platform ?? "",
+          originalPrice: Number(item.price ?? 0),
+          price: Number(item.discountPrice ?? item.price ?? 0),
         }));
-
-        // 🎁 GIFT CARDS
-        const giftCards = (giftCardRes.data || []).map((item) => ({
-          ...item,
-          type: "gift-card",  // Adjust the type(slug) for Gift Card items
-        }));
-
-        // 🕹️ PLAYSTATION
-        const playStations = (playStationRes.data || []).map((item) => ({
-          ...item,
-          type: "store/category/product/psn", // Adjust the type(slug) for PlayStation items
-        }));
-
-        // 🔥 MERGE EVERYTHING
-        const merged = [
-          ...products,
-          ...giftCards,
-          ...playStations,
-        ];
 
         setItems(merged);
 
-        // 🎯 PAGINATION (FRONTEND) Page... Control...
-        const ITEMS_PER_PAGE = 10;
-
-        const start = (page - 1) * ITEMS_PER_PAGE;
-        const end = start + ITEMS_PER_PAGE;
-
-        const paginatedItems = merged.slice(start, end);
-
-        setItems(paginatedItems);
-
         setTotalPages(
-          Math.ceil(merged.length / ITEMS_PER_PAGE)
+          Math.max(
+            1,
+            Number(
+              result.totalPages ??
+              Math.ceil((result.total ?? merged.length) / 10)
+            )
+          )
         );
 
-        // 🎮 DYNAMIC FILTER OPTIONS
-        const uniquePlatforms = [
-          ...new Set(
-            merged.map((item) => item.platform).filter(Boolean)
-          ),
-        ];
+        setPlatforms([
+          ...new Set(merged.map((item) => item.platform).filter(Boolean)),
+        ]);
 
-        const uniqueRegions = [
-          ...new Set(
-            merged.map((item) => item.card_region).filter(Boolean)
-          ),
-        ];
+        setRegions([
+          ...new Set(merged.map((item) => item.card_region).filter(Boolean)),
+        ]);
 
-        setPlatforms(uniquePlatforms);
-        setRegions(uniqueRegions);
+        setProductTypes([
+          ...new Set(merged.map((item) => item.item_type).filter(Boolean)),
+        ]);
 
-        const uniqueProductTypes = [
-          ...new Set(
-            merged.map((item) => item.item_type).filter(Boolean)
-          ),
-        ];
-
-        const uniqueWorksOn = [
-          ...new Set(
-            merged.map((item) => item.work_platform).filter(Boolean)
-          ),
-        ];
-
-        setProductTypes(uniqueProductTypes);
-        setWorksOn(uniqueWorksOn);
-
+        setWorksOn([
+          ...new Set(merged.map((item) => item.work_platform).filter(Boolean)),
+        ]);
       } catch (error) {
-
-        console.error("Failed to fetch items:", error);
-
+        if (!cancelled) {
+          console.error("Failed to fetch store items:", error);
+          setItems([]);
+          setTotalPages(1);
+          toast.error("Failed to load store items.");
+        }
       } finally {
-
-        setLoading(false);
-
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
     getData();
 
+    return () => {
+      cancelled = true;
+    };
   }, [
     search,
     selectedPlatforms,
@@ -307,13 +217,6 @@ export default function index() {
     maxPrice,
     page,
   ]);
-
-  // const [counts, setCounts] = useState({
-  //   platforms: {},
-  //   regions: {},
-  //   productTypes: {},
-  //   worksOn: {},
-  // });
 
   const clearFilters = () => {
     setSearch("");
@@ -751,23 +654,11 @@ export default function index() {
 
                 // const imgUrl = getStrapiMedia(item.image?.url);
 
-                const imgUrl = getStrapiMedia(
-                  item.image?.url,
-                  {
-                    width: 600,
-                  }
-                );
-
-                const blurUrl = getStrapiMedia(
-                  item.image?.url,
-                  {
-                    blur: true,
-                  }
-                );
+                const imageUrl = item.image || "/keyzoo-fallback.png";
 
                 return (
                   <div key={item.id} className='mb-2 mt-2'>
-                    {item.Available ? (
+                    {item.available ? (
                       <Link
                         // href={`/product/${item.slug}`}
                         href={getItemHref(item)}
@@ -776,29 +667,31 @@ export default function index() {
                       >
                         <div className="relative w-full aspect-[3/5] mb-1.5 rounded-md overflow-hidden">
                           {/* {imageUrl && ( */}
-                          <ProductCardImage
-                            imgUrl={imgUrl}
-                            blurUrl={blurUrl}
-                            available={item.Available}
-                          // alt={item.title}
-                          // fill
-                          // className="object-center"
+                          <OptimizedImage
+                            src={imageUrl}
+                            alt={item.title || "Product image"}
+                            fill
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                            width={600}
+                            height={1000}
+                            blur
+                            className={`object-center ${item.available ? "" : "grayscale opacity-60"
+                              }`}
                           />
-                          {/* )} */}
 
                           {/* Platform badge */}
-                          {item.platform && (
+                          {/* {item.platform && (
                             <span className="absolute top-2 left-2 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded uppercase">
                               {item.platform}
                             </span>
-                          )}
+                          )} */}
 
                           {/* Discount ribbon */}
-                          {item.originalPrice && item.originalPrice > item.price && (
+                          {/* {item.originalPrice && item.originalPrice > item.price && (
                             <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded">
                               -{Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%
                             </span>
-                          )}
+                          )} */}
                         </div>
                         <div className='bg-gray-100 dark:bg-black/30 backdrop-blur-sm px-1 py-1 rounded-b-md h-[120px]'>
                           <HoverCard title={item.title}>
@@ -819,16 +712,17 @@ export default function index() {
                         className="block p-1 rounded-lg bg-white dark:bg-[#1a1a1a] relative min-w-[200px] mx-auto shadow-sm dark:shadow-none hover:shadow-lg transition-transform duration-300 transform hover:-translate-y-1 cursor-not-allowed"
                       >
                         <div className="relative w-full aspect-[3/5] mb-1.5 rounded-md overflow-hidden">
-                          {/* {imageUrl && ( */}
-                          <ProductCardImage
-                            imgUrl={imgUrl}
-                            blurUrl={blurUrl}
-                            available={item.Available}
-                          // alt={item.title}
-                          // fill
-                          // className={`object-center transition ${item.Available ? '' : 'grayscale opacity-60'}`}
+                          <OptimizedImage
+                            src={imageUrl}
+                            alt={item.title || "Product image"}
+                            fill
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                            width={600}
+                            height={1000}
+                            blur
+                            className={`object-center ${item.available ? "" : "grayscale opacity-60"
+                              }`}
                           />
-                          {/* )} */}
 
                           {/* 🔥 Bottom overlay container */}
                           <div className="absolute bottom-3 left-0 w-full flex justify-center px-3">
@@ -840,18 +734,18 @@ export default function index() {
                           </div>
 
                           {/* Platform badge */}
-                          {item.platform && (
+                          {/* {item.platform && (
                             <span className="absolute top-2 left-2 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded uppercase">
                               {item.platform}
                             </span>
-                          )}
+                          )} */}
 
                           {/* Discount ribbon */}
-                          {item.originalPrice && item.originalPrice > item.price && (
+                          {/* {item.originalPrice && item.originalPrice > item.price && (
                             <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded">
                               -{Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%
                             </span>
-                          )}
+                          )} */}
                         </div>
                         <div className='bg-gray-100 dark:bg-black/30 backdrop-blur-sm px-1 py-1 rounded-b-md h-[120px]'>
                           <HoverCard title={item.title}>

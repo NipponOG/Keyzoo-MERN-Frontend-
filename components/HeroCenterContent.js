@@ -10,7 +10,7 @@ export default function HeroCenterContent() {
     <div className="max-w-2xl">
       <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold">
         Keyzoo is a{" "}
-        <span className="text-emerald-400">one-stop shop</span>
+        <span className="text-[#6d3cff]">one-stop shop</span>
         {/* <br /> */}
         {" "} for all your gaming needs.
       </h1>

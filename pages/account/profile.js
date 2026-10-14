@@ -822,7 +822,7 @@ export default function ProfilePage() {
                             </Link>
 
                             <Link
-                                href="/account/tickets"
+                                href="/support"
                                 className="group flex items-center justify-between rounded-2xl border border-neutral-800 bg-neutral-900/50 p-4 transition-all duration-300 hover:border-purple-500/40 hover:bg-neutral-900"
                             >
                                 <div className="flex items-center gap-3">

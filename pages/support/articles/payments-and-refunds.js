@@ -1,76 +1,78 @@
-
 import Link from "next/link";
 import {
     ArrowLeft,
     ChevronRight,
-    PackageCheck,
+    CreditCard,
     TicketCheck,
 } from "lucide-react";
 
-const TOPICS = [
+const SUPPORT_TOPICS = [
     {
-        title: "I haven't received my Product",
-        description:
-            "Your payment was successful, but your product hasn't arrived yet.",
-        href: "/support/product-delivery/product-not-received",
+        title: "My payment failed",
+        description: "Get help with a failed or unsuccessful payment.",
+        href: "/support/articles/payments-and-refunds/payment-failed",
     },
     {
-        title: "I cannot find the Product",
-        description:
-            "You purchased a product but can't locate it in your account.",
-        href: "/support/product-activation/i-cannot-find-the-product",
+        title: "I was charged but my order is missing",
+        description: "Learn what to do if your payment went through but no order appears.",
+        href: "/support/articles/payments-and-refunds/charged-order-missing",
     },
     {
-        title: "My order is still processing",
-        description:
-            "Your order hasn't completed processing yet.",
-        href: "/support/product-delivery/order-processing",
+        title: "How do I request a refund?",
+        description: "Find out how to get help with a refund request.",
+        href: "/support/articles/payments-and-refunds/refund-request",
+    },
+    {
+        title: "My refund hasn't arrived",
+        description: "What to check if your refund is taking longer than expected.",
+        href: "/support/articles/payments-and-refunds/refund-not-received",
     },
     {
         title: "Other",
-        description:
-            "Get help with another product delivery issue.",
-        href: "/support/other",
+        description: "Get help with a different payment or refund issue.",
+        href: "/support/articles/other",
     },
 ];
 
-export default function ProductDeliverySupport() {
+export default function PaymentsAndRefundsSupport() {
     return (
-        <main className="min-h-[70vh] px-4 py-12 text-white sm:py-16">
+        <main className="min-h-[70vh] bg-[#0b0b0b] px-4 py-12 text-white sm:py-16">
             <div className="mx-auto max-w-3xl">
+                <div className="mb-6">
+                    <Link
+                        href="/support/articles"
+                        className="inline-flex items-center gap-2 text-sm text-neutral-400 transition hover:text-white"
+                    >
+                        <ArrowLeft size={17} />
+                        Back to Support
+                    </Link>
+                </div>
+
                 <section className="rounded-xl border border-neutral-800 bg-[#161616] p-5 sm:p-7">
                     <div className="mb-6 flex items-center gap-3">
-                        <Link
-                            href="/support"
-                            aria-label="Back to support"
-                            className="rounded-md p-1 text-neutral-300 transition hover:bg-neutral-800 hover:text-white"
-                        >
-                            <ArrowLeft size={23} />
-                        </Link>
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
+                            <CreditCard size={25} />
+                        </div>
 
                         <div>
                             <h1 className="text-xl font-bold sm:text-2xl">
-                                Product Delivery
+                                Payments and Refunds
                             </h1>
                             <p className="mt-1 text-sm text-neutral-400">
-                                Choose the delivery issue you need help with.
+                                Choose the issue you're experiencing.
                             </p>
                         </div>
                     </div>
 
                     <div className="space-y-3">
-                        {TOPICS.map((topic, index) => (
+                        {SUPPORT_TOPICS.map((topic) => (
                             <Link
                                 key={topic.title}
                                 href={topic.href}
-                                className="group flex min-h-[78px] items-center gap-4 rounded-lg border border-neutral-800 bg-[#202020] px-4 py-4 transition duration-200 hover:border-purple-500/60 hover:bg-[#26212f] focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 sm:px-5"
+                                className="group flex items-center justify-between gap-4 rounded-lg border border-neutral-800 bg-[#202020] p-4 transition hover:border-purple-500/50 hover:bg-[#25212d] sm:p-5"
                             >
-                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-sm font-semibold text-neutral-300 group-hover:bg-purple-500/15 group-hover:text-purple-300">
-                                    {index + 1}
-                                </span>
-
-                                <div className="min-w-0 flex-1">
-                                    <h2 className="text-sm font-semibold text-white sm:text-base">
+                                <div className="min-w-0">
+                                    <h2 className="text-sm font-semibold sm:text-base">
                                         {topic.title}
                                     </h2>
                                     <p className="mt-1 text-sm leading-5 text-neutral-400">
@@ -79,7 +81,7 @@ export default function ProductDeliverySupport() {
                                 </div>
 
                                 <ChevronRight
-                                    size={19}
+                                    size={20}
                                     className="shrink-0 text-neutral-500 transition group-hover:translate-x-1 group-hover:text-purple-400"
                                 />
                             </Link>
@@ -97,16 +99,16 @@ export default function ProductDeliverySupport() {
                     </h2>
 
                     <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-neutral-400">
-                        If your product hasn't arrived, our support team can help
-                        investigate your order.
+                        If these articles don't resolve your issue, visit your tickets
+                        to find the available support options.
                     </p>
 
                     <Link
                         href="/account/tickets"
                         className="mt-5 inline-flex items-center gap-2 rounded-md bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
                     >
-                        <PackageCheck size={17} />
-                        Create a Ticket
+                        <TicketCheck size={17} />
+                        Go to Support Tickets
                     </Link>
                 </section>
             </div>

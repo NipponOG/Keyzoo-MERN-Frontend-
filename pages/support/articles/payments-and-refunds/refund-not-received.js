@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import {
     ArrowLeft,
@@ -8,43 +7,43 @@ import {
 
 const HELP_STEPS = [
     {
-        title: "Check the activation platform",
+        title: "Check your refund status",
         description:
-            "Make sure you're redeeming the product on the platform specified on your Keyzoo product page, such as Steam, Epic Games, or Ubisoft Connect.",
+            "Review any order updates or support messages to confirm whether your refund has been approved or processed.",
+        href: "/account/orders",
+        linkText: "Go to My Orders",
     },
     {
-        title: "Check the product's region",
+        title: "Check your original payment method",
         description:
-            "Some digital keys are restricted to specific countries or regions. Verify that the product's region is compatible with your account and location.",
+            "Refunds are generally returned through the original payment method. Check the relevant bank account, card statement, or payment app for a refund transaction.",
     },
     {
-        title: "Follow the activation instructions",
+        title: "Allow time for processing",
         description:
-            "Open the activation guide for your platform and follow the steps carefully. Make sure you enter the key in the correct redemption section.",
-        link: "/activation-guide",
-        linkText: "View Activation Guides",
+            "A processed refund may take additional time to appear, depending on your payment provider and bank. The exact timeframe can vary.",
     },
     {
-        title: "Check the error message",
+        title: "Review your payment statement",
         description:
-            "If activation fails, note the exact error message shown by the platform. It can help identify whether the issue involves the key, region, account, or platform.",
+            "Check recent transactions and statements for a refund or reversal. If the original charge was only pending, it may disappear rather than appear as a separate refund.",
     },
     {
-        title: "Try again and contact support",
+        title: "Contact support if the refund is still missing",
         description:
-            "If the key still won't activate after checking these details, create a support ticket and include the platform name and exact error message. Never share your account password.",
+            "If the expected processing period has passed, provide your order number, refund confirmation if available, and payment transaction reference so the team can investigate.",
     },
 ];
 
-export default function CannotActivateProductSupport() {
+export default function RefundNotReceivedSupport() {
     return (
-        <main className="min-h-[70vh] px-4 py-12 text-white sm:py-16">
+        <main className="min-h-[70vh] bg-[#0b0b0b] px-4 py-12 text-white sm:py-16">
             <div className="mx-auto max-w-3xl">
                 <section className="rounded-xl border border-neutral-800 bg-[#161616] p-5 sm:p-7">
                     <div className="mb-6 flex items-start gap-3">
                         <Link
-                            href="/support/product-activation"
-                            aria-label="Back to Product Activation"
+                            href="/support/articles/payments-and-refunds"
+                            aria-label="Back to Payments and Refunds"
                             className="mt-0.5 rounded-md p-1 text-neutral-300 transition hover:bg-neutral-800 hover:text-white"
                         >
                             <ArrowLeft size={23} />
@@ -52,10 +51,10 @@ export default function CannotActivateProductSupport() {
 
                         <div>
                             <h1 className="text-xl font-bold sm:text-2xl">
-                                I cannot activate the Product
+                                My refund hasn't arrived
                             </h1>
                             <p className="mt-1 text-sm text-neutral-400">
-                                Follow these steps to troubleshoot product activation.
+                                Here's what to check if your refund hasn't appeared yet.
                             </p>
                         </div>
                     </div>
@@ -80,9 +79,9 @@ export default function CannotActivateProductSupport() {
                                             {step.description}
                                         </p>
 
-                                        {step.link && (
+                                        {step.href && (
                                             <Link
-                                                href={step.link}
+                                                href={step.href}
                                                 className="mt-3 inline-flex items-center gap-2 rounded-md bg-neutral-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-neutral-600"
                                             >
                                                 {step.linkText}
@@ -102,12 +101,13 @@ export default function CannotActivateProductSupport() {
                     </div>
 
                     <h2 className="text-lg font-bold sm:text-xl">
-                        Are you still experiencing problems?
+                        Is your refund still missing?
                     </h2>
 
                     <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-neutral-400">
-                        If your product still won't activate, our support team can help
-                        investigate the issue.
+                        If you've checked your payment method and the refund still
+                        hasn't appeared, visit your support tickets for the available
+                        support options.
                     </p>
 
                     <Link
@@ -115,7 +115,7 @@ export default function CannotActivateProductSupport() {
                         className="mt-5 inline-flex items-center gap-2 rounded-md bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
                     >
                         <TicketCheck size={17} />
-                        Create a Ticket
+                        Go to Support Tickets
                     </Link>
                 </section>
             </div>

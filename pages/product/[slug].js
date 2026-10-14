@@ -607,7 +607,7 @@ export default function ProductPage({ product, variations }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium leading-5">
-                      Platform: <strong>{product.platform_image}</strong>
+                      Platform: <strong>{product.platform}</strong>
                     </p>
                     <a className="text-xs text-[#359dff] mt-1 inline-block">
                       Activation Guide

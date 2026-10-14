@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import {
     ArrowLeft,
@@ -7,43 +8,43 @@ import {
 
 const HELP_STEPS = [
     {
-        title: "Check your refund status",
+        title: "Check your order status",
         description:
-            "Review any order updates or support messages to confirm whether your refund has been approved or processed.",
+            "Open your Keyzoo order history and check the latest status. If your order is still processing, it may not be ready for delivery yet.",
         href: "/account/orders",
         linkText: "Go to My Orders",
     },
     {
-        title: "Check your original payment method",
+        title: "Confirm your payment status",
         description:
-            "Refunds are generally returned through the original payment method. Check the relevant bank account, card statement, or payment app for a refund transaction.",
+            "Make sure your payment was completed successfully. Pending payments or payment verification may delay order processing.",
     },
     {
-        title: "Allow time for processing",
+        title: "Check your email",
         description:
-            "A processed refund may take additional time to appear, depending on your payment provider and bank. The exact timeframe can vary.",
+            "Look for order updates in your inbox, including spam and junk folders. We may contact you if additional information is needed.",
     },
     {
-        title: "Review your payment statement",
+        title: "Avoid placing duplicate orders",
         description:
-            "Check recent transactions and statements for a refund or reversal. If the original charge was only pending, it may disappear rather than appear as a separate refund.",
+            "If you have already completed checkout, check the existing order before purchasing the same product again.",
     },
     {
-        title: "Contact support if the refund is still missing",
+        title: "Contact support if the delay continues",
         description:
-            "If the expected processing period has passed, provide your order number, refund confirmation if available, and payment transaction reference so the team can investigate.",
+            "If your order remains processing longer than expected, provide your order number and payment confirmation so our team can investigate.",
     },
 ];
 
-export default function RefundNotReceivedSupport() {
+export default function OrderProcessingSupport() {
     return (
         <main className="min-h-[70vh] bg-[#0b0b0b] px-4 py-12 text-white sm:py-16">
             <div className="mx-auto max-w-3xl">
                 <section className="rounded-xl border border-neutral-800 bg-[#161616] p-5 sm:p-7">
                     <div className="mb-6 flex items-start gap-3">
                         <Link
-                            href="/support/payments-and-refunds"
-                            aria-label="Back to Payments and Refunds"
+                            href="/support/articles/product-delivery"
+                            aria-label="Back to Product Delivery"
                             className="mt-0.5 rounded-md p-1 text-neutral-300 transition hover:bg-neutral-800 hover:text-white"
                         >
                             <ArrowLeft size={23} />
@@ -51,10 +52,10 @@ export default function RefundNotReceivedSupport() {
 
                         <div>
                             <h1 className="text-xl font-bold sm:text-2xl">
-                                My refund hasn't arrived
+                                My order is still processing
                             </h1>
                             <p className="mt-1 text-sm text-neutral-400">
-                                Here's what to check if your refund hasn't appeared yet.
+                                Here's what to check when your order hasn't completed yet.
                             </p>
                         </div>
                     </div>
@@ -101,13 +102,12 @@ export default function RefundNotReceivedSupport() {
                     </div>
 
                     <h2 className="text-lg font-bold sm:text-xl">
-                        Is your refund still missing?
+                        Are you still experiencing problems?
                     </h2>
 
                     <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-neutral-400">
-                        If you've checked your payment method and the refund still
-                        hasn't appeared, visit your support tickets for the available
-                        support options.
+                        If your order is still processing after you've checked these
+                        details, our support team can help investigate.
                     </p>
 
                     <Link
@@ -115,7 +115,7 @@ export default function RefundNotReceivedSupport() {
                         className="mt-5 inline-flex items-center gap-2 rounded-md bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
                     >
                         <TicketCheck size={17} />
-                        Go to Support Tickets
+                        Create a Ticket
                     </Link>
                 </section>
             </div>

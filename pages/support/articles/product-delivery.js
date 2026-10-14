@@ -1,46 +1,47 @@
+
 import Link from "next/link";
 import {
     ArrowLeft,
     ChevronRight,
-    Gamepad2,
+    PackageCheck,
     TicketCheck,
 } from "lucide-react";
 
 const TOPICS = [
     {
+        title: "I haven't received my Product",
+        description:
+            "Your payment was successful, but your product hasn't arrived yet.",
+        href: "/support/articles/product-delivery/product-not-received",
+    },
+    {
         title: "I cannot find the Product",
         description:
-            "The payment was successful, but I struggle to find the product.",
-        href: "/support/product-activation/i-cannot-find-the-product",
+            "You purchased a product but can't locate it in your account.",
+        href: "/support/articles/product-activation/i-cannot-find-the-product",
     },
     {
-        title: "I cannot activate the Product",
+        title: "My order is still processing",
         description:
-            "I have received the product but cannot activate it on the platform.",
-        href: "/support/product-activation/i-cannot-activate-the-product",
-    },
-    {
-        title: "Did you copy the Product correctly?",
-        description:
-            "An already activated product suddenly became unavailable or was removed.",
-        href: "/support/product-activation/product-key-not-working",
+            "Your order hasn't completed processing yet.",
+        href: "/support/articles/product-delivery/order-processing",
     },
     {
         title: "Other",
         description:
-            "I have encountered problems that are not described here while using Keyzoo.",
-        href: "/support/other",
+            "Get help with another product delivery issue.",
+        href: "/support/articles/other",
     },
 ];
 
-export default function ProductActivationSupport() {
+export default function ProductDeliverySupport() {
     return (
         <main className="min-h-[70vh] px-4 py-12 text-white sm:py-16">
             <div className="mx-auto max-w-3xl">
                 <section className="rounded-xl border border-neutral-800 bg-[#161616] p-5 sm:p-7">
                     <div className="mb-6 flex items-center gap-3">
                         <Link
-                            href="/support"
+                            href="/support/articles"
                             aria-label="Back to support"
                             className="rounded-md p-1 text-neutral-300 transition hover:bg-neutral-800 hover:text-white"
                         >
@@ -49,10 +50,10 @@ export default function ProductActivationSupport() {
 
                         <div>
                             <h1 className="text-xl font-bold sm:text-2xl">
-                                Product Activation
+                                Product Delivery
                             </h1>
                             <p className="mt-1 text-sm text-neutral-400">
-                                Choose the problem you need help with.
+                                Choose the delivery issue you need help with.
                             </p>
                         </div>
                     </div>
@@ -96,15 +97,15 @@ export default function ProductActivationSupport() {
                     </h2>
 
                     <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-neutral-400">
-                        If these suggestions don't resolve your issue, raise a ticket
-                        and our support team will help you.
+                        If your product hasn't arrived, our support team can help
+                        investigate your order.
                     </p>
 
                     <Link
                         href="/account/tickets"
-                        className="mt-5 inline-flex items-center gap-2 rounded-md bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#161616]"
+                        className="mt-5 inline-flex items-center gap-2 rounded-md bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
                     >
-                        <Gamepad2 size={17} />
+                        <PackageCheck size={17} />
                         Create a Ticket
                     </Link>
                 </section>

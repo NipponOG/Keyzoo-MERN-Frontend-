@@ -15,22 +15,46 @@ const OptimizedImage = ({
     blur = true,
     ...props
 }) => {
+
     const [loaded, setLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
-    const imageUrl = getStrapiMedia(src, {
-        width,
-        quality,
-    });
+    // const imageUrl = getStrapiMedia(src, {
+    //     width,
+    //     quality,
+    // });
 
-    const blurUrl = blur
-        ? getStrapiMedia(src, {
-            blur: true,
-        })
-        : "";
+    // const blurUrl = blur
+    //     ? getStrapiMedia(src, {
+    //         blur: true,
+    //     })
+    //     : "";
 
-    if (!imageUrl) {
-        return null;
-    }
+
+    const fallbackImage = "/keyzoo-fallback.png";
+
+    const rawImageUrl =
+        typeof src === "string"
+            ? src
+            : src?.url || "";
+
+    const imageUrl =
+        imageError || !rawImageUrl
+            ? fallbackImage
+            : getStrapiMedia(rawImageUrl, {
+                width,
+                quality,
+            });
+
+
+    const blurUrl =
+        blur && !imageError && rawImageUrl
+            ? getStrapiMedia(rawImageUrl, { blur: true })
+            : fallbackImage;
+
+
+    const finalImageUrl = imageUrl || "/keyzoo-fallback.png";
+
 
     return (
         <div
@@ -51,7 +75,7 @@ const OptimizedImage = ({
                     sizes={sizes}
                     aria-hidden="true"
                     className={`
-                        object-cover
+                        object-center
                         scale-110
                         blur-xl
                         transition-opacity
@@ -61,12 +85,16 @@ const OptimizedImage = ({
                             : "opacity-100"
                         }
                     `}
+                    // style={{
+                    //     filter: "blur(20px)",
+                    //     transform: "scale(1.1)",
+                    // }}
                 />
             )}
 
             {/* Real image */}
             <Image
-                src={imageUrl}
+                src={finalImageUrl}
                 alt={alt}
                 fill={fill}
                 width={!fill ? width : undefined}
@@ -74,7 +102,17 @@ const OptimizedImage = ({
                 sizes={sizes}
                 priority={priority}
                 quality={quality}
-                onLoad={() => setLoaded(true)}
+
+                onLoad={() => {
+                    setLoaded(true);
+                }}
+
+                onError={() => {
+                    if (!imageError) {
+                        setImageError(true);
+                        setLoaded(false);
+                    }
+                }}
                 className={`
                     relative
                     transition-all

@@ -92,7 +92,7 @@ const FullScreenSlider = () => {
         className="w-full h-full"
       >
         {banners.map((banner) => {
-          const imageUrl = `${process.env.NEXT_PUBLIC_STRAPI_IMAGE_URL}${banner.image?.url}`;
+          const imageUrl = getStrapiMedia(banner.image);
 
           return (
             <SwiperSlide key={banner.id}>

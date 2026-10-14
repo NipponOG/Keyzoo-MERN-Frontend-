@@ -1,49 +1,47 @@
+
 import Link from "next/link";
 import {
     ArrowLeft,
-    ExternalLink,
     TicketCheck,
 } from "lucide-react";
 
 const HELP_STEPS = [
     {
-        title: "Check your payment details",
+        title: "Copy the complete product key",
         description:
-            "Make sure your payment information is correct and that your payment method is valid.",
+            "Return to your Keyzoo order and copy the entire key. Make sure no characters are missing and avoid accidentally copying spaces before or after it.",
     },
     {
-        title: "Check your bank or payment app",
+        title: "Check similar characters",
         description:
-            "Look for a payment confirmation or failure message. Your bank or payment provider may provide more information about a declined transaction.",
+            "Carefully check characters that can look alike, such as 0 and O or 1 and I. If possible, copy and paste the key instead of typing it manually.",
     },
     {
-        title: "Check your order status",
+        title: "Use the correct redemption page",
         description:
-            "Visit your Keyzoo order history to see whether an order was created. Avoid placing another order until you've checked the status of your existing attempt.",
-        href: "/account/orders",
-        linkText: "Go to My Orders",
+            "Make sure you enter the key on the activation platform specified in your product details. A key intended for one platform may not work on another.",
     },
     {
-        title: "Check for a pending transaction",
+        title: "Check the region and product edition",
         description:
-            "If money appears to have been deducted but your order wasn't completed, check whether the transaction is pending. Keep the transaction reference for support if needed.",
+            "Confirm that the key matches your region and the correct game or product edition. Region restrictions and edition mismatches can prevent redemption.",
     },
     {
-        title: "Try again carefully",
+        title: "Keep the exact error message",
         description:
-            "If the payment clearly failed and no order was created, you can try again using an available payment method. Avoid repeated attempts while a previous transaction is unresolved.",
+            "If the key is still rejected, note the full error message and the platform where you tried to redeem it. This information can help our team investigate.",
     },
 ];
 
-export default function PaymentFailedSupport() {
+export default function ProductKeyNotWorkingSupport() {
     return (
-        <main className="min-h-[70vh] bg-[#0b0b0b] px-4 py-12 text-white sm:py-16">
+        <main className="min-h-[70vh] px-4 py-12 text-white sm:py-16">
             <div className="mx-auto max-w-3xl">
                 <section className="rounded-xl border border-neutral-800 bg-[#161616] p-5 sm:p-7">
                     <div className="mb-6 flex items-start gap-3">
                         <Link
-                            href="/support/payments-and-refunds"
-                            aria-label="Back to Payments and Refunds"
+                            href="/support/articles/product-activation"
+                            aria-label="Back to Product Activation"
                             className="mt-0.5 rounded-md p-1 text-neutral-300 transition hover:bg-neutral-800 hover:text-white"
                         >
                             <ArrowLeft size={23} />
@@ -51,10 +49,10 @@ export default function PaymentFailedSupport() {
 
                         <div>
                             <h1 className="text-xl font-bold sm:text-2xl">
-                                My payment failed
+                                Did you copy the Product correctly?
                             </h1>
                             <p className="mt-1 text-sm text-neutral-400">
-                                Follow these steps to check what happened with your payment.
+                                Check these common causes before trying to redeem your key again.
                             </p>
                         </div>
                     </div>
@@ -74,20 +72,9 @@ export default function PaymentFailedSupport() {
                                         <h2 className="text-sm font-semibold sm:text-base">
                                             {step.title}
                                         </h2>
-
                                         <p className="mt-1 text-sm leading-6 text-neutral-400">
                                             {step.description}
                                         </p>
-
-                                        {step.href && (
-                                            <Link
-                                                href={step.href}
-                                                className="mt-3 inline-flex items-center gap-2 rounded-md bg-neutral-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-neutral-600"
-                                            >
-                                                {step.linkText}
-                                                <ExternalLink size={15} />
-                                            </Link>
-                                        )}
                                     </div>
                                 </div>
                             </article>
@@ -105,9 +92,8 @@ export default function PaymentFailedSupport() {
                     </h2>
 
                     <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-neutral-400">
-                        If your payment issue remains unresolved, visit your support
-                        tickets for the available support options. Keep your transaction
-                        reference and order details ready.
+                        If your product key is still rejected, create a ticket with the
+                        exact error message and the platform you used.
                     </p>
 
                     <Link
@@ -115,7 +101,7 @@ export default function PaymentFailedSupport() {
                         className="mt-5 inline-flex items-center gap-2 rounded-md bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
                     >
                         <TicketCheck size={17} />
-                        Go to Support Tickets
+                        Create a Ticket
                     </Link>
                 </section>
             </div>

@@ -2,49 +2,50 @@
 import Link from "next/link";
 import {
     ArrowLeft,
+    BookOpen,
     ExternalLink,
     TicketCheck,
 } from "lucide-react";
 
 const HELP_STEPS = [
     {
-        title: "Check your order status",
+        title: "Have you checked your purchased products?",
         description:
-            "Open your Keyzoo order history and check the latest status. If your order is still processing, it may not be ready for delivery yet.",
-        href: "/account/orders",
+            "Your purchased products should be available in your account after the order is completed.",
+        link: "/account/orders",
         linkText: "Go to My Orders",
     },
     {
-        title: "Confirm your payment status",
+        title: "Is your purchase a pre-order?",
         description:
-            "Make sure your payment was completed successfully. Pending payments or payment verification may delay order processing.",
+            "If you purchased a pre-order, the product may only become available when its release conditions are met. Check the product details for release information.",
     },
     {
-        title: "Check your email",
+        title: "Did you check your email?",
         description:
-            "Look for order updates in your inbox, including spam and junk folders. We may contact you if additional information is needed.",
+            "Check the inbox and spam folder of the email address you used during checkout for your order confirmation and delivery details.",
     },
     {
-        title: "Avoid placing duplicate orders",
+        title: "Are you using the correct account?",
         description:
-            "If you have already completed checkout, check the existing order before purchasing the same product again.",
+            "Make sure you're signed in to the Keyzoo account associated with your purchase.",
     },
     {
-        title: "Contact support if the delay continues",
+        title: "Still can't find your product?",
         description:
-            "If your order remains processing longer than expected, provide your order number and payment confirmation so our team can investigate.",
+            "If your payment was successful but the product is still missing, contact our support team so we can investigate your order.",
     },
 ];
 
-export default function OrderProcessingSupport() {
+export default function CannotFindProductSupport() {
     return (
-        <main className="min-h-[70vh] bg-[#0b0b0b] px-4 py-12 text-white sm:py-16">
+        <main className="min-h-[70vh] px-4 py-12 text-white sm:py-16">
             <div className="mx-auto max-w-3xl">
                 <section className="rounded-xl border border-neutral-800 bg-[#161616] p-5 sm:p-7">
                     <div className="mb-6 flex items-start gap-3">
                         <Link
-                            href="/support/product-delivery"
-                            aria-label="Back to Product Delivery"
+                            href="/support/articles/product-activation"
+                            aria-label="Back to Product Activation"
                             className="mt-0.5 rounded-md p-1 text-neutral-300 transition hover:bg-neutral-800 hover:text-white"
                         >
                             <ArrowLeft size={23} />
@@ -52,10 +53,10 @@ export default function OrderProcessingSupport() {
 
                         <div>
                             <h1 className="text-xl font-bold sm:text-2xl">
-                                My order is still processing
+                                I cannot find the Product
                             </h1>
                             <p className="mt-1 text-sm text-neutral-400">
-                                Here's what to check when your order hasn't completed yet.
+                                The payment was successful, but you can't find your product.
                             </p>
                         </div>
                     </div>
@@ -80,9 +81,9 @@ export default function OrderProcessingSupport() {
                                             {step.description}
                                         </p>
 
-                                        {step.href && (
+                                        {step.link && (
                                             <Link
-                                                href={step.href}
+                                                href={step.link}
                                                 className="mt-3 inline-flex items-center gap-2 rounded-md bg-neutral-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-neutral-600"
                                             >
                                                 {step.linkText}
@@ -106,15 +107,15 @@ export default function OrderProcessingSupport() {
                     </h2>
 
                     <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-neutral-400">
-                        If your order is still processing after you've checked these
-                        details, our support team can help investigate.
+                        If you've followed these steps and still can't find your product,
+                        create a support ticket so our team can investigate.
                     </p>
 
                     <Link
                         href="/account/tickets"
                         className="mt-5 inline-flex items-center gap-2 rounded-md bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
                     >
-                        <TicketCheck size={17} />
+                        <BookOpen size={17} />
                         Create a Ticket
                     </Link>
                 </section>

@@ -31,7 +31,7 @@ export default function OtherSupport() {
             <div className="mx-auto max-w-3xl">
                 <div className="mb-6">
                     <Link
-                        href="/support"
+                        href="/support/articles"
                         className="inline-flex items-center gap-2 text-sm text-neutral-400 transition hover:text-white"
                     >
                         <ArrowLeft size={17} />
