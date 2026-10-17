@@ -39,9 +39,9 @@ export default function index() {
   // FILTER OPTIONS
   const [platforms, setPlatforms] = useState([]);
   const [regions, setRegions] = useState([]);
-
   const [productTypes, setProductTypes] = useState([]);
   const [worksOn, setWorksOn] = useState([]);
+  const [filterCounts, setFilterCounts] = useState({});
 
   const [selectedProductTypes, setSelectedProductTypes] = useState([]);
   const [selectedWorksOn, setSelectedWorksOn] = useState([]);
@@ -126,6 +126,51 @@ export default function index() {
   useEffect(() => {
     let cancelled = false;
 
+    async function getFilterItems() {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+        if (!apiUrl) {
+          throw new Error("NEXT_PUBLIC_API_URL is not configured");
+        }
+
+        const response = await fetch(
+          `${apiUrl.replace(/\/$/, "")}/store/filter-options`
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.message || "Failed to fetch filter items"
+          );
+        }
+
+        if (cancelled) return;
+
+        setPlatforms(result.data.platforms || []);
+        setRegions(result.data.regions || []);
+        setProductTypes(result.data.productTypes || []);
+        setWorksOn(result.data.worksOn || []);
+        setFilterCounts(result.data.counts || {});
+
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to fetch filter items:", error);
+        }
+      }
+    }
+
+    getFilterItems();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
     async function getData() {
       setLoading(true);
 
@@ -172,21 +217,22 @@ export default function index() {
           )
         );
 
-        setPlatforms([
-          ...new Set(merged.map((item) => item.platform).filter(Boolean)),
-        ]);
+        // setPlatforms([
+        //   ...new Set(filterItems.map((item) => item.platform).filter(Boolean)),
+        // ]);
 
-        setRegions([
-          ...new Set(merged.map((item) => item.card_region).filter(Boolean)),
-        ]);
+        // setRegions([
+        //   ...new Set(filterItems.map((item) => item.card_region).filter(Boolean)),
+        // ]);
 
-        setProductTypes([
-          ...new Set(merged.map((item) => item.item_type).filter(Boolean)),
-        ]);
+        // setProductTypes([
+        //   ...new Set(filterItems.map((item) => item.item_type).filter(Boolean)),
+        // ]);
 
-        setWorksOn([
-          ...new Set(merged.map((item) => item.work_platform).filter(Boolean)),
-        ]);
+        // setWorksOn([
+        //   ...new Set(filterItems.map((item) => item.work_platform).filter(Boolean)),
+        // ]);
+
       } catch (error) {
         if (!cancelled) {
           console.error("Failed to fetch store items:", error);
@@ -255,30 +301,34 @@ export default function index() {
     return pages;
   };
 
+  // const getCount = (mapKey, value) => {
+
+  //   return filterItems.filter((x) => {
+
+  //     if (mapKey === "platforms") {
+  //       return x.platform === value;
+  //     }
+
+  //     if (mapKey === "regions") {
+  //       return x.card_region === value;
+  //     }
+
+  //     if (mapKey === "productTypes") {
+  //       return x.item_type === value;
+  //     }
+
+  //     if (mapKey === "worksOn") {
+  //       return x.work_platform === value;
+  //     }
+
+  //     return false;
+
+  //   }).length;
+
+  // };
+
   const getCount = (mapKey, value) => {
-
-    return items.filter((x) => {
-
-      if (mapKey === "platforms") {
-        return x.platform === value;
-      }
-
-      if (mapKey === "regions") {
-        return x.card_region === value;
-      }
-
-      if (mapKey === "productTypes") {
-        return x.item_type === value;
-      }
-
-      if (mapKey === "worksOn") {
-        return x.work_platform === value;
-      }
-
-      return false;
-
-    }).length;
-
+    return filterCounts[mapKey]?.[value] ?? 0;
   };
 
   const getItemHref = (item) => {
