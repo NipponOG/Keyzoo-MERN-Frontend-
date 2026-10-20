@@ -48,6 +48,16 @@ export default function index() {
 
   const [page, setPage] = useState(1);
 
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 600);
+
+    return () => clearTimeout(timeout);
+  }, [search]);
+
   const handleNotify = async () => {
     const user = JSON.parse(localStorage.getItem("user") || "null");
     const token = localStorage.getItem("jwt");
@@ -72,8 +82,8 @@ export default function index() {
   const buildQuery = () => {
     const query = new URLSearchParams();
 
-    if (search.trim()) {
-      query.set("search", search.trim());
+    if (debouncedSearch.trim()) {
+      query.set("search", debouncedSearch.trim());
     }
 
     if (selectedPlatforms.length) {
@@ -253,7 +263,7 @@ export default function index() {
       cancelled = true;
     };
   }, [
-    search,
+    debouncedSearch,
     selectedPlatforms,
     selectedRegions,
     selectedProductTypes,
@@ -357,8 +367,8 @@ export default function index() {
     const query = {};
 
     // 🔍 SEARCH
-    if (search) {
-      query.search = search;
+    if (debouncedSearch) {
+      query.search = debouncedSearch;
     }
 
     // 🎮 PLATFORM
@@ -410,7 +420,7 @@ export default function index() {
     );
 
   }, [
-    search,
+    debouncedSearch,
     selectedPlatforms,
     selectedRegions,
     selectedProductTypes,
@@ -899,11 +909,18 @@ export default function index() {
   function FilterSection({ title, items = [], selected = [], onChange, mapKey }) {
 
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+    useEffect(() => {
+      const timeout = setTimeout(() => {
+        setDebouncedSearch(search);
+      }, 600);
+
+      return () => clearTimeout(timeout);
+    }, [search]);
     const [open, setOpen] = useState(true);
 
-    // const filteredItems = items.filter((item) =>
-    //   String(item).toLowerCase().includes(search.toLowerCase())
-    // );
+
 
     const filteredItems = (items || []).filter((item) =>
       String(item).toLowerCase().includes(search.toLowerCase())
