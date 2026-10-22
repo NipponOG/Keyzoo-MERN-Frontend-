@@ -38,11 +38,13 @@ export async function getServerSideProps({ params }) {
     const { slug } = params;
 
     try {
+        
         const res = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL}/gift-cards/${encodeURIComponent(slug)}`
         );
 
         if (!res.ok) {
+
             if (res.status === 404) {
                 return { notFound: true };
             }
@@ -59,10 +61,12 @@ export async function getServerSideProps({ params }) {
                 product: result?.data || null,
             },
         };
-    } catch (error) {
-        console.error('Steam gift card page API error:', error);
 
+    } catch (error) {
+
+        console.error('Steam gift card page API error:', error);
         return { notFound: true };
+
     }
 }
 
@@ -189,7 +193,7 @@ export default function ProductPage({ product, variations }) {
 
     if (!product) return null;
 
-    const imgUrl = product.image || "";
+    const imgUrl = product.image || "https://ucarecdn.com/bf23af89-1cea-415c-8046-053a2b6fb0dd/-/smart_resize/440x650/";
     const age = product.age?.url || "";
     const platform_icon_svg = product.platform_icon_image || "";
 
