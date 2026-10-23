@@ -26,25 +26,44 @@ import "swiper/css/navigation"; // ✅ import navigation styles
 import ErrorPage from "next/error";
 import { addRecentlyViewed } from "@/utils/recentlyViewed";
 import { getStrapiMedia } from "@/lib/media";
+import { platformIcons } from "@/lib/platformIcons";
 import HoverCard from "@/components/HoverCard";
+import RegionFlag from '@/components/RegionFlag';
 
 export async function getServerSideProps({ params }) {
     const { slug } = params;
 
-    const productRes = await fetchFromStrapi(
-        `api/gift-cards?filters[slug][$eq]=${slug}&populate=*`
-    );
+    try {
 
-    const regionsRes = await fetchFromStrapi(
-        `api/regions` // 👈 your region collection
-    );
+        const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/gift-cards/${encodeURIComponent(slug)}`
+        );
 
-    return {
-        props: {
-            product: productRes?.data?.[0] || null,
-            regionsData: regionsRes?.data || [],
-        },
-    };
+        if (!res.ok) {
+
+            if (res.status === 404) {
+                return { notFound: true };
+            }
+
+            throw new Error(
+                `Gift Card API request failed with status ${res.status}`
+            );
+        }
+
+        const result = await res.json();
+
+        return {
+            props: {
+                product: result?.data || null,
+            },
+        };
+
+    } catch (error) {
+
+        console.error('Steam gift card page API error:', error);
+        return { notFound: true };
+
+    }
 }
 
 export default function ProductPage({ product, regionsData }) {
@@ -209,9 +228,9 @@ export default function ProductPage({ product, regionsData }) {
         };
     }, []);
 
-    const imgUrl = getStrapiMedia(product.image?.url);
-    const age = getStrapiMedia(product.age?.url);
-    const platform = getStrapiMedia(product.platform_image?.url);
+    const imgUrl = product.image || "https://ucarecdn.com/bf23af89-1cea-415c-8046-053a2b6fb0dd/-/smart_resize/440x650/";
+    const age = product.age?.url || "";
+    const platform_icon_svg = product.platform_icon_image || "";
 
     // const discountPercent = Math.round(
     //   100 - (product.price / product.discountPrice) * 100
@@ -254,325 +273,337 @@ export default function ProductPage({ product, regionsData }) {
 
     return (
         <div className="min-h-screen p-4 lg:p-6">
-            <div className="max-w-[1500px] mx-auto grid grid-cols-1 md:grid-cols-1 lg:grid-cols-[260px_1fr_380px] gap-4 lg:gap-6 xl:gap-8">
-
-
+            <div className="max-w-[1500px] mx-auto grid grid-cols-1 md:grid-cols-1 lg:grid-cols-[240px_1fr_320px] xl:grid-cols-[260px_1fr_360px] 2xl:grid-cols-[260px_1fr_380px] gap-4 lg:gap-6 xl:gap-8">
                 {/* Left: Cover Image - Fixed width for laptop and up */}
-                <div className="w-full md:w-[260px] flex justify-center mx-auto">
-                    <div className="relative w-full md:w-[260px]">
+                {/* Left: Cover Image */}
+                <div className="w-full flex justify-center lg:justify-start">
+
+                    <div
+                        className="
+                  relative
+                  w-full
+                  max-w-[240px]
+                  lg:max-w-[220px]
+                  xl:max-w-[240px]
+                  2xl:max-w-[260px]
+                  flex-shrink-0
+                "
+                    >
+
                         <Image
-                            // src="http://localhost:1337/uploads/2f398399_fe1a_4364_8943_56f1ccb5b735_8df12031c6.webp"
                             src={imgUrl}
                             width={260}
-                            height={260}
+                            height={360}
                             alt={product.title}
-                            className="rounded-lg w-full h-auto"
-                            layout="responsive"
+                            className="rounded-xl w-full h-auto"
+                            priority
                         />
 
-                        {/* this is for sold or not sold for this */}
-                        {/* <span className="absolute bottom-15 right-2 bg-black/80 text-white text-[15px] px-2 py-0.5 rounded-lg uppercase"> */}
-                        {product.stock_stetus && (<span className="absolute top-2 right-2 bg-black/80 text-white text-[15px] px-2 py-0.5 rounded-lg capitalize">
-                            {product.stock_stetus}
-                        </span>)}
+                        {product.stock_stetus && (
+                            <span className="absolute top-2 right-2 bg-black/80 text-white text-sm px-2 py-1 rounded-lg capitalize">
+                                {product.stockk_stetus}
+                            </span>
+                        )}
+
                     </div>
+
                 </div>
 
                 {/* Middle: Game Info - Flex column */}
-                <div className="flex flex-col gap-2 mx-auto xl:mx-0">   {/* mx-auto is the problem we need to fix it leater */}
-                    <h1 className="text-lg lg:text-xl font-semibold dark:text-white text-justify tracking-tighter">
+                <div className="flex flex-col gap-2 w-full min-w-0 xl:mx-0">
+                    {" "}
+                    {/* mx-auto is the problem we need to fix it leater */}
+                    <h1
+                        title={product.title}
+                        className="text-lg lg:text-[18px] xl:text-[20px] font-bold leading-tight line-clamp-2 break-words">
                         {product.title}
                     </h1>
-
                     {/* Tags + Ratings */}
-                    <div className="flex flex-wrap items-center gap-2 text-sm mt-2.5">
-                        <span className="bg-[#107C10] px-2.5 py-1 rounded font-medium text-white">{product.item_type}</span>
-                        <span className="bg-[#2a2a2a] px-2.5 py-1 rounded font-medium text-white">{product.item}</span>
+                    <div className="flex flex-wrap items-center gap-3 mt-2">
+                        <span className="bg-[#5539cc] px-3 py-1 text-xs rounded-full font-medium text-white uppercase">
+                            {product.item_type}
+                        </span>
+                        <span className="bg-[#2a2a2a] px-3 py-1 text-xs rounded-full  font-medium text-white uppercase">
+                            {product.item}
+                        </span>
                         <div className="flex items-center gap-2 text-yellow-400 ml-0 sm:ml-2">
-                            <span className="w-[1px] h-[30px] bg-[#ffffff1a]"></span>
-                            <span className="flex items-center">
+                            {/* <span className="w-[1px] h-[30px] bg-[#ffffff1a]"></span> */}
+                            <span className="flex items-center justify-between">
                                 <IoStarSharp className="text-xl" />
                                 <IoStarSharp className="text-xl" />
                                 <IoStarSharp className="text-xl" />
                                 <IoStarSharp className="text-xl" />
-                                {/* <IoStarHalfSharp className="text-xl" /> */}
+                                <IoStarHalfSharp className="text-xl" />
                                 {/* <IoMdStar className="text-2xl"/>
-                                    <IoMdStar className="text-2xl"/>
-                                    <IoMdStar className="text-2xl"/>
-                                    <IoMdStar className="text-2xl"/> 
-                                */}
+                              <IoMdStar className="text-2xl"/>
+                              <IoMdStar className="text-2xl"/>
+                              <IoMdStar className="text-2xl"/> */}
                             </span>
-                            <span className="text-white">69 Ratings</span>
+                            <span className="text-white">{product.rating} Ratings</span>
                             {/* ⭐⭐⭐⭐⭐ <span className="text-white">69 Ratings</span> */}
                         </div>
                     </div>
 
+                    {/* this is a devider for visual balance */}
+                    <div className="border-t border-neutral-800 mt-4"></div>
+
                     {/* Feature Grid - 2 columns on laptop */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4 mt-4 lg:mt-6">
-                        {/* India Activation */}
-                        <div className="flex items-start gap-3">
-                            {/* <div className="bg-white dark:bg-[#1a1a1a] p-3 rounded-xl text-white"> */}
-                            <div className="h-[56px] w-[56px] border border-[#e7e7e7] bg-white dark:bg-amber-500 rounded-xl flex items-center justify-center">
-                                {/* <SlCheck className="text-xl text-[#1cc54c]" /> */}
-                                <svg className="w-[32px] h-[32px] text-blue-500 fill-current">
-                                    <use xlinkHref="/sprit/icons.svg#green-tick"></use>
-                                </svg>
-                            </div>
-                            <div>
-                                <p className="text-xs lg:text-sm">
-                                    Can be activated in <strong>{product.region}</strong>
-                                </p>
-                                <a href="#" className="text-[#359dff] text-xs">Check Restrictions</a>
-                            </div>
-                        </div>
+                    <div className="bg-[#171717] border border-white/10 rounded-2xl p-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-                        {/* Region */}
-                        <div className="flex items-start gap-3">
-                            {/* <div className="bg-white dark:bg-[#1a1a1a] p-3 rounded-xl text-white"> */}
-                            <div className="h-[56px] w-[56px] border border-[#e7e7e7] bg-white dark:bg-[#1a1a1a] rounded-xl flex items-center justify-center">
-                                {/* <FaGlobeAmericas className="text-xl text-[#359dff]" /> */}
-                                <Image src={'/glob.svg'} height={26} width={26} />
-                            </div>
-                            <div>
-                                <p className="text-xs lg:text-sm">
-                                    Region: <strong>{product.region}</strong>
-                                </p>
-                                <a href="#" className="text-[#359dff] text-xs">Check Region</a>
-                            </div>
-                        </div>
-
-                        {/* Platform */}
-                        <div className="flex items-start gap-3">
-                            {/* <div className="bg-[#2a2a2a] dark:bg-[#1a1a1a] p-3 rounded-xl text-white"> */}
-                            <div className="h-[56px] w-[56px] border border-[#e7e7e7] bg-white dark:bg-[#1a1a1a] rounded-xl flex items-center justify-center">
-                                {/* <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 32 32" fill="none">
-                                    <rect width="32" height="32" rx="8" fill="#FAA41A" />
-                                    <path d="M25.8815 18.6765H22.0481L21.4404 14.8549L19.1939 18.6497H18.7739C18.5188 18.2104 18.4179 17.5673 18.4179 17.1735C18.4179 16.5206 18.4648 15.8841 18.4648 15.0556C18.4648 13.9568 18.1418 13.367 17.28 13.1598V13.1273C19.1131 12.8724 19.9444 11.6595 19.9444 9.95193C19.9444 7.52591 18.3306 7 16.2156 7H10.525L8.12012 18.3882H11.1442L12.0193 14.2444H14.0294C15.1019 14.2444 15.5402 14.7691 15.5402 15.7732C15.5402 16.537 15.4606 17.1417 15.4606 17.7298C15.4606 17.9477 15.51 18.4535 15.6568 18.6497C15.6553 18.6497 17.8426 20.9562 17.8426 20.9562L15.9622 25L19.9844 22.6102L22.9816 24.9127L22.4221 21.0977L25.8815 18.6765ZM14.9332 12.1124H12.5296L13.1054 9.36687H15.3417C16.1379 9.36687 16.9661 9.57399 16.9661 10.5484C16.9661 11.7766 16.0228 12.1124 14.9332 12.1124Z" fill="black" />
-                                    <path d="M20.0264 21.9386L17.225 23.6018L18.5072 20.848L16.948 19.2058H19.512L21.1338 16.4658L21.573 19.233H24.1166L21.8235 20.8376L22.2332 23.6353L20.0264 21.9386Z" fill="white" />
-                                </svg> */}
-                                <Image src={platform} height={36} width={36} />
-                            </div>
-                            <div>
-                                <p className="text-xs lg:text-sm">
-                                    Platform: <strong>{product.workPlatform}</strong>
-                                </p>
-                                <a href="#" className="text-[#359dff] text-xs">Activation Guide</a>
-                            </div>
-                        </div>
-
-                        {/* Operating System */}
-                        <div className="flex items-start gap-3">
-                            <div className="h-[56px] w-[56px] border border-[#e7e7e7] bg-white dark:bg-[#1a1a1a] rounded-xl flex items-center justify-center">
-                                {/* <LuLaptopMinimalCheck className="text-xl text-[#359dff]" /> */}
-                                <Image src={'/system.svg'} height={26} width={26} />
-                            </div>
-                            <div>
-                                <p className="text-xs lg:text-sm">
-                                    Works on: <strong>{product.workPlatform}</strong>
-                                </p>
-                                <a href="#" className="text-[#359dff] text-xs">System Requirements</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="border-t border-neutral-800 mt-3 lg:mt-4"></div>
-
-                    <div className="flex items-center gap-4 mt-4">
-                        <span className="text-sm text-gray-400">
-                            Region
-                        </span>
-                        <div ref={dropdownRef} className="relative w-[340px]">
-
-                            {/* Trigger */}
-                            <button
-                                onClick={() => setRegionOpen(!regionOpen)}
-                                className="w-full bg-[#1a1a1a] border border-[#2e2e2e] text-white px-4 py-2 rounded-lg flex items-center justify-between h-[25px] lg:h-[50px]"
-                            >
-                                <span className="text-sm">
-                                    {selectedRegion || "Select Region"}
-                                </span>
-
-                                <svg
-                                    className={`w-4 h-4 transition-transform ${regionOpen ? "rotate-180" : ""}`}
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2.5"
-                                >
-                                    <path d="M6 9l6 6 6-6" />
-                                </svg>
-                            </button>
-
-                            {/* Dropdown */}
-                            {regionOpen && (
-                                <div className="absolute z-50 mt-2 w-full bg-[#2a2a2a] rounded-xl shadow-2xl border border-white/10">
-
-                                    {/* Search */}
-                                    <div className="p-3 border-b border-white/10">
-                                        <input
-                                            autoFocus
-                                            value={search}
-                                            onChange={(e) => setSearch(e.target.value)}
-                                            placeholder="Search region..."
-                                            className="w-full bg-[#1f1f1f] text-white text-sm px-3 py-2 rounded-md outline-none"
-                                        />
-                                    </div>
-
-                                    {/* Options */}
-                                    <div className="max-h-[220px] overflow-y-auto no-scrollbar">
-                                        {filteredRegions.length > 0 ? (
-                                            filteredRegions.map((region) => (
-                                                <button
-                                                    key={region}
-                                                    onClick={() => {
-                                                        handleRegionChange(region);
-                                                        setSearch("");
-                                                    }}
-                                                    className={`w-full text-left px-4 py-3 text-sm transition
-                  ${selectedRegion === region
-                                                            ? "bg-[#3a3a3a] text-white"
-                                                            : "text-white/90 hover:bg-[#3a3a3a]"
-                                                        }
-                `}
-                                                >
-                                                    {region}
-                                                    {/* {selectedRegion === region && (
-                            <span className="text-green-400">✓</span>
-                          )} */}
-                                                </button>
-                                            ))
-                                        ) : (
-                                            <div className="px-4 py-3 text-sm text-white/50">
-                                                No region found
-                                            </div>
-                                        )}
-                                    </div>
-
+                            {/* India Activation */}
+                            <div className="flex items-start gap-3 w-full">
+                                <div className="flex-shrink-0 h-[48px] w-[48px] border border-white/10 bg-white/5 dark:bg-[#1a1a1a] rounded-xl flex items-center justify-center">
+                                    {/* <SlCheck className="text-xl text-[#1cc54c]" /> */}
+                                    <svg className="w-[32px] h-[32px] text-blue-500 fill-current">
+                                        <use xlinkHref="/sprit/icons.svg#green-tick"></use>
+                                    </svg>
                                 </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="border-t border-neutral-800 mt-3 lg:mt-4"></div>
-
-                    {product.var_title && (<div className="mt-4 lg:mt-6">
-                        <h3 className="text-xs lg:text-sm text-white/60 mb-2">Edition:</h3>
-
-                        {/* <div className="flex flex-col sm:flex-row gap-3"> */}
-                        <div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 items-stretch justify-items-center">
-                                {/* Option 1 */}
-                                {visibleEditions?.map((edition) => {
-
-                                    const isAvailable = edition.Available; // or whatever field indicates availability
-
-                                    return (
-                                        <label key={edition.slug} className={`w-full cursor-pointer select-none ${isAvailable ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}>
-                                            <input
-                                                type="radio"
-                                                name="edition"
-                                                value={edition.slug}
-                                                className="peer sr-only"
-                                                // checked={router.query.slug === product.slug}
-                                                // onChange={() => router.push(`/gift-card/${product.slug}`)}
-                                                checked={selectedSlug === edition.slug}
-                                                disabled={!isAvailable}
-                                                onChange={() => {
-
-                                                    if (!isAvailable) return;
-                                                    if (edition.slug === selectedSlug) return;
-
-                                                    const matched = allVariants.find(
-                                                        (p) =>
-                                                            p.var_title === edition.var_title &&
-                                                            p.region?.toLowerCase() === selectedRegion?.toLowerCase()
-                                                    );
-
-                                                    if (!matched) {
-                                                        toast("This combination is not available");
-                                                        return;
-                                                    }
-
-                                                    router.push(`/store/category/gift-card/xbox/${matched.slug}`);
-                                                }}
-                                            />
-
-                                            <div className={`p-3 rounded-xl border bg-[#1a1a1a] transition-all flex flex-col justify-between min-h-[90px]
-                      ${!isAvailable
-                                                    ? "border-gray-700 bg-[#111] text-white/40"
-                                                    : selectedSlug === edition.slug
-                                                        ? "border-purple-500 ring-2 ring-purple-500/40 scale-[1.02]"
-                                                        : "border-[#2e2e2e] hover:border-purple-400"
-                                                }`}>  {/* className="p-3 rounded-xl border border-[#2e2e2e] bg-[#1a1a1a] peer-checked:border-purple-500" */}
-
-                                                <div className="flex items-start justify-between">
-                                                    <span className="text-sm font-semibold text-white line-clamp-2 leading-tight">
-                                                        {edition.var_title}
-
-                                                        {selectedSlug === edition.slug && isAvailable && (
-                                                            <span className="text-green-400 text-xs"> (Current)</span>
-                                                        )}
-
-                                                        {!isAvailable && (
-                                                            <span className="text-red-400 text-xs">(Out of stock)</span>
-                                                        )}
-                                                    </span> {/* <div className="w-4 h-4 rounded-full border-2 border-white/60 peer-checked:border-purple-500"></div> */}
-                                                </div>
-
-                                                <div className="mt-1 text-xs text-white/50 h-[16px]">
-                                                    {isAvailable ? (
-                                                        <>from {symbol}{edition.discountPrice}</>
-                                                    ) : (
-                                                        "Unavailable"
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </label>
-                                    );
-                                })}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium leading-5">
+                                        Can be activated in <strong>{product.region}</strong>
+                                    </p>
+                                    <a className="text-xs text-[#359dff] mt-1 inline-block">
+                                        Check Restrictions
+                                    </a>
+                                </div>
                             </div>
-                            {/* BUTTON */}
-                            {uniqueEditions.length > 5 && !expanded && (
-                                <div className="flex justify-center mt-4">
-                                    <button
-                                        onClick={() => setExpanded(true)}
-                                        className="flex items-center gap-2 bg-[#2a2a2a] hover:bg-[#333] text-white px-4 py-2 rounded-full text-sm transition-all duration-300 hover:scale-105 active:scale-95"
-                                    >
-                                        See all
 
+                            {/* Region */}
+                            <div className="flex items-start gap-3 w-full">
+                                <div className="flex-shrink-0 h-[48px] w-[48px] border border-white/10 bg-white/5 dark:bg-[#1a1a1a] rounded-xl flex items-center justify-center">
+                                    {/* <FaGlobeAmericas className="text-xl text-[#359dff]" /> */}
+                                    <svg className="w-[32px] h-[32px] text-blue-500 fill-current">
+                                        <use xlinkHref="/sprit/icons.svg#blue-globe"></use>
+                                    </svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium leading-5">
+                                        Region: <strong>{product.region}</strong>
+                                    </p>
+                                    <a className="text-xs text-[#359dff] mt-1 inline-block">
+                                        Check Region
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Platform */}
+                            <div className="flex items-start gap-3 w-full">
+                                <div className="flex-shrink-0 h-[48px] w-[48px] border border-white/10 bg-white/5 dark:bg-[#1a1a1a] rounded-xl flex items-center justify-center">
+                                    {/* <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+                                <rect width="32" height="32" rx="8" fill="#FAA41A" />
+                                <path d="M25.8815 18.6765H22.0481L21.4404 14.8549L19.1939 18.6497H18.7739C18.5188 18.2104 18.4179 17.5673 18.4179 17.1735C18.4179 16.5206 18.4648 15.8841 18.4648 15.0556C18.4648 13.9568 18.1418 13.367 17.28 13.1598V13.1273C19.1131 12.8724 19.9444 11.6595 19.9444 9.95193C19.9444 7.52591 18.3306 7 16.2156 7H10.525L8.12012 18.3882H11.1442L12.0193 14.2444H14.0294C15.1019 14.2444 15.5402 14.7691 15.5402 15.7732C15.5402 16.537 15.4606 17.1417 15.4606 17.7298C15.4606 17.9477 15.51 18.4535 15.6568 18.6497C15.6553 18.6497 17.8426 20.9562 17.8426 20.9562L15.9622 25L19.9844 22.6102L22.9816 24.9127L22.4221 21.0977L25.8815 18.6765ZM14.9332 12.1124H12.5296L13.1054 9.36687H15.3417C16.1379 9.36687 16.9661 9.57399 16.9661 10.5484C16.9661 11.7766 16.0228 12.1124 14.9332 12.1124Z" fill="black" />
+                                <path d="M20.0264 21.9386L17.225 23.6018L18.5072 20.848L16.948 19.2058H19.512L21.1338 16.4658L21.573 19.233H24.1166L21.8235 20.8376L22.2332 23.6353L20.0264 21.9386Z" fill="white" />
+                              </svg> */}
+                                    {platformIcons[product.platformIcons] ? (
                                         <svg
-                                            className="w-4 h-4"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            viewBox="0 0 24 24"
+                                            className="w-[32px] h-[32px] text-blue-500 fill-current"
+                                            xmlns="http://www.w3.org/2000/svg"
                                         >
-                                            <path d="M19 9l-7 7-7-7" />
+                                            <use href={platformIcons[product.platformIcons]} />
                                         </svg>
-                                    </button>
+                                    ) : (
+                                        // <svg
+                                        //   className="w-[32px] h-[32px] text-gray-400 fill-current"
+                                        //   xmlns="http://www.w3.org/2000/svg"
+                                        // >
+                                        //   <use href="/sprit/icons.svg#unknown" />
+                                        // </svg>
+                                        <Image
+                                            src={platform_icon_svg}
+                                            alt="Platform Icon"
+                                            width={40}
+                                            height={40}
+                                        />
+                                    )}
                                 </div>
-                            )}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium leading-5">
+                                        Platform: <strong className="capitalize">{product.platform}</strong>
+                                    </p>
+                                    <a className="text-xs text-[#359dff] mt-1 inline-block">
+                                        Activation Guide
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Operating System */}
+                            <div className="flex items-start gap-3 w-full">
+                                <div className="flex-shrink-0 h-[48px] w-[48px] border border-white/10 bg-white/5 dark:bg-[#1a1a1a] rounded-xl flex items-center justify-center">
+                                    {/* <LuLaptopMinimalCheck className="text-xl text-[#359dff]" /> */}
+                                    <svg className="w-[32px] h-[32px] text-blue-500 fill-current">
+                                        <use xlinkHref="/sprit/icons.svg#screen-check"></use>
+                                    </svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium leading-5">
+                                        Works on: <strong>{product.workPlatform}</strong>
+                                    </p>
+                                    <a className="text-xs text-[#359dff] mt-1 inline-block">
+                                        System Requirements
+                                    </a>
+                                </div>
+                            </div>
+
                         </div>
-                    </div>)}
+                    </div>
+
+                    <div className="border-t border-neutral-800"></div>
+
+                    {/* Region Selector */} {/* i will show it for dekstop only */}
+                    <div className="mt-">
+                        <div className="bg-[#171717] border border-white/10 rounded-2xl p-5 flex items-center gap-5">
+                            <h3 className="text-sm font-semibold text-white mb-4">
+                                Available Region
+                            </h3>
+                            <div ref={dropdownRef} className="relative w-[340px]">
+                                {/* Trigger */}
+                                <button
+                                    onClick={() => setRegionOpen(!regionOpen)}
+                                    // className="w-full bg-[#1a1a1a] border border-[#2e2e2e] text-white px-4 py-2 rounded-lg flex items-center justify-between h-[25px] lg:h-[50px]"
+                                    className="
+            w-full
+            h-[54px]
+            px-5
+            bg-[#111]
+            border
+            border-white/10
+            rounded-xl
+            flex
+            items-center
+            justify-between
+            hover:border-purple-500/40
+            transition-all
+            duration-300
+            "
+                                >
+                                    {/* <div className="flex items-center gap-3">
+            
+                                  <FaGlobeAmericas className="text-[#359dff] text-lg" />
+            
+                                  <span className="font-medium">
+                                    {selectedRegion || "Select Region"}
+                                  </span>
+            
+                                </div> */}
+
+                                    <div className="flex items-center gap-3">
+                                        <RegionFlag region={selectedRegion} />
+                                        <span>{selectedRegion}</span>
+                                    </div>
+
+                                    <svg
+                                        className={`w-4 h-4 transition-transform ${regionOpen ? "rotate-180" : ""}`}
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2.5"
+                                    >
+                                        <path d="M6 9l6 6 6-6" />
+                                    </svg>
+                                </button>
+
+                                {/* Dropdown */}
+                                {regionOpen && (
+                                    <div className="absolute z-50 mt-2 w-full bg-[#171717] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+                                        {/* Search */}
+                                        <div className="p-3 border-b border-white/10">
+                                            <input
+                                                autoFocus
+                                                value={search}
+                                                onChange={(e) => setSearch(e.target.value)}
+                                                placeholder="Search region..."
+                                                className="w-full bg-[#1f1f1f] text-white text-sm px-3 py-2 rounded-md outline-none"
+                                            />
+                                        </div>
+
+                                        {/* Options */}
+                                        <div className="max-h-[220px] overflow-y-auto no-scrollbar">
+                                            {filteredRegions.length > 0 ? (
+                                                filteredRegions.map((region) => (
+                                                    <button
+                                                        key={region}
+                                                        onClick={() => {
+                                                            handleRegionChange(region);
+                                                            setSearch("");
+                                                        }}
+                                                        className={`w-full text-left px-4 py-3 text-sm transition uppercase flex items-center gap-3
+                                ${selectedRegion === region
+                                                                ? "bg-[#6b3bfc] text-white"
+                                                                : "text-white/90 hover:bg-white/5"
+                                                            }
+                              `}
+                                                    ><RegionFlag region={region} />
+                                                        {region}
+                                                        {/* {selectedRegion === region && (
+                                          <span className="text-green-400">✓</span>
+                                        )} */}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <div className="px-4 py-3 text-sm text-white/50">
+                                                    No region found
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* <div className="border-t border-neutral-800 mt-3 lg:mt-4"></div> */}
+
                 </div>
 
                 {/* Right: Pricing Box - Shows on xl screens or as last column on lg */}
                 {/* <div className="w-full md:w-[380px] bg-[#111111] rounded-2xl p-4 space-y-4 text-white"> */}
-                <div className="w-full max-w-md mx-auto bg-gradient-to-br from-[#111] to-[#1a1a1a] p-4 rounded-2xl shadow-lg border border-neutral-800 mt-6 self-start sticky top-6">
+                <div className="w-full lg:max-w-[320px] xl:max-w-[360px] 2xl:max-w-[380px] mx-auto bg-gradient-to-br from-[#111] to-[#1a1a1a] p-4 rounded-2xl shadow-lg border border-neutral-800 mt-6 self-start sticky top-6">
+                    {/* <div className="
+            w-full
+            lg:max-w-[320px]
+            xl:max-w-[360px]
+            2xl:max-w-[380px]
+            mx-auto
+            bg-gradient-to-br
+            from-[#111]
+            to-[#1a1a1a]
+            p-4
+            rounded-2xl
+            shadow-lg
+            border
+            border-neutral-800
+            mt-6
+            lg:mt-12
+            xl:mt-6
+            self-start
+            sticky
+            top-6
+            "> */}
                     {/* Featured Offer */}
                     <div>
-                        <p className="text-xs text-white/70 uppercase font-medium mb-1">Featured Offer</p>
-                        <p className="text-xl lg:text-2xl font-bold">{symbol} {Number(product.discountPrice).toFixed(2)}</p>
+                        <p className="text-xs text-white/70 uppercase font-medium mb-1">
+                            Featured Offer
+                        </p>
+                        <p className="text-xl lg:text-2xl font-bold">
+                            {" "}
+                            {symbol} {Number(product.discountPrice).toFixed(2)}
+                        </p>
                         <div className="flex items-center gap-2 text-xs lg:text-sm text-white/60">
-                            <span className="line-through">{symbol} {Number(product.price).toFixed(2)}</span>
-                            <span className="text-green-400 font-semibold">~ {discountPercent}% off</span>
+                            <span className="line-through">
+                                {symbol} {product.price}
+                            </span>
+                            <span className="text-green-400 font-semibold">
+                                ~ {discountPercent}% off
+                            </span>
                         </div>
                     </div>
 
                     {/* Buy with Plus */}
                     <div className="bg-gradient-to-r from-[#2f1c4d] to-[#1d0e3e] rounded-lg p-3 mt-2.5">
                         <p className="text-xs lg:text-sm text-white/70">
-                            Buy with <span className="text-purple-400 font-semibold">plus</span>
+                            Buy with{" "}
+                            <span className="text-purple-400 font-semibold">Keyzoo</span>
                         </p>
                         <p className="text-lg lg:text-xl font-bold">{product.plusprice}</p>
                     </div>
@@ -583,28 +614,51 @@ export default function ProductPage({ product, regionsData }) {
                     {/* Buttons */}
                     <div className="flex gap-3 mt-4">
                         {/* Cart icon-only button */}
-                        {product.Available ? (<button onClick={handleAddToCart} className="cursor-pointer bg-neutral-800 p-2 lg:p-3 rounded-lg text-white flex items-center justify-center">
-                            <MdOutlineAddShoppingCart className="text-xl lg:text-2xl" />
-                        </button>) :
-                            (<button disabled className="cursor-not-allowed bg-gray-400 p-2 lg:p-3 rounded-lg text-white flex items-center justify-center">
+                        {product.available ? (
+                            <button
+                                onClick={handleAddToCart}
+                                className="cursor-pointer bg-neutral-800 p-2 lg:p-3 rounded-lg text-white flex items-center justify-center"
+                            >
                                 <MdOutlineAddShoppingCart className="text-xl lg:text-2xl" />
-                            </button>)}
+                            </button>
+                        ) : (
+                            <button
+                                disabled
+                                className="select-none cursor-not-allowed bg-gray-400 p-2 lg:p-3 rounded-lg text-white flex items-center justify-center"
+                            >
+                                <MdOutlineAddShoppingCart className="text-xl lg:text-2xl" />
+                            </button>
+                        )}
 
                         {/* Buy Now full-width button */}
-                        {product.Available ? (<button className="cursor-pointer flex items-center justify-center gap-2 bg-[#814DE5] hover:bg-[#6C34D8] transition-colors text-white px-3 lg:px-4 py-2 lg:py-3 rounded-lg w-full font-semibold text-sm lg:text-base">
-                            <RiShoppingBag3Fill className="text-xl lg:text-2xl" />
-                            Buy now
-                        </button>) : (
-                            <button disabled className="cursor-not-allowed flex items-center justify-center gap-2 bg-gray-400 text-white px-3 lg:px-4 py-2 lg:py-3 rounded-lg w-full font-semibold text-sm lg:text-base">
+                        {product.available ? (
+                            <button
+                                onClick={handleBuyNow}
+                                disabled={loading}
+                                className="cursor-pointer flex items-center justify-center gap-2 bg-[#814DE5] hover:bg-[#6C34D8] transition-colors text-white px-3 lg:px-4 py-2 lg:py-3 rounded-lg w-full font-semibold text-sm lg:text-base"
+                            >
                                 <RiShoppingBag3Fill className="text-xl lg:text-2xl" />
-                                Sold Out
-                            </button>)}
+                                {loading ? "Processing..." : "Buy now"}
+                            </button>
+                        ) : (
+                            <button
+                                disabled
+                                className="select-none cursor-not-allowed flex items-center justify-center gap-2 bg-gray-400 text-white px-3 lg:px-4 py-2 lg:py-3 rounded-lg w-full font-semibold text-sm lg:text-base"
+                            >
+                                <RiShoppingBag3Fill className="text-xl lg:text-2xl" />
+                                {loading ? "Processing..." : "Buy now"}
+                            </button>
+                        )}
                     </div>
 
                     {/* Explore Plus */}
-                    <div className="bg-[#1e1e1e] rounded-xl p-3 flex items-center gap-2 mt-5 mb-5">
-                        <div className="border border-purple-600 px-2 py-0.5 rounded text-purple-400 text-xs lg:text-sm font-medium">plus</div>
-                        <p className="text-xs lg:text-sm text-white font-medium">Explore Plus Benefits</p>
+                    <div className="bg-[#1d1d1d] rounded-xl p-3 flex items-center gap-2 mt-5 mb-5">
+                        <div className="border border-purple-600 px-2 py-0.5 rounded text-purple-400 text-xs lg:text-sm font-medium">
+                            Keyzoo
+                        </div>
+                        <p className="text-xs lg:text-sm text-white font-medium">
+                            Explore Our Platform
+                        </p>
                     </div>
 
                     {/* Feature Boxes */}
@@ -617,9 +671,10 @@ export default function ProductPage({ product, regionsData }) {
                                     <svg className="w-6 h-6 text-blue-500 fill-current">
                                         <use xlinkHref="/sprit/icons.svg#thunder"></use>
                                     </svg>
-
                                 </div>
-                                <span className="text-xs lg:text-sm text-white">Instant Delivery</span>
+                                <span className="text-xs lg:text-sm text-white">
+                                    Instant Delivery
+                                </span>
                             </div>
                         </HoverCard>
 
@@ -632,7 +687,9 @@ export default function ProductPage({ product, regionsData }) {
                                         <use xlinkHref="/sprit/icons.svg#support-agent"></use>
                                     </svg>
                                 </div>
-                                <span className="text-xs lg:text-sm text-white">24/7 Support</span>
+                                <span className="text-xs lg:text-sm text-white">
+                                    24/7 Support
+                                </span>
                             </div>
                         </HoverCard>
 
@@ -645,10 +702,11 @@ export default function ProductPage({ product, regionsData }) {
                                         <use xlinkHref="/sprit/icons.svg#verified-filled"></use>
                                     </svg>
                                 </div>
-                                <span className="text-xs lg:text-sm text-white">Verified Sellers</span>
+                                <span className="text-xs lg:text-sm text-white">
+                                    Verified Sellers
+                                </span>
                             </div>
                         </HoverCard>
-
                     </div>
                 </div>
             </div>

@@ -10,23 +10,7 @@ import {
 
 export default function ProductInventoryRow({ product, onUpload, onView, onEdit, onDelete, onToggleVisibility, selected, onSelect }) {
 
-    // const availableKeys = product.availableKeys ?? 10;
-    // const soldKeys = product.soldKeys ?? 5;
-    // const totalKeys = availableKeys + soldKeys;
-
-
-
-    // const progress =
-    //     totalKeys === 0
-    //         ? 0
-    //         : Math.round((availableKeys / totalKeys) * 100);
-
-    // const status =
-    //     availableKeys === 0
-    //         ? "Out of Stock"
-    //         : availableKeys <= 5
-    //             ? "Low Stock"
-    //             : "Healthy";
+    const imgUrl = product.image || "https://ucarecdn.com/bf23af89-1cea-415c-8046-053a2b6fb0dd/";
 
     const availableKeys = Number(product.availableKeys || 0);
     const soldKeys = Number(product.soldKeys || 0);
@@ -96,7 +80,7 @@ export default function ProductInventoryRow({ product, onUpload, onView, onEdit,
                 <div className="flex gap-5 basis-[520px] flex-shrink-0">
 
                     <Image
-                        src={product.image}
+                        src={imgUrl}
                         alt={product.title}
                         width={110}
                         height={150}
@@ -131,9 +115,9 @@ export default function ProductInventoryRow({ product, onUpload, onView, onEdit,
                                 </span>
 
                                 <span
-                                    className={`rounded-full px-3 py-1 text-xs font-medium ${isAvailable
-                                        ? "bg-green-100 text-green-700"
-                                        : "bg-red-100 text-red-700"
+                                    className={`mt-1 flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide ${product.status === "published"
+                                        ? "bg-green-500/15 text-green-400"
+                                        : "bg-red-500/15 text-red-400"
                                         }`}
                                 >
                                     {isAvailable ? "Available" : "Unavailable"}
