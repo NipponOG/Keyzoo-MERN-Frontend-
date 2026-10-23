@@ -19,11 +19,8 @@ import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import 'swiper/css';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation } from "swiper/modules"; // ✅ import Navigation
-import "swiper/css/navigation"; // ✅ import navigation styles
-import ErrorPage from "next/error";
+import { HugeiconsIcon } from '@hugeicons/react';
+import { MessageCircleWarningIcon } from '@hugeicons/core-free-icons';
 import { addRecentlyViewed } from "@/utils/recentlyViewed";
 import { getStrapiMedia } from "@/lib/media";
 import { platformIcons } from "@/lib/platformIcons";
@@ -273,6 +270,7 @@ export default function ProductPage({ product, regionsData }) {
 
     return (
         <div className="min-h-screen p-4 lg:p-6">
+
             <div className="max-w-[1500px] mx-auto grid grid-cols-1 md:grid-cols-1 lg:grid-cols-[240px_1fr_320px] xl:grid-cols-[260px_1fr_360px] 2xl:grid-cols-[260px_1fr_380px] gap-4 lg:gap-6 xl:gap-8">
                 {/* Left: Cover Image - Fixed width for laptop and up */}
                 {/* Left: Cover Image */}
@@ -711,65 +709,16 @@ export default function ProductPage({ product, regionsData }) {
                 </div>
             </div>
 
-            {/* Image Gallery */}
-            {product.gallery && (<div className="bg-[#1a1a1a] p-3 lg:p-4 rounded-xl mt-4 lg:mt-6 text-xs lg:text-sm border border-[#2a2a2a] max-w-[1500px] mx-auto">
-                {/* <div className="flex flex-col lg:flex-row flex-wrap gap-2 xl:gap-5"> */}
-                <Swiper
-                    spaceBetween={10}
-                    slidesPerView={1}
-                    breakpoints={{
-                        640: { slidesPerView: 2, spaceBetween: 15 },
-                        1024: { slidesPerView: 4, spaceBetween: 20 },
-                    }}
-                    navigation={true} // ✅ enable navigation
-                    modules={[Navigation]} // ✅ include navigation module
-                    className="w-full"
-                >
-                    {product?.gallery?.map((img, index) => (
-                        <SwiperSlide key={index} className="flex justify-center">
-                            <Image
-                                src={`${process.env.NEXT_PUBLIC_STRAPI_IMAGE_URL}${img.url}`}
-                                alt={img.name || `Gallery image ${index + 1}`}
-                                width={400}
-                                height={300}
-                                lazzyy="true"
-                                className="rounded-xl object-cover cursor-pointer hover:opacity-90 transition h-[250px] w-[400px]"
-                            />
-                        </SwiperSlide>
-                    ))}
-                </Swiper>
-
-
-                {/* Custom Swiper arrows styling */}
-                <style>{`
-          .swiper-button-prev,
-          .swiper-button-next {
-            color: #ffffff; /* Tailwind's red-400 */
-            background: transparent !important;
-            padding: 12px;
-            border-radius: 9999px;
-            transition: background-color 0.3s;
-          }
-          .swiper-button-prev:hover,
-          .swiper-button-next:hover {
-            background-color: rgba(0, 0, 0, 0.7);
-            color: #ffffff; /* Tailwind's yellow-400 */
-          }
-          `}</style>
-                {/* </div> */}
-            </div>)}
-
-
             {/* Important Notice */}
             {product.notice && (<><div className="bg-[#1a1a1a] text-orange-500 p-3 lg:p-4 rounded-xl mt-4 lg:mt-6 text-xs lg:text-sm border border-[#2a2a2a] max-w-[1500px] mx-auto">
-                <div className="flex flex-col lg:flex-row gap-1 lg:gap-2 xl:gap-5">
-                    <div className="font-semibold text-orange-500 text-sm lg:text-base xl:text-lg">
+                <div className="flex flex-col lg:flex-row gap-1 lg:gap-2 xl:gap-5 items-top lg:items-center">
+
+                    <span className="text-orange text-sm lg:text-base xl:text-lg font-semibold"><HugeiconsIcon icon={MessageCircleWarningIcon} /></span>
+
+                    <div className="font-semibold text-orange text-sm lg:text-base xl:text-lg">
                         {product.notice}
                     </div>
-                    {/* <div className="font-semibold text-orange-500 text-sm lg:text-base xl:text-lg">
-                            Works only on PC. Activate the code on Rockstar Games Launcher.
-                        </div> 
-                    */}
+
                 </div>
             </div>
             </>)}

@@ -1,0 +1,99 @@
+
+/* Keyzoo — Premium Markdown Editor */
+
+[data-color-mode="dark"] .w-md-editor {
+    --color-canvas-default: #17171f;
+    --color-canvas-subtle: #20202b;
+    --color-border-default: #343444;
+    --color-border-muted: #2a2a38;
+    --color-fg-default: #f3f4f6;
+    --color-fg-muted: #9ca3af;
+    --color-accent-fg: #a78bfa;
+    --color-accent-emphasis: #7c3aed;
+
+    color: #f3f4f6 !important;
+    background-color: #17171f !important;
+    border: 1px solid #343444 !important;
+    border-radius: 14px !important;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+[data-color-mode="dark"] .w-md-editor-toolbar {
+    background: linear-gradient(180deg, #22222e 0%, #1c1c27 100%) !important;
+    border-bottom: 1px solid #343444 !important;
+    padding: 8px 10px !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-toolbar li > button {
+    color: #b7b7c9 !important;
+    border-radius: 7px;
+    transition: background-color 160ms ease, color 160ms ease;
+}
+
+[data-color-mode="dark"] .w-md-editor-toolbar li > button:hover {
+    color: #ffffff !important;
+    background: #39304f !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-toolbar li.active > button {
+    color: #c4b5fd !important;
+    background: #35284f !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-content {
+    background: #17171f !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-text,
+[data-color-mode="dark"] .w-md-editor-text-pre,
+[data-color-mode="dark"] .w-md-editor-text-input,
+[data-color-mode="dark"] .w-md-editor-text-pre > code {
+    color: #e5e7eb !important;
+    font-size: 14px !important;
+    line-height: 1.8 !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-text-input {
+    padding: 18px !important;
+    caret-color: #a78bfa;
+}
+
+[data-color-mode="dark"] .w-md-editor-text-input::placeholder {
+    color: #717184 !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-preview {
+    padding: 20px !important;
+    background: #191922 !important;
+    border-left: 1px solid #343444;
+}
+
+[data-color-mode="dark"] .w-md-editor-preview h1,
+[data-color-mode="dark"] .w-md-editor-preview h2,
+[data-color-mode="dark"] .w-md-editor-preview h3 {
+    color: #ffffff !important;
+    font-weight: 700;
+}
+
+[data-color-mode="dark"] .w-md-editor-preview p,
+[data-color-mode="dark"] .w-md-editor-preview li {
+    color: #d1d5db !important;
+    line-height: 1.8;
+}
+
+[data-color-mode="dark"] .w-md-editor-preview a {
+    color: #a78bfa !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-preview code {
+    color: #ddd6fe !important;
+    background: #292438 !important;
+    border-radius: 5px;
+    padding: 2px 5px;
+}
+
+[data-color-mode="dark"] .w-md-editor:focus-within {
+    border-color: #7c3aed !important;
+    box-shadow: 0 0 0 3px rgb(124 58 237 / 15%);
+}

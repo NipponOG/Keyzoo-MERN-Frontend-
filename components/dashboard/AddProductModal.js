@@ -2,6 +2,13 @@
 
 import { useRef, useState } from 'react';
 import adminFetch from '@/lib/adminFetch';
+import dynamic from 'next/dynamic';
+import '@uiw/react-md-editor/markdown-editor.css';
+
+const MDEditor = dynamic(
+    () => import('@uiw/react-md-editor'),
+    { ssr: false }
+);
 
 const initialForm = {
     title: '',
@@ -1589,29 +1596,45 @@ export default function AddProductModal({
                                     placeholder="Important notice shown to customers..."
                                 />
 
-                                <TextareaField
-                                    label="Description"
-                                    name="description"
-                                    value={
-                                        form.description
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
-                                    placeholder="Write the main description..."
-                                />
+                                <div>
+                                    <label className="mb-2 block text-xs font-medium text-gray-400">
+                                        Description
+                                    </label>
+                                    <div data-color-mode="dark">
+                                        <MDEditor
+                                            value={form.description}
+                                            onChange={(value) =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    description: value || '',
+                                                }))
+                                            }
+                                            preview="edit"
+                                            height={300}
+                                            visibleDragbar={false}
+                                        />
+                                    </div>
+                                </div>
 
-                                <TextareaField
-                                    label="Description Key"
-                                    name="descriptionkey"
-                                    value={
-                                        form.descriptionkey
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
-                                    placeholder="Information about how the digital key works..."
-                                />
+                                <div>
+                                    <label className="mb-2 block text-xs font-medium text-gray-400">
+                                        Description Key
+                                    </label>
+                                    <div data-color-mode="dark">
+                                        <MDEditor
+                                            value={form.descriptionkey}
+                                            onChange={(value) =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    descriptionkey: value || '',
+                                                }))
+                                            }
+                                            preview="edit"
+                                            height={300}
+                                            visibleDragbar={false}
+                                        />
+                                    </div>
+                                </div>
 
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                     <Field
@@ -1652,17 +1675,26 @@ export default function AddProductModal({
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
-                                    <TextareaField
-                                        label="Edition Description"
-                                        name="editiondescription"
-                                        value={
-                                            form.editiondescription
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        placeholder="Describe this edition..."
-                                    />
+
+                                    <div>
+                                        <label className="mb-2 block text-xs font-medium text-gray-400">
+                                            Edition Description
+                                        </label>
+                                        <div data-color-mode="dark">
+                                            <MDEditor
+                                                value={form.editiondescription}
+                                                onChange={(value) =>
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        editiondescription: value || '',
+                                                    }))
+                                                }
+                                                preview="edit"
+                                                height={300}
+                                                visibleDragbar={false}
+                                            />
+                                        </div>
+                                    </div>
 
                                     <Field
                                         label="Age"
