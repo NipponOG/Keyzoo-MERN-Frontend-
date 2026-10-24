@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import adminFetch from '@/lib/adminFetch';
 import dynamic from 'next/dynamic';
 import '@uiw/react-md-editor/markdown-editor.css';
-import '@/styles/markdown-editor.module.css';
 
 const MDEditor = dynamic(
     () => import('@uiw/react-md-editor'),

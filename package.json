@@ -29,6 +29,7 @@
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
     "axios": "^1.11.0",
+    "bootstrap": "^5.3.8",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -71,6 +72,7 @@
   "devDependencies": {
     "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4.1.11",
+    "@types/bootstrap": "^5.2.11",
     "@types/node": "26.2.0",
     "daisyui": "^5.0.46",
     "tailwindcss": "^4.1.11",

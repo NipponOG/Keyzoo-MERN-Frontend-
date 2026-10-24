@@ -1,4 +1,6 @@
 import '@/styles/globals.css';
+import '@/styles/markdown-editor.css';
+
 import { Provider } from 'react-redux';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
