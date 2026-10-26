@@ -1,13 +1,5 @@
-// /** @type {import('next').NextConfig} */
-// const nextConfig = {
-//   reactStrictMode: true,
-// };
-
-// export default nextConfig;
-
-
-
 /** @type {import('next').NextConfig} */
+const removeImports = require('next-remove-imports')();
 const nextConfig = {
     reactStrictMode: true,
     eslint: {
@@ -94,4 +86,4 @@ const nextConfig = {
     },
 };
 
-module.exports = nextConfig;
+module.exports = removeImports(nextConfig);
