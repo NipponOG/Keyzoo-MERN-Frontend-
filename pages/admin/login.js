@@ -5,6 +5,40 @@ import { loginPasskey } from "@/lib/passkey";
 import { HugeiconsIcon } from '@hugeicons/react';
 import { FingerAccessIcon, AuthorizedIcon } from '@hugeicons/core-free-icons';
 
+
+function getFriendlyLoginError(error, method = "password") {
+    const message = error?.message?.toLowerCase() || "";
+
+    if (
+        message.includes("cancel") ||
+        message.includes("abort") ||
+        message.includes("notallowederror")
+    ) {
+        return method === "passkey"
+            ? "Passkey sign-in was cancelled. Please try again."
+            : "Sign-in was cancelled. Please try again.";
+    }
+
+    if (
+        message.includes("invalid") ||
+        message.includes("credentials") ||
+        message.includes("unauthorized")
+    ) {
+        return "Invalid email or password. Please try again.";
+    }
+
+    if (
+        message.includes("required") &&
+        method === "password"
+    ) {
+        return "Please enter your email and password.";
+    }
+
+    return method === "passkey"
+        ? "Passkey sign-in failed. Please try again."
+        : "Unable to sign in. Please try again.";
+}
+
 export default function AdminLogin() {
 
     const router = useRouter();
@@ -14,6 +48,7 @@ export default function AdminLogin() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const [passkeyLoading, setPasskeyLoading] = useState(false);
     const [error, setError] = useState("");
 
     const handleSubmit = async (e) => {
@@ -42,38 +77,40 @@ export default function AdminLogin() {
             router.replace("/admin/dashboard");
         } catch (err) {
             console.error("Admin login failed:", err);
-            setError(err.message || "Login failed.");
+            setError(getFriendlyLoginError(err, "password"));
         } finally {
             setLoading(false);
         }
     };
 
     const handlePasskeyLogin = async () => {
-        if (!email) {
-            setError("Please enter your email first.");
-            return;
-        }
+
+        // if (!email) {
+        //     setError("Please enter your email first.");
+        //     return;
+        // }
 
         try {
-            setLoading(true);
+            setPasskeyLoading(true);
             setError("");
 
             const data = await loginPasskey(email);
 
             // Save authenticated user
-            login(data.jwt, data.user);
+            sessionStorage.setItem("admin_jwt", data.jwt);
+            sessionStorage.setItem(
+                "admin_user",
+                JSON.stringify(data.user)
+            );
 
             // Redirect to dashboard
             router.replace("/admin/dashboard");
 
         } catch (err) {
-            console.error(err);
-
-            setError(
-                err.message || "Passkey login failed."
-            );
+            console.error("Admin passkey login failed:", err);
+            setError(getFriendlyLoginError(err, "passkey"));
         } finally {
-            setLoading(false);
+            setPasskeyLoading(false);
         }
     };
 
@@ -129,7 +166,7 @@ export default function AdminLogin() {
                 )}
 
                 <button
-                    disabled={loading}
+                    disabled={loading || passkeyLoading}
                     className="cursor-pointer w-full rounded-lg bg-indigo-600 hover:bg-indigo-500 py-3 text-white font-medium transition flex items-center justify-center gap-2"
                 >
 
@@ -149,11 +186,11 @@ export default function AdminLogin() {
                 <button
                     type="button"
                     onClick={handlePasskeyLogin}
-                    disabled={loading}
-                    className="w-full rounded-lg border border-[#333] bg-[#232323] py-3 text-white transition hover:bg-[#2b2b2b] flex items-center justify-center gap-2 "
+                    disabled={loading || passkeyLoading}
+                    className="cursor-pointer w-full rounded-lg border border-[#333] bg-[#232323] py-3 text-white transition hover:bg-[#2b2b2b] flex items-center justify-center gap-2 "
                 >
                     <HugeiconsIcon icon={FingerAccessIcon} />
-                    Sign in with Passkey
+                    {passkeyLoading ? "Signing In..." : "Sign in with Passkey"}
                 </button>
 
             </form>
