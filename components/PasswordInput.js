@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { HugeiconsIcon } from '@hugeicons/react';
+import { EyeIcon, EyeOffIcon  } from '@hugeicons/core-free-icons';
+// import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function PasswordInput({ value, onChange, placeholder }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -16,12 +18,12 @@ export default function PasswordInput({ value, onChange, placeholder }) {
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
-        className="absolute right-3 top-4.5 text-gray-500 hover:text-gray-700"
+        className="absolute right-3 top-4.5 text-white"
       >
         {showPassword ? (
-          <EyeSlashIcon className="h-5 w-5" />
+          <HugeiconsIcon icon={EyeIcon} />
         ) : (
-          <EyeIcon className="h-5 w-5" />
+          <HugeiconsIcon icon={EyeOffIcon} />
         )}
       </button>
     </div>

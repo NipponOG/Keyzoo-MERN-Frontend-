@@ -7,6 +7,9 @@ import LoadingButton from "@/components/LoadingButton";
 import Turnstile from "react-turnstile";
 import { apiFetch } from "@/lib/api";
 
+import { Google, GoogleIcon } from "@dev.icons/react";
+import { MetaIcon, Meta } from "@dev.icons/react";
+import { DiscordIcon, Discord } from "@dev.icons/react";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -137,8 +140,8 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0f0f0f] text-white px-4 sm:px-6 lg:px-8">
-      <div className="flex flex-col md:flex-row w-full max-w-5xl rounded-2xl overflow-hidden border border-neutral-800 shadow-lg shadow-black/30">
+    <div className="flex min-h-screen items-center justify-center text-white px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col md:flex-row w-full max-w-5xl rounded-2xl overflow-hidden border border-neutral-800">
         {/* Left: Form Section */}
         <div className="w-full md:w-1/2 bg-[#1a1a1a] p-6 sm:p-8 flex flex-col justify-center gap-6">
           <h2 className="text-3xl font-bold text-center md:text-left">
@@ -146,22 +149,24 @@ export default function SignInPage() {
           </h2>
 
           {/* Social Buttons */}
-          <div className="space-y-3">
+          <div className="gap-5 flex items-center justify-center ">
 
             <button
               onClick={() => {
                 window.location.href =
                   `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
               }}
-              className="cursor-pointer flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
+              className="cursor-pointer capitalize flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
             >
-              <img src="https://driffle.com/icons/google-icon.svg" className="w-5 h-5" />
-              Sign up with Google
+              {/* <img src="https://driffle.com/icons/google-icon.svg" className="w-5 h-5" /> */}
+              <GoogleIcon size={32} />
+              {/* Sign in with Google */}
             </button>
 
-            <button className="flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium">
-              <img src="https://driffle.com/icons/facebook-round-icon.svg" className="w-5 h-5" />
-              Sign up with Facebook
+            <button className="cursor-pointer capitalize flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium">
+              {/* <img src="https://driffle.com/icons/facebook-round-icon.svg" className="w-5 h-5" /> */}
+              <MetaIcon size={32} />
+              {/* Sign in with Facebook */}
             </button>
 
             <button
@@ -170,14 +175,10 @@ export default function SignInPage() {
                 window.location.href =
                   `${process.env.NEXT_PUBLIC_API_URL}/auth/discord`;
               }}
-              className="cursor-pointer flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
+              className="cursor-pointer capitalize flex items-center justify-center gap-2 w-full py-3 rounded-md bg-neutral-800 hover:bg-white hover:text-black transition-all duration-300 text-sm font-medium"
             >
-              <img
-                src="https://driffle.com/icons/discord-icon-new.svg"
-                className="w-5 h-5"
-                alt="Discord"
-              />
-              Sign in with Discord
+              <DiscordIcon size={32} />
+              {/* Sign in with Discord */}
             </button>
 
           </div>
@@ -203,7 +204,7 @@ export default function SignInPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full mt-1 px-4 py-3 bg-neutral-800 rounded-md text-white outline-none focus:ring-2 focus:ring-purple-500 transition"
+                    className="w-full mt-1 px-4 py-3 bg-neutral-800 rounded-md text-white outline-none transition"
                     placeholder="Enter your email"
                   />
                 </div>
@@ -330,11 +331,11 @@ export default function SignInPage() {
           </form>
 
           {/* Footer Links */}
-          <div className="flex flex-col sm:flex-row justify-between text-sm text-neutral-400 mt-4 gap-2 sm:gap-0">
-            <a href="/sign-up" className="hover:text-purple-400 transition">
+          <div className="flex flex-col sm:flex-row justify-between text-sm gap-2 sm:gap-0">
+            <a href="/sign-up" className="hover:text-[#9ca3af] transition">
               Don’t have an account? <span className="font-medium">Sign up</span>
             </a>
-            <a href="/forgot-password" className="hover:text-purple-400 transition">
+            <a href="/forgot-password" className="hover:text-[#9ca3af] transition">
               Forgot password?
             </a>
           </div>

@@ -126,13 +126,13 @@ export default function Header() {
                 <div className="hidden sm:flex items-center gap-2">
                   <Link
                     href="/sign-in"
-                    className="px-4 py-2 rounded-md border border-neutral-700 text-sm text-white hover:border-purple-500 hover:text-purple-400 transition-all duration-300 shadow-[0_0_10px_rgba(168,85,247,0.1)] hover:shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                    className="px-4 py-2 rounded-md bg-white border border-[#6d3cff] text-sm font-semibold text-[#6d3cff] hover:opacity-90 transition-all duration-300"
                   >
                     Sign In
                   </Link>
                   <Link
                     href="/sign-up"
-                    className="px-4 py-2 rounded-md bg-gradient-to-r from-purple-600 to-blue-500 text-sm font-semibold text-white hover:opacity-90 transition-all duration-300 shadow-md shadow-purple-500/20"
+                    className="px-4 py-2 rounded-md bg-[#6d3cff] text-sm font-semibold text-white hover:opacity-90 transition-all duration-300"
                   >
                     Sign Up
                   </Link>

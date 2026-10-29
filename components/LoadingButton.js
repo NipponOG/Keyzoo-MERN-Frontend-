@@ -15,8 +15,8 @@ export default function LoadingButton({
             onClick={onClick}
             disabled={disabled || loading}
             className={`w-full py-3 rounded-md font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all ${loading
-                    ? "bg-gradient-to-r from-purple-700 to-blue-600 opacity-70 cursor-not-allowed"
-                    : "bg-gradient-to-r from-purple-600 to-blue-500 hover:opacity-90 shadow-md shadow-purple-500/20"
+                    ? "bg-[#6d3cff] cursor-not-allowed"
+                    : "bg-[#6d3cff] cursor-pointer"
                 } ${className}`}
         >
             {loading && (
