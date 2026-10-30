@@ -1,5 +1,6 @@
 import '@/styles/globals.css';
 import '@/styles/markdown-editor.css';
+import "leaflet/dist/leaflet.css";
 
 import { Provider } from 'react-redux';
 import Header from '@/components/Header';

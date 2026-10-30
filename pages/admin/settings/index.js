@@ -13,6 +13,12 @@ import {
 } from "react-icons/fi";
 import adminFetch from "@/lib/adminFetch";
 import { startRegistration } from "@simplewebauthn/browser";
+import dynamic from "next/dynamic";
+
+const LoginLocationMap = dynamic(
+    () => import("@/components/admin/LoginLocationMap"),
+    { ssr: false }
+);
 
 function formatDate(value) {
     if (!value) return "Not available";
@@ -416,6 +422,8 @@ export default function AdminSettings() {
                                                         </span>
                                                     )}
                                                 </div>
+
+                                                <LoginLocationMap location={login.location} />
 
                                             </article>
                                         ))}
