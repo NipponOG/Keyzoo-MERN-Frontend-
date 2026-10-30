@@ -382,10 +382,10 @@ export default function AdminSettings() {
                                                     </span>
                                                 </div>
 
-                                                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-400">
+
+                                                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-3 text-xs text-gray-400">
                                                     <span className="inline-flex items-center gap-2">
                                                         <FiMapPin />
-                                                        {/* IP: {login.ipAddress || "Unavailable"} */}
                                                         IP: {
                                                             !login.ipAddress
                                                                 ? "Unavailable"
@@ -400,7 +400,23 @@ export default function AdminSettings() {
                                                     <span>
                                                         Method: {login.loginMethod || "Password"}
                                                     </span>
+
+                                                    {login.location && (
+                                                        <span className="inline-flex items-center gap-2">
+                                                            <FiMapPin />
+                                                            Location: {
+                                                                [
+                                                                    login.location.city,
+                                                                    login.location.region,
+                                                                    login.location.country,
+                                                                ]
+                                                                    .filter(Boolean)
+                                                                    .join(", ") || "Unavailable"
+                                                            }
+                                                        </span>
+                                                    )}
                                                 </div>
+
                                             </article>
                                         ))}
                                     </div>
