@@ -51,14 +51,14 @@ export default function LoginLocationMap({ location }) {
     return (
         <div className="mt-3">
             <div
-                className="overflow-hidden rounded-xl border border-gray-200"
+                className="relative z-0 overflow-hidden rounded-xl border border-gray-200"
                 style={{ height: expanded ? "300px" : "140px" }}
             >
                 <MapContainer
                     center={[latitude, longitude]}
                     zoom={11}
                     scrollWheelZoom={false}
-                    style={{ height: "100%", width: "100%" }}
+                    style={{ height: "100%", width: "100%", zIndex: 0, }}
                 >
                     <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -80,17 +80,19 @@ export default function LoginLocationMap({ location }) {
                 </MapContainer>
             </div>
 
-            <button
-                type="button"
-                onClick={() => setExpanded((current) => !current)}
-                className="mt-2 text-sm font-medium text-[#814DE5] hover:underline"
-            >
-                {expanded ? "Show Less" : "View Map"}
-            </button>
+            <div className="flex items-center justify-between">
+                <button
+                    type="button"
+                    onClick={() => setExpanded((current) => !current)}
+                    className="mt-2.5 cursor-pointer rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-violet-500"
+                >
+                    {expanded ? "Show Less" : "View Map"}
+                </button>
 
-            <p className="mt-1 text-[10px] text-gray-400">
-                Approximate location based on IP address.
-            </p>
+                <p className="mt-1 text-[12px] text-gray-400 flex items-center">
+                    Approximate location based on IP address.
+                </p>
+            </div>
         </div>
     );
 }
