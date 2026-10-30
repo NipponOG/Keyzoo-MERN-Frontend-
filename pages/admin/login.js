@@ -9,6 +9,10 @@ import { FingerAccessIcon, AuthorizedIcon } from '@hugeicons/core-free-icons';
 function getFriendlyLoginError(error, method = "password") {
     const message = error?.message?.toLowerCase() || "";
 
+    if (error?.status === 429 || error?.statusCode === 429) {
+        return "Too many failed login attempts. Please try again later.";
+    }
+
     if (
         message.includes("cancel") ||
         message.includes("abort") ||
