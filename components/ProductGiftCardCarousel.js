@@ -175,7 +175,7 @@ export default function ProductGiftCardCarousel() {
                                         </span>
                                     )}
                                 </div>
-                                <div className='bg-gray-100 dark:bg-black/30 backdrop-blur-sm px-1 py-1 rounded-b-md h-[120px]'>
+                                <div className='bg-gray-100 backdrop-blur-sm px-1 py-1 rounded-b-md h-[120px]'>
                                     <HoverCard title={item.title}>
                                         <h3 className="text-sm font-semibold line-clamp-2 px-1.5 mt-1 text-black">
                                             {item.title}
@@ -225,7 +225,7 @@ export default function ProductGiftCardCarousel() {
                                         </span>
                                     )}
                                 </div>
-                                <div className='bg-gray-100 dark:bg-black/30 backdrop-blur-sm px-1 py-1 rounded-b-md h-[120px]'>
+                                <div className='bg-gray-100 backdrop-blur-sm px-1 py-1 rounded-b-md h-[120px]'>
                                     <HoverCard title={item.title}>
                                         <h3 className="text-sm font-semibold line-clamp-2 px-1.5 mt-1 text-black">
                                             {item.title}

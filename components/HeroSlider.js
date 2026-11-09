@@ -123,7 +123,7 @@ const HeroSlider = () => {
                   fill
                   priority={index === 0}
                   sizes="(max-width: 768px) 100vw, 66vw"
-                  className="object-center object-center"
+                  className="object-center"
                 />
 
                 <div className="absolute inset-0 flex flex-col justify-center items-center text-white text-center px-6">
