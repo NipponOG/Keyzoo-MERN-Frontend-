@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { fetchFromStrapi } from '@/lib/strapi';
+import { apiFetch } from '@/lib/api';
 import { getStrapiMedia } from '@/lib/getStrapiMedia';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -10,10 +10,10 @@ import ProductCardImage from '@/components/ProductCardImage';
 import HoverCard from '@/components/HoverCard';
 
 const normalizeRegion = (value) => value?.trim().toUpperCase(); // this will help in changing cases.
+const normalizeRegionUrl = (value) => value?.trim().toLowerCase();
 
 export default function XboxGiftCard() {
 
-    const BASE_QUERY = "api/gift-cards?filters[platform][$eq]=xbox";
     const skeletonCount = typeof window !== "undefined" ? Math.ceil(window.innerHeight / 500) * 6 : 24;
 
     const { symbol } = useCurrency();
@@ -46,6 +46,7 @@ export default function XboxGiftCard() {
         };
     }, []);
 
+
     // Filtered regions based on search input
     const filteredRegions = regions.filter((region) =>
         region.toLowerCase().includes(search.toLowerCase())
@@ -53,7 +54,9 @@ export default function XboxGiftCard() {
 
     // Handle region selection
     const handleRegionChange = (region) => {
+
         const normalized = normalizeRegion(region);
+        const urlRegion = normalizeRegionUrl(region);
 
         setSelectedRegion(normalized);
         setRegionOpen(false);
@@ -61,7 +64,7 @@ export default function XboxGiftCard() {
         router.push(
             {
                 pathname: router.pathname,
-                query: { region: normalized },
+                query: { region: urlRegion },
             },
             undefined,
             { shallow: true }
@@ -86,104 +89,80 @@ export default function XboxGiftCard() {
     }, [router.isReady, router.query.region]);
 
     useEffect(() => {
-        async function getAllProducts() {
-            try {
+        if (!router.isReady || !selectedRegion) return;
 
+        const controller = new AbortController();
+
+        async function getGiftCards() {
+            try {
                 setLoading(true);
 
-                const res = await fetchFromStrapi(`${BASE_QUERY}&populate=*`)
-
-                setProducts(res.data || []);
-
-            } catch (err) {
-
-                console.error(err);
-
-            } finally {
-
-                setLoading(false);
-
-            }
-        }
-
-        getAllProducts();
-    }, []);
-
-    useEffect(() => {
-        async function getRegions() {
-            try {
-                const res = await fetchFromStrapi(
-                    `${BASE_QUERY}&fields[0]=card_region&pagination[pageSize]=200`
-                );
-
-                const set = new Set();
-                res?.data?.forEach(item => {
-                    if (item.card_region) {
-                        set.add(normalizeRegion(item.card_region));
-                    }
+                const params = new URLSearchParams({
+                    platform: 'Xbox',
+                    page: '1',
+                    limit: '50',
                 });
 
-                // setRegions(["ALL Regions", ...Array.from(set).sort()]);
-                setRegions(["ALL REGIONS", ...Array.from(set).sort()]);
+                if (normalizeRegion(selectedRegion) !== 'ALL REGIONS') {
+                    params.set('region', selectedRegion.toLowerCase());
+                }
 
-            } catch (err) {
-
-                console.error("Failed to fetch regions", err);
-
-            }
-        }
-
-        getRegions();
-    }, []);
-
-    useEffect(() => {
-        if (normalizeRegion(selectedRegion) === "ALL REGIONS") {
-            // reset to all products
-            // fetchFromStrapi("api/gift-cards?populate=*&filters[platform][$eq]=psn")
-            setLoading(true);
-            fetchFromStrapi(`${BASE_QUERY}&populate=*`)
-                .then(res => setProducts(res.data || []))
-                .finally(() => setLoading(false));
-            return;
-        }
-
-        async function getFilteredProducts() {
-
-            if (!selectedRegion) return;
-
-            try {
-                setLoading(true);
-
-                // const res = await fetchFromStrapi(
-                //     `api/gift-cards?populate=*&filters[platform][$eq]=psn&filters[card_region][$eq]=${encodeURIComponent(
-                //         normalizeRegion(selectedRegion)
-                //     )}`
-                // );
-
-                const res = await fetchFromStrapi(
-                    `${BASE_QUERY}&populate=*&filters[card_region][$eq]=${encodeURIComponent(
-                        normalizeRegion(selectedRegion)
-                    )}`
+                const res = await apiFetch(
+                    `/gift-cards/store?${params.toString()}`,
+                    {
+                        signal: controller.signal,
+                    }
                 );
 
-                setProducts(res.data || []);
+                const data = res?.data || {};
 
-            } catch (err) {
-                console.error(err);
+                setProducts(
+                    Array.isArray(data.items) ? data.items : []
+                );
+
+                const availableRegions = Array.isArray(data.regions)
+                    ? data.regions
+                        .map((region) =>
+                            normalizeRegion(region.label || region.value)
+                        )
+                        .filter(Boolean)
+                    : [];
+
+                setRegions([
+                    'ALL REGIONS',
+                    ...new Set(availableRegions),
+                ]);
+
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Failed to fetch Xbox gift cards:', {
+                        message: error.message,
+                        status: error.status,
+                        url: error.requestUrl,
+                        response: error.responseData,
+                    });
+                    setProducts([]);
+                }
             } finally {
-                setLoading(false);
+                if (!controller.signal.aborted) {
+                    setLoading(false);
+                }
             }
         }
 
-        getFilteredProducts();
+        getGiftCards();
 
-    }, [selectedRegion]);
+        return () => {
+            controller.abort();
+        };
+
+    }, [router.isReady, selectedRegion]);
 
     // 1️⃣ LOADING FIRST
     if (loading) {
         return (
             <div className="px-4 md:px-10 py-8">
-                {/* ===== PSN HERO (IMAGE ONLY) ===== */}
+                {/* ===== XBOX HERO (IMAGE ONLY) ===== */}
                 <section className="relative w-full h-[450px] overflow-hidden rounded-xl mb-10">
                     {/* Background image */}
                     <Skeleton height={450} borderRadius={16} />
@@ -248,7 +227,8 @@ export default function XboxGiftCard() {
 
     return (
         <div className="px-4 md:px-10 py-8">
-            {/* ===== PSN HERO (IMAGE ONLY) ===== */}
+
+            {/* ===== XBOX HERO (IMAGE ONLY) ===== */}
             <section className="relative w-full h-[450px] overflow-hidden rounded-xl mb-10">
                 {/* Background image */}
                 <Image
@@ -404,7 +384,9 @@ export default function XboxGiftCard() {
                         <span className="text-lg mr-1">Top regions</span>
 
                         {["Poland", "United States", "United Kingdom"].map((region) => {
+
                             const normalized = normalizeRegion(region);
+                            // const urlRegion = normalizeRegionUrl(region);
 
                             return (
                                 <button key={region} className={`px-4 py-1.5 rounded-full transition text-white ${selectedRegion === normalized ? "bg-[#3a3a3a]" : "bg-[#1f1f1f] hover:bg-[#2a2a2a]"}`}
@@ -414,7 +396,7 @@ export default function XboxGiftCard() {
                                         router.push(
                                             {
                                                 pathname: router.pathname,
-                                                query: { region: normalized },
+                                                query: { region: normalizeRegionUrl(region) },
                                             },
                                             undefined,
                                             { shallow: true }
@@ -429,6 +411,7 @@ export default function XboxGiftCard() {
 
                 </div>
             </section>
+
 
             <section className="my-0">
                 <h2 className="text-xl font-bold mb-4 dark:text-white">Best Selling Games</h2>
@@ -445,26 +428,40 @@ export default function XboxGiftCard() {
                         ))
                     ) : (
                         products.map((item) => {
-                            //   const { title, slug, price, coverImage } = item.attributes;
 
-                            const imgUrl = getStrapiMedia(
-                                item.image?.url,
-                                {
-                                    width: 1600,
-                                }
-                            );
+                            const imageSource = item.image || item.platform_image;
 
-                            const blurUrl = getStrapiMedia(
-                                item.image?.url,
-                                {
-                                    blur: true,
-                                }
-                            );
+                            const imgUrl = getStrapiMedia(imageSource, {
+                                width: 1600,
+                            });
+
+                            const blurUrl = getStrapiMedia(imageSource, {
+                                blur: true,
+                            });
+
+                            const isAvailable = item.available === true;
+
+                            const originalPrice = Number(item.price) || 0;
+
+                            const sellingPrice =
+                                Number(item.discountPrice) > 0
+                                    ? Number(item.discountPrice)
+                                    : originalPrice;
+
+                            const discountPercentage =
+                                originalPrice > sellingPrice && originalPrice > 0
+                                    ? Math.round(
+                                        ((originalPrice - sellingPrice) / originalPrice) * 100
+                                    )
+                                    : 0;
+
+                            const displayRegion =
+                                item.card_region || item.region || '';
 
                             return (
-                                <div key={item.id} className='mb-2 mt-2'>
-                                    {item.Available ? (<Link
-                                        href={`/store/category/gift-card/psn/${item.slug}`}
+                                <div key={item._id} className='mb-2 mt-2'>
+                                    {isAvailable ? (<Link
+                                        href={`/store/category/gift-card/xbox/${item.slug}`}
                                         // className="block p-1 rounded-lg hover:shadow-md transition bg-white dark:bg-[#1a1a1a] relative max-w-[260px] mx-auto"
                                         className="block p-1 rounded-lg bg-white dark:bg-[#1a1a1a] relative min-w-[200px] mx-auto shadow-sm dark:shadow-none hover:shadow-lg transition-transform duration-300 transform hover:-translate-y-1"
                                     >
@@ -473,7 +470,7 @@ export default function XboxGiftCard() {
                                             <ProductCardImage
                                                 imgUrl={imgUrl}
                                                 blurUrl={blurUrl}
-                                                available={item.Available}
+                                                available={isAvailable}
                                             // alt={item.title}
                                             // fill
                                             // className="object-center"
@@ -488,9 +485,9 @@ export default function XboxGiftCard() {
                                             )}
 
                                             {/* Discount ribbon */}
-                                            {item.originalPrice && item.originalPrice > item.price && (
+                                            {discountPercentage > 0 && (
                                                 <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded">
-                                                    -{Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%
+                                                    -{discountPercentage}%
                                                 </span>
                                             )}
                                         </div>
@@ -500,9 +497,9 @@ export default function XboxGiftCard() {
                                                     {item.title}
                                                 </h3>
                                             </HoverCard>
-                                            <h3 className="text-sm font-semibold text-blue-600 px-1.5 mt-0.5">{item.card_region}</h3>
+                                            <h3 className="text-sm font-semibold text-blue-600 px-1.5 mt-0.5">{normalizeRegion(displayRegion)}</h3>
                                             <p className="text-lg text-gray-600 dark:text-gray-300 px-1.5 mt-1 mb-1.5">
-                                                {symbol} {Number(item.discountPrice).toFixed(2)}
+                                                {symbol} {sellingPrice.toFixed(2)}
                                             </p>
                                         </div>
                                     </Link>) : (<div
@@ -515,7 +512,7 @@ export default function XboxGiftCard() {
                                             <ProductCardImage
                                                 imgUrl={imgUrl}
                                                 blurUrl={blurUrl}
-                                                available={item.Available}
+                                                available={isAvailable}
                                             // alt={item.title}
                                             // fill
                                             // className={`object-center transition ${item.Available ? '' : 'grayscale opacity-60'}`}
@@ -539,9 +536,9 @@ export default function XboxGiftCard() {
                                             )}
 
                                             {/* Discount ribbon */}
-                                            {item.originalPrice && item.originalPrice > item.price && (
+                                            {discountPercentage > 0 && (
                                                 <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded">
-                                                    -{Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%
+                                                    -{discountPercentage}%
                                                 </span>
                                             )}
                                         </div>
@@ -551,7 +548,7 @@ export default function XboxGiftCard() {
                                                     {item.title}
                                                 </h3>
                                             </HoverCard>
-                                            <h3 className="text-sm font-semibold text-blue-600 px-1.5 mt-0.5">{item.card_region}</h3>
+                                            <h3 className="text-sm font-semibold text-blue-600 px-1.5 mt-0.5">{normalizeRegion(displayRegion)}</h3>
                                             <p className="text-lg text-[#cc0000] font-bold dark:text-gray-300 px-1.5 mt-1 mb-1.5">
                                                 Sold Out
                                             </p>

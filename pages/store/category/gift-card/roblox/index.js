@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { fetchFromStrapi } from '@/lib/strapi';
+import { apiFetch } from '@/lib/api';
 import { getStrapiMedia } from '@/lib/getStrapiMedia';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -8,13 +8,12 @@ import { useRouter } from 'next/router';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import ProductCardImage from '@/components/ProductCardImage';
 import HoverCard from '@/components/HoverCard';
-import toast from "react-hot-toast";
 
 const normalizeRegion = (value) => value?.trim().toUpperCase(); // this will help in changing cases.
+const normalizeRegionUrl = (value) => value?.trim().toLowerCase();
 
-export default function BeastSelling() {
+export default function XboxGiftCard() {
 
-    const BASE_QUERY = "api/gift-cards?filters[platform][$eq]=roblox";
     const skeletonCount = typeof window !== "undefined" ? Math.ceil(window.innerHeight / 500) * 6 : 24;
 
     const { symbol } = useCurrency();
@@ -25,7 +24,6 @@ export default function BeastSelling() {
     const [selectedRegion, setSelectedRegion] = useState(null);
     const [loading, setLoading] = useState(false);
     const [loaded, setLoaded] = useState(false);
-    const [notified, setNotified] = useState({});
 
     const router = useRouter();
     const dropdownRef = useRef(null);
@@ -48,6 +46,7 @@ export default function BeastSelling() {
         };
     }, []);
 
+
     // Filtered regions based on search input
     const filteredRegions = regions.filter((region) =>
         region.toLowerCase().includes(search.toLowerCase())
@@ -55,7 +54,9 @@ export default function BeastSelling() {
 
     // Handle region selection
     const handleRegionChange = (region) => {
+
         const normalized = normalizeRegion(region);
+        const urlRegion = normalizeRegionUrl(region);
 
         setSelectedRegion(normalized);
         setRegionOpen(false);
@@ -63,60 +64,11 @@ export default function BeastSelling() {
         router.push(
             {
                 pathname: router.pathname,
-                query: { region: normalized },
+                query: { region: urlRegion },
             },
             undefined,
             { shallow: true }
         );
-    };
-
-    const handleNotify = async (item) => {
-        try {
-            const user = JSON.parse(localStorage.getItem("user"));
-            const token = localStorage.getItem("jwt");
-
-            if (!user || !token) {
-                toast.error("Please login first");
-                return;
-            }
-
-            const res = await fetch(
-                `${process.env.NEXT_PUBLIC_STRAPI_URL}api/stock-alerts`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({
-                        data: {
-                            product: item.id,
-                        },
-                    }),
-                }
-            );
-
-            const data = await res.json();
-
-            // console.log("API RESPONSE:", data);
-            // console.log("USER:", user);
-            // console.log("PRODUCT:", item);
-
-            if (!res.ok) {
-                throw new Error(data.error?.message || "Already subscribed");
-            }
-
-            toast.success("We’ll notify you 🔔");
-
-            setNotified((prev) => ({
-                ...prev,
-                [item.id]: true,
-            }));
-
-        } catch (err) {
-            console.error(err);
-            toast.error(err.message || "Something went wrong");
-        }
     };
 
     useEffect(() => {
@@ -137,105 +89,80 @@ export default function BeastSelling() {
     }, [router.isReady, router.query.region]);
 
     useEffect(() => {
-        async function getAllProducts() {
-            try {
+        if (!router.isReady || !selectedRegion) return;
 
+        const controller = new AbortController();
+
+        async function getGiftCards() {
+            try {
                 setLoading(true);
 
-                const res = await fetchFromStrapi(`${BASE_QUERY}&populate=*`)
-
-                setProducts(res.data || []);
-
-            } catch (err) {
-
-                console.error(err);
-
-            } finally {
-
-                setLoading(false);
-
-            }
-        }
-
-        getAllProducts();
-    }, []);
-
-
-    useEffect(() => {
-        async function getRegions() {
-            try {
-                const res = await fetchFromStrapi(
-                    `${BASE_QUERY}&fields[0]=card_region&pagination[pageSize]=200`
-                );
-
-                const set = new Set();
-                res?.data?.forEach(item => {
-                    if (item.card_region) {
-                        set.add(normalizeRegion(item.card_region));
-                    }
+                const params = new URLSearchParams({
+                    platform: 'Roblox',
+                    page: '1',
+                    limit: '50',
                 });
 
-                // setRegions(["ALL Regions", ...Array.from(set).sort()]);
-                setRegions(["ALL REGIONS", ...Array.from(set).sort()]);
+                if (normalizeRegion(selectedRegion) !== 'ALL REGIONS') {
+                    params.set('region', selectedRegion.toLowerCase());
+                }
 
-            } catch (err) {
-
-                console.error("Failed to fetch regions", err);
-
-            }
-        }
-
-        getRegions();
-    }, []);
-
-    useEffect(() => {
-        if (normalizeRegion(selectedRegion) === "ALL REGIONS") {
-            // reset to all products
-            // fetchFromStrapi("api/gift-cards?populate=*&filters[platform][$eq]=psn")
-            setLoading(true);
-            fetchFromStrapi(`${BASE_QUERY}&populate=*`)
-                .then(res => setProducts(res.data || []))
-                .finally(() => setLoading(false));
-            return;
-        }
-
-        async function getFilteredProducts() {
-
-            if (!selectedRegion) return;
-
-            try {
-                setLoading(true);
-
-                // const res = await fetchFromStrapi(
-                //     `api/gift-cards?populate=*&filters[platform][$eq]=psn&filters[card_region][$eq]=${encodeURIComponent(
-                //         normalizeRegion(selectedRegion)
-                //     )}`
-                // );
-
-                const res = await fetchFromStrapi(
-                    `${BASE_QUERY}&populate=*&filters[card_region][$eq]=${encodeURIComponent(
-                        normalizeRegion(selectedRegion)
-                    )}`
+                const res = await apiFetch(
+                    `/gift-cards/store?${params.toString()}`,
+                    {
+                        signal: controller.signal,
+                    }
                 );
 
-                setProducts(res.data || []);
+                const data = res?.data || {};
 
-            } catch (err) {
-                console.error(err);
+                setProducts(
+                    Array.isArray(data.items) ? data.items : []
+                );
+
+                const availableRegions = Array.isArray(data.regions)
+                    ? data.regions
+                        .map((region) =>
+                            normalizeRegion(region.label || region.value)
+                        )
+                        .filter(Boolean)
+                    : [];
+
+                setRegions([
+                    'ALL REGIONS',
+                    ...new Set(availableRegions),
+                ]);
+
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Failed to fetch Xbox gift cards:', {
+                        message: error.message,
+                        status: error.status,
+                        url: error.requestUrl,
+                        response: error.responseData,
+                    });
+                    setProducts([]);
+                }
             } finally {
-                setLoading(false);
+                if (!controller.signal.aborted) {
+                    setLoading(false);
+                }
             }
         }
 
-        getFilteredProducts();
+        getGiftCards();
 
-    }, [selectedRegion]);
+        return () => {
+            controller.abort();
+        };
+
+    }, [router.isReady, selectedRegion]);
 
     // 1️⃣ LOADING FIRST
     if (loading) {
         return (
             <div className="px-4 md:px-10 py-8">
-                {/* ===== PSN HERO (IMAGE ONLY) ===== */}
+                {/* ===== XBOX HERO (IMAGE ONLY) ===== */}
                 <section className="relative w-full h-[450px] overflow-hidden rounded-xl mb-10">
                     {/* Background image */}
                     <Skeleton height={450} borderRadius={16} />
@@ -290,10 +217,10 @@ export default function BeastSelling() {
                     className="mb-4">
                 </Image>
                 {/* <h2 className="text-xl font-bold mb-4 dark:text-white">
-                                Best Selling Games
-                            </h2>
-                            <p className="text-gray-500">No products found in Best Selling.</p>
-                        */}
+                            Best Selling Games
+                        </h2>
+                        <p className="text-gray-500">No products found in Best Selling.</p>
+                    */}
             </section>
         );
     }
@@ -301,12 +228,12 @@ export default function BeastSelling() {
     return (
         <div className="px-4 md:px-10 py-8">
 
-            {/* ===== PSN HERO (IMAGE ONLY) ===== */}
+            {/* ===== ROBLOX HERO (IMAGE ONLY) ===== */}
             <section className="relative w-full h-[450px] overflow-hidden rounded-xl mb-10">
                 {/* Background image */}
                 <Image
                     src={"https://res.cloudinary.com/dblttl9bh/image/upload/v1783598312/911f6d9c-3dbb-4016-b28e-d35baf036769_roblox-desktop_qdj7vb.webp"}
-                    alt="PSN Banner"
+                    alt="Roblox Banner"
                     fill
                     priority
                     className={`
@@ -340,6 +267,31 @@ export default function BeastSelling() {
                             Get Roblox Gift cards for
                         </span>
 
+                        {/* <div className="relative min-w-[350px]">
+                            <select className="appearance-none w-full h-[44px] bg-[#3a3a3a] text-white text-sm px-4 pr-10 rounded-lg leading-[44px] outline-none">
+                                <option value="IN">India</option>
+                                <option value="US">United States</option>
+                                <option value="UK">United Kingdom</option>
+                                <option value="PL">Poland</option>
+                            </select>
+
+                            {/* Arrow 
+                            <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/70">
+                                <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path d="M6 9l6 6 6-6" />
+                                </svg>
+                            </div>
+                        </div> */}
+
                         <div ref={dropdownRef} className="relative min-w-[400px]">
                             {/* Trigger */}
                             <button onClick={() => setRegionOpen(!regionOpen)} className="cursor-pointer w-full h-[50px] bg-[#3a3a3a] text-white px-4 rounded-lg flex items-center justify-between border-none outline-none">
@@ -357,6 +309,32 @@ export default function BeastSelling() {
                                     <path d="M6 9l6 6 6-6" />
                                 </svg>
                             </button>
+
+                            {/* Dropdown */}
+                            {/* {regionOpen && (
+                                <div
+                                    className="absolute z-50 mt-2 w-full bg-[#2a2a2a] rounded-xl shadow-2xl max-h-[260px] overflow-y-auto border border-white/10 no-scrollbar">
+                                    {regions.map((region) => (
+                                        <button
+                                            key={region} onClick={() => {
+                                                setSelectedRegion(region);
+                                                setRegionOpen(false);
+
+                                                router.push(
+                                                    {
+                                                        pathname: router.pathname,
+                                                        query: region === "ALL Regions" ? {} : { region },
+                                                    },
+                                                    undefined,
+                                                    { shallow: true }
+                                                );
+                                            }}
+                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-[#3a3a3a] transition cursor-pointer ${selectedRegion === region ? "bg-[#3a3a3a] text-white" : "text-white/90"}`}>
+                                            {region}
+                                        </button>
+                                    ))}
+                                </div>
+                            )} */}
 
                             {regionOpen && (
                                 <div className="absolute z-50 mt-2 w-full bg-[#2a2a2a] rounded-xl shadow-2xl border border-white/10">
@@ -376,7 +354,18 @@ export default function BeastSelling() {
                                     <div className="max-h-[220px] overflow-y-auto no-scrollbar">
                                         {filteredRegions.length > 0 ? (
                                             filteredRegions.map((region) => (
-                                                <button key={region} onClick={() => { handleRegionChange(region); setSearch(""); }} className={`w-full text-left px-4 py-3 text-sm transition ${selectedRegion === region ? "bg-[#3a3a3a] text-white" : "text-white/90 hover:bg-[#3a3a3a]"}`}>
+                                                <button
+                                                    key={region}
+                                                    onClick={() => {
+                                                        handleRegionChange(region);
+                                                        setSearch("");
+                                                    }}
+                                                    className={`w-full text-left px-4 py-3 text-sm transition
+              ${selectedRegion === region
+                                                            ? "bg-[#3a3a3a] text-white"
+                                                            : "text-white/90 hover:bg-[#3a3a3a]"}
+            `}
+                                                >
                                                     {region}
                                                 </button>
                                             ))
@@ -402,7 +391,9 @@ export default function BeastSelling() {
                         <span className="text-lg mr-1">Top regions</span>
 
                         {["Poland", "United States", "United Kingdom"].map((region) => {
+
                             const normalized = normalizeRegion(region);
+                            // const urlRegion = normalizeRegionUrl(region);
 
                             return (
                                 <button key={region} className={`px-4 py-1.5 rounded-full transition text-white ${selectedRegion === normalized ? "bg-[#3a3a3a]" : "bg-[#1f1f1f] hover:bg-[#2a2a2a]"}`}
@@ -412,7 +403,7 @@ export default function BeastSelling() {
                                         router.push(
                                             {
                                                 pathname: router.pathname,
-                                                query: { region: normalized },
+                                                query: { region: normalizeRegionUrl(region) },
                                             },
                                             undefined,
                                             { shallow: true }
@@ -428,7 +419,7 @@ export default function BeastSelling() {
                 </div>
             </section>
 
-            {/* ===== SECTION 3: BEST SELLING GAMES ===== */}
+
             <section className="my-0">
                 <h2 className="text-xl font-bold mb-4 dark:text-white">Best Selling Games</h2>
 
@@ -444,36 +435,54 @@ export default function BeastSelling() {
                         ))
                     ) : (
                         products.map((item) => {
-                            //   const { title, slug, price, coverImage } = item.attributes;
 
-                            const imgUrl = getStrapiMedia(
-                                item.image?.url,
-                                {
-                                    width: 1600,
-                                }
-                            );
+                            const imageSource = item.image || item.platform_image;
 
-                            const blurUrl = getStrapiMedia(
-                                item.image?.url,
-                                {
-                                    blur: true,
-                                }
-                            );
+                            const imgUrl = getStrapiMedia(imageSource, {
+                                width: 1600,
+                            });
+
+                            const blurUrl = getStrapiMedia(imageSource, {
+                                blur: true,
+                            });
+
+                            const isAvailable = item.available === true;
+
+                            const originalPrice = Number(item.price) || 0;
+
+                            const sellingPrice =
+                                Number(item.discountPrice) > 0
+                                    ? Number(item.discountPrice)
+                                    : originalPrice;
+
+                            const discountPercentage =
+                                originalPrice > sellingPrice && originalPrice > 0
+                                    ? Math.round(
+                                        ((originalPrice - sellingPrice) / originalPrice) * 100
+                                    )
+                                    : 0;
+
+                            const displayRegion =
+                                item.card_region || item.region || '';
 
                             return (
-                                <div key={item.id} className='mb-2 mt-2'>
-                                    {item.Available ? (<Link
-                                        href={`/store/category/gift-card/roblox/${item.slug}`}
+                                <div key={item._id} className='mb-2 mt-2'>
+                                    {isAvailable ? (<Link
+                                        href={`/store/category/gift-card/xbox/${item.slug}`}
                                         // className="block p-1 rounded-lg hover:shadow-md transition bg-white dark:bg-[#1a1a1a] relative max-w-[260px] mx-auto"
                                         className="block p-1 rounded-lg bg-white dark:bg-[#1a1a1a] relative min-w-[200px] mx-auto shadow-sm dark:shadow-none hover:shadow-lg transition-transform duration-300 transform hover:-translate-y-1"
                                     >
                                         <div className="relative w-full aspect-[3/5] mb-1.5 rounded-md overflow-hidden">
-
+                                            {/* {imageUrl && ( */}
                                             <ProductCardImage
                                                 imgUrl={imgUrl}
                                                 blurUrl={blurUrl}
-                                                available={item.Available}
+                                                available={isAvailable}
+                                            // alt={item.title}
+                                            // fill
+                                            // className="object-center"
                                             />
+                                            {/* )} */}
 
                                             {/* Platform badge */}
                                             {item.platform && (
@@ -483,9 +492,9 @@ export default function BeastSelling() {
                                             )}
 
                                             {/* Discount ribbon */}
-                                            {item.originalPrice && item.originalPrice > item.price && (
+                                            {discountPercentage > 0 && (
                                                 <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded">
-                                                    -{Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%
+                                                    -{discountPercentage}%
                                                 </span>
                                             )}
                                         </div>
@@ -495,9 +504,9 @@ export default function BeastSelling() {
                                                     {item.title}
                                                 </h3>
                                             </HoverCard>
-                                            <h3 className="text-sm font-semibold text-blue-600 px-1.5 mt-0.5">{item.card_region}</h3>
+                                            <h3 className="text-sm font-semibold text-blue-600 px-1.5 mt-0.5">{normalizeRegion(displayRegion)}</h3>
                                             <p className="text-lg text-gray-600 dark:text-gray-300 px-1.5 mt-1 mb-1.5">
-                                                {symbol} {Number(item.discountPrice).toFixed(2)}
+                                                {symbol} {sellingPrice.toFixed(2)}
                                             </p>
                                         </div>
                                     </Link>) : (<div
@@ -510,7 +519,7 @@ export default function BeastSelling() {
                                             <ProductCardImage
                                                 imgUrl={imgUrl}
                                                 blurUrl={blurUrl}
-                                                available={item.Available}
+                                                available={isAvailable}
                                             // alt={item.title}
                                             // fill
                                             // className={`object-center transition ${item.Available ? '' : 'grayscale opacity-60'}`}
@@ -534,9 +543,9 @@ export default function BeastSelling() {
                                             )}
 
                                             {/* Discount ribbon */}
-                                            {item.originalPrice && item.originalPrice > item.price && (
+                                            {discountPercentage > 0 && (
                                                 <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded">
-                                                    -{Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%
+                                                    -{discountPercentage}%
                                                 </span>
                                             )}
                                         </div>
@@ -546,7 +555,7 @@ export default function BeastSelling() {
                                                     {item.title}
                                                 </h3>
                                             </HoverCard>
-                                            <h3 className="text-sm font-semibold text-blue-600 px-1.5 mt-0.5">{item.card_region}</h3>
+                                            <h3 className="text-sm font-semibold text-blue-600 px-1.5 mt-0.5">{normalizeRegion(displayRegion)}</h3>
                                             <p className="text-lg text-[#cc0000] font-bold dark:text-gray-300 px-1.5 mt-1 mb-1.5">
                                                 Sold Out
                                             </p>
@@ -557,6 +566,15 @@ export default function BeastSelling() {
                         })
                     )}
                 </div>
+                {/* Show All Button */}
+                {/* <div className="flex justify-center mt-8">
+          <Link
+            href={`/store/collection/best-selling`}
+            className="px-6 py-2 rounded-full bg-neutral-800 text-white hover:bg-[#1a1a1a] transition"
+          >
+            Show All
+          </Link>
+        </div> */}
             </section>
         </div>
     );
