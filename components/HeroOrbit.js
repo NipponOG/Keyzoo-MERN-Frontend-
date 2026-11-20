@@ -1,179 +1,129 @@
 import Image from "next/image"
+import { motion, useReducedMotion } from "framer-motion"
+
+const TILE_BASE = "https://driffle.com/tiles/about"
+
+/**
+ * One entry per ring.
+ * size      ring diameter as a % of the orbit box (100 = the box itself)
+ * duration  seconds for one full turn (higher = slower)
+ * direction 1 = clockwise, -1 = counter-clockwise
+ * icons     angle is where the tile sits on the ring: 0 = top, 90 = right, 180 = bottom, 270 = left
+ */
+const RINGS = [
+    { size: 150, duration: 90, direction: -1, icons: [] },
+    {
+        size: 125,
+        duration: 45,
+        direction: 1,
+        icons: [
+            { name: "minecraft", angle: 90 },
+            { name: "fifa", angle: 270 },
+        ],
+    },
+    {
+        size: 100,
+        duration: 55,
+        direction: 1,
+        icons: [
+            { name: "steam", angle: 0 },
+            { name: "spiderman", angle: 180 },
+        ],
+    },
+    {
+        size: 75,
+        duration: 80,
+        direction: -1,
+        icons: [
+            { name: "mortalkombat", angle: 0 },
+            { name: "batman", angle: 180 },
+        ],
+    },
+    {
+        size: 50,
+        duration: 35,
+        direction: 1,
+        icons: [{ name: "xbox", angle: 90 }],
+    },
+]
+
+function IconTile({ name }) {
+    return (
+        <div className="relative h-12 w-12 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5 dark:bg-[#1a1030] dark:ring-white/10 sm:h-14 sm:w-14">
+            <Image
+                src={`${TILE_BASE}/${name}.png`}
+                alt=""
+                fill
+                sizes="56px"
+                draggable={false}
+                className="object-cover"
+            />
+        </div>
+    )
+}
+
+function Ring({ size, duration, direction, icons, reduceMotion }) {
+    const offset = (100 - size) / 2
+    const transition = { duration, ease: "linear", repeat: Infinity }
+
+    return (
+        <div
+            className="absolute rounded-full border border-white/2 shadow-[0_0_24px_rgba(109,60,255,0.12),inset_0_0_24px_rgba(109,60,255,0.08)]"
+            style={{
+                width: `${size}%`,
+                height: `${size}%`,
+                left: `${offset}%`,
+                top: `${offset}%`,
+            }}
+        >
+            {/* The whole ring layer spins... */}
+            <motion.div
+                className="absolute inset-0"
+                animate={reduceMotion ? undefined : { rotate: 360 * direction }}
+                transition={transition}
+            >
+                {icons.map(({ name, angle }) => (
+                    // ...each icon is parked at its angle on the ring...
+                    <div
+                        key={name}
+                        className="absolute inset-0"
+                        style={{ transform: `rotate(${angle}deg)` }}
+                    >
+                        <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
+                            {/* ...and counter-rotated so the tile always stays upright */}
+                            <div style={{ transform: `rotate(${-angle}deg)` }}>
+                                <motion.div
+                                    animate={reduceMotion ? undefined : { rotate: -360 * direction }}
+                                    transition={transition}
+                                >
+                                    <IconTile name={name} />
+                                </motion.div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </motion.div>
+        </div>
+    )
+}
 
 export default function HeroOrbit({ children }) {
+    const reduceMotion = useReducedMotion()
+
     return (
-        <div className="relative mx-auto mt-15 h-[720px] w-[720px] max-w-full">
+        // Square box that always fits the viewport width and height
+        <div className="relative aspect-square w-[min(90vw,72svh,720px)]">
+            {/* Orbit layer: purely decorative, faded on phones so text stays readable */}
+            <div aria-hidden="true" className="absolute inset-0 opacity-40 sm:opacity-100">
+                {RINGS.map((ring) => (
+                    <Ring key={ring.size} reduceMotion={reduceMotion} {...ring} />
+                ))}
+            </div>
 
             {/* Center content */}
-            <div className="absolute inset-0 z-10 flex flex-col items-start justify-center text-center px-10">
+            <div className="absolute inset-0 z-10 flex items-center justify-center">
                 {children}
             </div>
-
-            {/* Orbit Rings */}
-            <div className="absolute inset-0 rounded-full border border-white/10" />
-            <div className="absolute inset-[90px] rounded-full border border-white/10" />
-            <div className="absolute inset-[180px] rounded-full border border-white/10" />
-            <div className="absolute inset-[-180px] rounded-full border border-white/10" />
-            <div className="absolute inset-[-90px] rounded-full border border-white/10" />
-
-            {/* Orbit 1 */}
-            <div className="absolute inset-0 orbit">
-                <IconOne position="top-[-20px] right-2/2 -translate-x-1/2" />   {/* Changed from left-1/2 to right-2/2 */}
-                <IconTwo position="bottom-[-20px] left-1/2 -translate-x-1/2" /> {/* Don't change the value */}
-            </div>
-
-            {/* Orbit 2 */}
-            <div className="absolute inset-[90px] orbit orbit-slow">
-                <IconThree position="top-[-20px] left-2/2 -translate-x-1/2" />    {/* Don't change the value */}
-                <IconFour position="bottom-[-15px] right-1/2 -translate-x-1/2" />    {/* Don't change the value */}
-            </div>
-
-            {/* Orbit 3 */}
-            <div className="absolute inset-[180px] orbit orbit-fast">
-                {/* <IconThree position="left-[-20px] top-9/9 -translate-y-1/2" /> */}
-                <IconFive position="right-[-20px] top-1/2 -translate-y-1/2" />
-            </div>
-
-            {/* Orbit 4 */}
-            <div className="absolute inset-[-180px] orbit orbit-fast">
-                {/* <IconFour position="top-[20px] top-2/2 -translate-y-1/2" /> */}
-                {/* <IconSix position="right-[-20px] top-3/2 -translate-y-1/2" /> */}
-            </div>
-
-            {/* Orbit 5 */}
-            <div className="absolute inset-[-90px] orbit orbit-fast">
-                <IconSeven position="right-[-20px] top-1/2 -translate-y-1/2" />
-                <IconEight position="left-[-20px] top-1/2 -translate-y-1/2" />
-            </div>
-
-        </div>
-    )
-}
-
-function IconOne({ position }) {
-    return (
-        <div
-            className={`absolute ${position} flex h-14 w-14 items-center justify-center rounded-xl bg-[#111] shadow-lg`}
-        >
-            <Image
-                src="https://driffle.com/tiles/about/steam.png"
-                alt=""
-                // width={32}
-                // height={32}
-                fill
-            />
-        </div>
-    )
-}
-
-function IconTwo({ position }) {
-    return (
-        <div
-            className={`absolute ${position} flex h-14 w-14 items-center justify-center rounded-xl bg-[#111] shadow-lg`}
-        >
-            <Image
-                src="https://driffle.com/tiles/about/spiderman.png"
-                alt=""
-                // width={32}
-                // height={32}
-                fill
-            />
-        </div>
-    )
-}
-
-function IconThree({ position }) {
-    return (
-        <div
-            className={`absolute ${position} flex h-14 w-14 items-center justify-center rounded-xl bg-[#111] shadow-lg`}
-        >
-            <Image
-                src="https://driffle.com/tiles/about/mortalkombat.png"
-                alt=""
-                // width={32}
-                // height={32}
-                fill
-            />
-        </div>
-    )
-}
-
-function IconFour({ position }) {
-    return (
-        <div
-            className={`absolute ${position} flex h-14 w-14 items-center justify-center rounded-xl bg-[#111] shadow-lg`}
-        >
-            <Image
-                src="https://driffle.com/tiles/about/batman.png"
-                alt=""
-                // width={32}
-                // height={32}
-                fill
-            />
-        </div>
-    )
-}
-
-function IconFive({ position }) {
-    return (
-        <div
-            className={`absolute ${position} flex h-14 w-14 items-center justify-center rounded-xl bg-[#111] shadow-lg`}
-        >
-            <Image
-                src="https://driffle.com/tiles/about/xbox.png"
-                alt=""
-                // width={32}
-                // height={32}
-                fill
-            />
-        </div>
-    )
-}
-
-function IconSix({ position }) {
-    return (
-        <div
-            className={`absolute ${position} flex h-14 w-14 items-center justify-center rounded-xl bg-[#111] shadow-lg`}
-        >
-            <Image
-                src="https://driffle.com/tiles/about/minecraft.png"
-                alt=""
-                // width={32}
-                // height={32}
-                fill
-            />
-        </div>
-    )
-}
-
-function IconSeven({ position }) {
-    return (
-        <div
-            className={`absolute ${position} flex h-14 w-14 items-center justify-center rounded-xl bg-[#111] shadow-lg`}
-        >
-            <Image
-                src="https://driffle.com/tiles/about/minecraft.png"
-                alt=""
-                // width={32}
-                // height={32}
-                fill
-            />
-        </div>
-    )
-}
-
-function IconEight({ position }) {
-    return (
-        <div
-            className={`absolute ${position} flex h-14 w-14 items-center justify-center rounded-xl bg-[#111] shadow-lg`}
-        >
-            <Image
-                src="https://driffle.com/tiles/about/fifa.png"
-                alt=""
-                // width={32}
-                // height={32}
-                fill
-            />
         </div>
     )
 }

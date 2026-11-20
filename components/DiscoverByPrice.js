@@ -1,261 +1,180 @@
-// // components/DiscoverByPrice.js
-// import React from "react";
-// import useCurrency from "@/hook/useCurrency";
-// import { useState, useEffect } from "react";
-// import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-
-// const priceRanges = [
-//     { label: "100" },
-//     { label: "200" },
-//     { label: "500" },
-//     { label: "1000" },
-//     { label: "1500" },
-//     { label: "2000" },
-//     { label: "2500" },
-//     { label: "5000" },
-// ];
-
-// const DiscoverByPriceSkeleton = () => (
-//     <SkeletonTheme baseColor="#2a2a2a" highlightColor="#444">
-//         <div className="py-10 px-4">
-//             <Skeleton width={160} height={24} />
-
-//             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:flex flex-wrap gap-4 mt-6">
-//                 {Array(8)
-//                     .fill(0)
-//                     .map((_, i) => (
-//                         <div
-//                             key={i}
-//                             className="rounded-xl bg-[#2a2a2a] p-4 w-40 h-24 flex justify-center items-center"
-//                         >
-//                             <Skeleton width={80} height={20} />
-//                         </div>
-//                     ))}
-//             </div>
-//         </div>
-//     </SkeletonTheme>
-// );
-
-// export default function DiscoverByPrice() {
-
-//     const { symbol } = useCurrency();
-//     const [loading, setLoading] = useState(true);
-
-//     useEffect(() => {
-//         const t = setTimeout(() => setLoading(false), 600); // smooth premium delay
-//         return () => clearTimeout(t);
-//     }, []);
-
-//     if (loading) return <DiscoverByPriceSkeleton />;
-
-//     return (
-//         <div className=" py-10 px-4">
-//             <h2 className=" text-lg sm:text-xl font-semibold mb-6">
-//                 Discover By Price
-//             </h2>
-
-//             <div className="w-full grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:flex flex-wrap gap-4">
-//                 {priceRanges.map((item, index) => (
-//                     <button
-//                         key={index}
-//                         className="bg-[#2a2a2a] hover:bg-[#333] transition-all text-white rounded-xl w-40 h-25 flex flex-col justify-center items-center shadow-sm cursor-pointer"
-//                     >
-//                         <span className="text-sm text-gray-400">Under</span>
-//                         <span className="text-xl font-semibold">{symbol} {item.label}</span>
-//                     </button>
-//                 ))}
-//             </div>
-//         </div>
-//     );
-// }
-
-
-
-
-// components/DiscoverByPrice.js
-
-import React, { useState, useEffect } from "react";
-import useCurrency from "@/hook/useCurrency";
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { IoArrowForward } from "react-icons/io5";
+import useCurrency from "@/hook/useCurrency";
 
-const priceRanges = [
-    { label: "100" },
-    { label: "200" },
-    { label: "500" },
-    { label: "1000" },
-    { label: "1500" },
-    { label: "2000" },
-    { label: "2500" },
-    { label: "3000" },
-    { label: "3500" },
-    { label: "4000" },
-    { label: "4500" },
-    { label: "5000" },
-];
+const PRICE_STEPS = [100, 200, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000];
 
-const DiscoverByPriceSkeleton = () => (
+// Change this to match your listing route / query param
+const priceHref = (max) => `/games?maxPrice=${max}`;
 
-    <SkeletonTheme baseColor="#2a2a2a" highlightColor="#444">
-        <div className="rounded-3xl border border-white/5 bg-gradient-to-br from-[#111] to-[#1a1a1a] p-8">
-            <Skeleton width={180} height={28} />
+const formatPrice = (n) => n.toLocaleString("en-US");
 
-            <Skeleton
-                width={260}
-                height={18}
-                className="mt-3"
+function PriceChip({ amount, symbol }) {
+    return (
+        <Link
+            href={priceHref(amount)}
+            aria-label={`Games under ${symbol} ${formatPrice(amount)}`}
+            className="group relative flex min-h-[92px] flex-col items-start justify-center overflow-hidden rounded-2xl
+                       border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-sm
+                       transition-all duration-300 ease-out
+                       hover:-translate-y-1 hover:border-purple-400/50 hover:bg-white/[0.08]
+                       hover:shadow-lg hover:shadow-purple-500/20
+                       focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
+        >
+            {/* hover glow */}
+            <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-purple-500/30 blur-2xl
+                           opacity-0 transition-opacity duration-300 group-hover:opacity-100"
             />
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-                {Array(8)
-                    .fill(0)
-                    .map((_, i) => (
-                        <Skeleton
-                            key={i}
-                            height={90}
-                            borderRadius={16}
-                        />
-                    ))}
-            </div>
-        </div>
-    </SkeletonTheme>
-);
+            <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400 transition-colors group-hover:text-purple-200">
+                Under
+            </span>
 
-export default function DiscoverByPrice() {
+            <span className="mt-1 text-xl font-bold text-white sm:text-2xl">
+                {symbol}
+                {formatPrice(amount)}
+            </span>
 
-    const { symbol } = useCurrency();
+            <IoArrowForward
+                aria-hidden="true"
+                className="absolute right-4 top-4 -translate-x-1 text-lg text-white/0 transition-all duration-300
+                           group-hover:translate-x-0 group-hover:text-white/80"
+            />
+        </Link>
+    );
+}
 
-    const [loading, setLoading] = useState(true);
+function CustomBudget({ symbol }) {
+    const router = useRouter();
+    const [value, setValue] = useState("");
 
-    useEffect(() => {
-        const t = setTimeout(() => {
-            setLoading(false);
-        }, 600);
-
-        return () => clearTimeout(t);
-    }, []);
-
-    if (loading) {
-        return <DiscoverByPriceSkeleton />;
-    }
+    const submit = (e) => {
+        e.preventDefault();
+        const amount = Math.floor(Number(value));
+        if (!amount || amount < 1) return;
+        router.push(priceHref(amount));
+    };
 
     return (
-        // <section className="w-full relative overflow-hidden rounded-3xl border border-white/5 bg-gradient-to-br from-[#111] to-[#1a1a1a] px-4 py-8 sm:px-6 md:px-8 lg:px-10">
-        <section
-            className="
-        w-full
-        relative
-        overflow-hidden
-        rounded-3xl
-        border border-white/5
-        bg-gradient-to-br from-[#111] to-[#1a1a1a]
-        px-4
-        py-10
-        sm:px-6
-        sm:py-12
-        md:px-8
-        md:py-14
-        lg:px-10
-        lg:py-16
-        min-h-0
-        xl:min-h-[560px]
-    "
+        <form
+            onSubmit={submit}
+            className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:items-center"
         >
+            <label htmlFor="custom-budget" className="text-sm text-gray-400 sm:mr-2">
+                Or set your own budget
+            </label>
 
-            {/* Glow Effect */}
-            <div className="absolute -right-20 top-1/2 -translate-y-1/2 w-48 h-48 sm:w-72 sm:h-72 bg-purple-500/20 blur-3xl rounded-full pointer-events-none" />
+            <div className="flex flex-1 gap-3">
+                <div
+                    className="flex flex-1 items-center rounded-xl border border-white/10 bg-white/[0.04] px-4
+                               transition focus-within:border-purple-400/60 focus-within:ring-2 focus-within:ring-purple-400/30"
+                >
+                    <span className="mr-2 text-gray-400">{symbol}</span>
+                    <input
+                        id="custom-budget"
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        step="1"
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        placeholder="e.g. 750"
+                        className="w-full bg-transparent py-3 text-white placeholder:text-gray-600 focus:outline-none
+                                   [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                </div>
 
-            <div className="relative z-10 flex flex-col lg:flex-row items-center lg:items-center justify-between gap-8 lg:gap-10">
+                <button
+                    type="submit"
+                    disabled={!value || Number(value) < 1}
+                    className="rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#6D28D9] px-5 py-3 text-sm font-semibold text-white
+                               shadow-lg shadow-purple-600/20 transition-all duration-300
+                               hover:shadow-purple-600/40 disabled:cursor-not-allowed disabled:opacity-40
+                               focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                    Show deals
+                </button>
+            </div>
+        </form>
+    );
+}
 
-                {/* TOP LEFT MAGIC GLOW */}
-                <div className="absolute -top-32 -left-32 w-[240px]
-h-[240px]
-sm:w-[320px]
-sm:h-[320px]
-lg:w-[420px]
-lg:h-[420px] rounded-full bg-violet-500/15 blur-[120px] pointer-events-none -z-10" />
+export default function DiscoverByPrice() {
+    const { symbol } = useCurrency();
 
-                <div className="absolute top-20 left-20 w-32 h-32 rounded-full bg-blue-400/10 blur-3xl pointer-events-none" />
+    return (
+        <section
+            aria-labelledby="discover-by-price-heading"
+            className="relative w-full overflow-hidden rounded-3xl border border-white/10
+                       bg-gradient-to-br from-[#101014] via-[#15151b] to-[#1a1523]
+                       px-4 py-10 sm:px-8 sm:py-12 lg:px-12 lg:py-14"
+        >
+            {/* Decorative background (single layer, hidden from assistive tech) */}
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+                <div className="absolute -left-32 -top-32 h-[320px] w-[320px] rounded-full bg-violet-500/15 blur-[120px] lg:h-[420px] lg:w-[420px]" />
+                <div className="absolute -bottom-24 right-0 h-72 w-72 rounded-full bg-purple-500/20 blur-3xl" />
+                <div
+                    className="absolute inset-0 opacity-[0.07]"
+                    style={{
+                        backgroundImage: "radial-gradient(#fff 1px, transparent 1px)",
+                        backgroundSize: "22px 22px",
+                        maskImage: "linear-gradient(to bottom right, #000, transparent 70%)",
+                        WebkitMaskImage: "linear-gradient(to bottom right, #000, transparent 70%)",
+                    }}
+                />
+            </div>
 
-                {/* LEFT CONTENT */}
-                <div className="w-full xl:w-[52%] text-center xl:text-left">
+            <div className="relative z-10 grid items-center gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] lg:gap-12">
+                {/* ---------- Left: content ---------- */}
+                <div>
+                    <span className="inline-block rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1 text-xs font-medium uppercase tracking-widest text-purple-200">
+                        Shop by budget
+                    </span>
 
-                    <h2 className="text-2xl sm:text-3xl xl:text-4xl font-bold text-white">
+                    <h2
+                        id="discover-by-price-heading"
+                        className="mt-4 text-2xl font-bold text-white sm:text-3xl xl:text-4xl"
+                    >
                         Discover By Price
                     </h2>
 
-                    <p className="text-gray-400 mt-3 text-sm sm:text-base max-w-[500px] mx-auto xl:mx-0">
+                    <p className="mt-3 max-w-[520px] text-sm text-gray-400 sm:text-base">
                         Find the best gaming deals instantly based on your budget.
                     </p>
 
-                    {/* PRICE BUTTONS */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mt-8">
+                    <nav aria-label="Browse games by price" className="mt-8">
+                        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
+                            {PRICE_STEPS.map((amount) => (
+                                <li key={amount}>
+                                    <PriceChip amount={amount} symbol={symbol} />
+                                </li>
+                            ))}
+                        </ul>
+                    </nav>
 
-                        {priceRanges.map((item, index) => (
-                            <button
-                                key={index}
-                                className="
-                                    bg-[#242424]
-                                    hover:bg-[#2f2f2f]
-                                    border border-white/5
-                                    rounded-2xl
-                                    min-h-[90px]
-                                    flex flex-col
-                                    justify-center
-                                    items-center
-                                    transition-all duration-300
-                                    hover:-translate-y-1
-                                    hover:shadow-lg
-                                    hover:shadow-purple-500/10
-                                    group
-                                    cursor-pointer
-                                "
-                            >
-                                <span className="text-sm text-gray-400 group-hover:text-gray-300 transition">
-                                    Under
-                                </span>
-
-                                <span className="text-xl sm:text-2xl font-bold text-white mt-1">
-                                    {symbol} {item.label}
-                                </span>
-                            </button>
-                        ))}
-
-                    </div>
+                    <CustomBudget symbol={symbol} />
                 </div>
 
-                {/* RIGHT ILLUSTRATION */}
-                {/* <div className="relative w-full lg:w-[42%] flex justify-center mt-6 lg:mt-0"> */}
-                <div
-                    className="
-        hidden
-        xl:flex
-        xl:w-[48%]
-        justify-center
-        items-center
-        xl:mt-0
-        min-h-[500px]
-        pr-2
-    "
-                >
-                    <div className="relative w-full flex justify-center items-center">
-                        <Image
-                            src="/confused.png"
-                            alt="Discover games by price"
-                            width={650}
-                            height={650}
-                            className="
-                object-contain
-                w-full
-                max-w-[620px]
-                h-auto
-                select-none
-                pointer-events-none
-            "
-                        />
-                    </div>
+                {/* ---------- Right: illustration ---------- */}
+                <div className="relative hidden items-center justify-center lg:flex">
+                    <div
+                        aria-hidden="true"
+                        className="absolute h-[70%] w-[70%] rounded-full bg-purple-500/20 blur-3xl"
+                    />
+                    <Image
+                        src="/confused.png"
+                        alt=""
+                        width={650}
+                        height={650}
+                        sizes="(min-width: 1024px) 35vw, 0px"
+                        className="pointer-events-none relative h-auto w-full max-w-[560px] select-none object-contain drop-shadow-2xl"
+                    />
                 </div>
-
             </div>
         </section>
     );

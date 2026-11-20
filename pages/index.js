@@ -37,7 +37,7 @@ const HomeHero = ({ siteSeo }) => {
 
       <div className="px-4 md:px-10 py-8">
         <HomeBanner />
-        <RecentlyViewed />
+        {/* <RecentlyViewed /> */}
         <ProductCarousel />
         <PlatformSlider />
         <BeastSelling />
