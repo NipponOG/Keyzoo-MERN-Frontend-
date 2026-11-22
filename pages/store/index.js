@@ -1,1038 +1,1033 @@
-import { useEffect, useState } from 'react';
-import toast from "react-hot-toast";
-import Image from 'next/image';
-import OptimizedImage from "@/components/Image/OptimizedImage";
-import Link from 'next/link';
-import useCurrency from '@/hook/useCurrency';
-import HoverCard from '@/components/HoverCard';
-import { MdOutlineKeyboardArrowDown } from "react-icons/md";
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/router";
-import ProductCardImage from "@/components/ProductCardImage";
+import toast from "react-hot-toast";
+import { MdClose, MdFilterList, MdOutlineKeyboardArrowDown } from "react-icons/md";
+import OptimizedImage from "@/components/Image/OptimizedImage";
+import HoverCard from "@/components/HoverCard";
+import useCurrency from "@/hook/useCurrency";
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { getStrapiMedia } from '@/lib/getStrapiMedia';
 
-export default function index() {
+/* -------------------------------------------------------------------------- */
+/*  Config                                                                     */
+/* -------------------------------------------------------------------------- */
 
-  const { symbol } = useCurrency();
-  const router = useRouter();
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+const PAGE_SIZE = 10;
+const DEBOUNCE_MS = 400;
+const CACHE_TTL_MS = 60_000;
+const CACHE_LIMIT = 40;
+const FALLBACK_IMAGE = "/keyzoo-fallback.png";
+const ELLIPSIS = "ellipsis";
 
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [notified, setNotified] = useState({});
+const EMPTY_FILTERS = {
+  search: "",
+  platforms: [],
+  regions: [],
+  productTypes: [],
+  worksOn: [],
+  onlyAvailable: false,
+  minPrice: "", // "" means "no limit"
+  maxPrice: "",
+};
 
-  // FILTER STATES
-  const [search, setSearch] = useState("");
-  const [selectedPlatforms, setSelectedPlatforms] = useState([]);
-  const [selectedRegions, setSelectedRegions] = useState([]);
-  const [onlyAvailable, setOnlyAvailable] = useState(false);
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(999999);
+// filter field -> query-string / API parameter
+const LIST_PARAMS = {
+  platforms: "platform",
+  regions: "region",
+  productTypes: "productType",
+  worksOn: "worksOn",
+};
 
-  // FILTER OPTIONS
-  const [platforms, setPlatforms] = useState([]);
-  const [regions, setRegions] = useState([]);
-  const [productTypes, setProductTypes] = useState([]);
-  const [worksOn, setWorksOn] = useState([]);
-  const [filterCounts, setFilterCounts] = useState({});
+const LIST_SECTIONS = [
+  { field: "platforms", title: "Platforms" },
+  { field: "productTypes", title: "Product Type" },
+  { field: "regions", title: "Region" },
+  { field: "worksOn", title: "Works On" },
+];
 
-  const [selectedProductTypes, setSelectedProductTypes] = useState([]);
-  const [selectedWorksOn, setSelectedWorksOn] = useState([]);
+const INPUT_CLS =
+  "w-full rounded-lg border bg-[#1A1A1F] px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-purple-500";
 
-  const [page, setPage] = useState(1);
+/* -------------------------------------------------------------------------- */
+/*  Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
 
-  const [debouncedSearch, setDebouncedSearch] = useState(search);
+const first = (v) => (Array.isArray(v) ? v[0] : v);
+const parseList = (v) => (v ? String(first(v)).split(",").filter(Boolean) : []);
+const toPrice = (v) => {
+  const n = Number(first(v));
+  return Number.isFinite(n) && n > 0 ? String(n) : "";
+};
+const parsePage = (v) => {
+  const n = Math.floor(Number(first(v)));
+  return Number.isFinite(n) && n > 0 ? n : 1;
+};
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 600);
+function filtersFromQuery(q) {
+  return {
+    search: q.search ? String(first(q.search)) : "",
+    platforms: parseList(q.platform),
+    regions: parseList(q.region),
+    productTypes: parseList(q.productType),
+    worksOn: parseList(q.worksOn),
+    onlyAvailable: first(q.available) === "true",
+    minPrice: toPrice(q.minPrice),
+    maxPrice: toPrice(q.maxPrice),
+  };
+}
 
-    return () => clearTimeout(timeout);
-  }, [search]);
+// Used for both the page URL and the API request so they never drift apart
+function toParams(filters, page) {
+  const p = new URLSearchParams();
+  const search = filters.search.trim();
 
-  const handleNotify = async () => {
+  if (search) p.set("search", search);
+  for (const [field, param] of Object.entries(LIST_PARAMS)) {
+    if (filters[field].length) p.set(param, filters[field].join(","));
+  }
+  if (filters.onlyAvailable) p.set("available", "true");
+  if (filters.minPrice) p.set("minPrice", filters.minPrice);
+  if (filters.maxPrice) p.set("maxPrice", filters.maxPrice);
+  if (page > 1) p.set("page", String(page));
+
+  return p;
+}
+
+function toApiQuery(filters, page) {
+  const p = toParams(filters, page);
+  p.set("page", String(page));
+  p.set("pageSize", String(PAGE_SIZE));
+  return p.toString();
+}
+
+function hasActiveFilters(f) {
+  return Boolean(
+    f.search.trim() ||
+    f.platforms.length ||
+    f.regions.length ||
+    f.productTypes.length ||
+    f.worksOn.length ||
+    f.onlyAvailable ||
+    f.minPrice ||
+    f.maxPrice
+  );
+}
+
+const SPECIAL_LABELS = {
+  psn: "PlayStation",
+  xbox: "Xbox",
+  steam: "Steam",
+  spotify: "Spotify",
+  roblox: "Roblox",
+  binance: "Binance",
+};
+
+function formatLabel(value) {
+  if (!value) return "";
+  const str = String(value);
+  const special = SPECIAL_LABELS[str.toLowerCase()];
+  if (special) return special;
+  // keep short codes such as USA / UK / EU as they are
+  if (str.length <= 3 && str === str.toUpperCase()) return str;
+  return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function getItemHref(item) {
+  switch (item.type) {
+    case "gift-card":
+      return `/store/category/gift-card/${item.platform}/${item.slug}`;
+    case "psn":
+    case "store/category/product/psn":
+      return `/store/category/product/psn/${item.slug}`;
+    default:
+      return `/product/${item.slug}`;
+  }
+}
+
+function normalizeItem(item) {
+  const basePrice = Number(item.price ?? 0) || 0;
+  return {
+    id: item.id,
+    slug: item.slug,
+    type: item.type,
+    platform: item.platform,
+    title: item.title,
+    image: item.image,
+    available: Boolean(item.available ?? item.Available),
+    region: item.card_region ?? item.region ?? "",
+    originalPrice: basePrice,
+    price: Number(item.discountPrice ?? item.price ?? 0) || 0,
+  };
+}
+
+function getPageItems(page, total) {
+  const pages = [
+    ...new Set([1, total, ...[-2, -1, 0, 1, 2].map((d) => page + d)]),
+  ]
+    .filter((p) => p >= 1 && p <= total)
+    .sort((a, b) => a - b);
+
+  const out = [];
+  pages.forEach((p, i) => {
+    const prev = pages[i - 1];
+    if (prev && p - prev === 2) out.push(prev + 1); // a single gap is just a number
+    else if (prev && p - prev > 2) out.push(ELLIPSIS);
+    out.push(p);
+  });
+  return out;
+}
+
+const runWhenIdle = (fn) =>
+  typeof window.requestIdleCallback === "function"
+    ? window.requestIdleCallback(fn, { timeout: 2000 })
+    : setTimeout(fn, 300);
+
+function handleNotify() {
+  try {
     const user = JSON.parse(localStorage.getItem("user") || "null");
     const token = localStorage.getItem("jwt");
-
     if (!user || !token) {
       toast.error("Please login first");
       return;
     }
-
-    toast.error("Stock alerts are temporarily unavailable.");
-  };
-
-  useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  }, [page]);
-
-  const [totalPages, setTotalPages] = useState(1);
-
-  const buildQuery = () => {
-    const query = new URLSearchParams();
-
-    if (debouncedSearch.trim()) {
-      query.set("search", debouncedSearch.trim());
-    }
-
-    if (selectedPlatforms.length) {
-      query.set("platform", selectedPlatforms.join(","));
-    }
-
-    if (selectedRegions.length) {
-      query.set("region", selectedRegions.join(","));
-    }
-
-    if (selectedProductTypes.length) {
-      query.set("productType", selectedProductTypes.join(","));
-    }
-
-    if (selectedWorksOn.length) {
-      query.set("worksOn", selectedWorksOn.join(","));
-    }
-
-    if (onlyAvailable) {
-      query.set("available", "true");
-    }
-
-    if (minPrice > 0) {
-      query.set("minPrice", String(minPrice));
-    }
-
-    if (maxPrice < 999999) {
-      query.set("maxPrice", String(maxPrice));
-    }
-
-    query.set("page", String(page));
-    query.set("pageSize", "10");
-
-    return query.toString();
-  };
-
-  useEffect(() => {
-    setPage(1);
-  }, [
-    search,
-    selectedPlatforms,
-    selectedRegions,
-    selectedProductTypes,
-    selectedWorksOn,
-    onlyAvailable,
-    minPrice,
-    maxPrice,
-  ]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function getFilterItems() {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-        if (!apiUrl) {
-          throw new Error("NEXT_PUBLIC_API_URL is not configured");
-        }
-
-        const response = await fetch(
-          `${apiUrl.replace(/\/$/, "")}/store/filter-options`
-        );
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(
-            result.message || "Failed to fetch filter items"
-          );
-        }
-
-        if (cancelled) return;
-
-        setPlatforms(result.data.platforms || []);
-        setRegions(result.data.regions || []);
-        setProductTypes(result.data.productTypes || []);
-        setWorksOn(result.data.worksOn || []);
-        setFilterCounts(result.data.counts || {});
-
-      } catch (error) {
-        if (!cancelled) {
-          console.error("Failed to fetch filter items:", error);
-        }
-      }
-    }
-
-    getFilterItems();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function getData() {
-      setLoading(true);
-
-      try {
-        const query = buildQuery();
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-        if (!apiUrl) {
-          throw new Error("NEXT_PUBLIC_API_URL is not configured");
-        }
-
-        const response = await fetch(
-          `${apiUrl.replace(/\/$/, "")}/store?${query}`
-        );
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(
-            result.message || "Failed to fetch store items"
-          );
-        }
-
-        if (cancelled) return;
-
-        const merged = (result.data || []).map((item) => ({
-          ...item,
-          Available: item.available ?? item.Available ?? false,
-          card_region: item.card_region ?? item.region ?? "",
-          work_platform: item.workPlatform ?? item.work_platform ?? "",
-          originalPrice: Number(item.price ?? 0),
-          price: Number(item.discountPrice ?? item.price ?? 0),
-        }));
-
-        setItems(merged);
-
-        setTotalPages(
-          Math.max(
-            1,
-            Number(
-              result.totalPages ??
-              Math.ceil((result.total ?? merged.length) / 10)
-            )
-          )
-        );
-
-        // setPlatforms([
-        //   ...new Set(filterItems.map((item) => item.platform).filter(Boolean)),
-        // ]);
-
-        // setRegions([
-        //   ...new Set(filterItems.map((item) => item.card_region).filter(Boolean)),
-        // ]);
-
-        // setProductTypes([
-        //   ...new Set(filterItems.map((item) => item.item_type).filter(Boolean)),
-        // ]);
-
-        // setWorksOn([
-        //   ...new Set(filterItems.map((item) => item.work_platform).filter(Boolean)),
-        // ]);
-
-      } catch (error) {
-        if (!cancelled) {
-          console.error("Failed to fetch store items:", error);
-          setItems([]);
-          setTotalPages(1);
-          toast.error("Failed to load store items.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    getData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    debouncedSearch,
-    selectedPlatforms,
-    selectedRegions,
-    selectedProductTypes,
-    selectedWorksOn,
-    onlyAvailable,
-    minPrice,
-    maxPrice,
-    page,
-  ]);
-
-  const clearFilters = () => {
-    setSearch("");
-    setSelectedPlatforms([]);
-    setSelectedRegions([]);
-    setSelectedProductTypes([]);
-    setSelectedWorksOn([]);
-    setOnlyAvailable(false);
-    setMinPrice(0);
-    setMaxPrice(999999);
-  };
-
-  const isFilterActive =
-    search ||
-    selectedPlatforms.length ||
-    selectedRegions.length ||
-    selectedProductTypes.length ||
-    selectedWorksOn.length ||
-    onlyAvailable ||
-    minPrice > 0 ||
-    maxPrice < 999999;
-
-  const getPages = () => {
-    const pages = [];
-
-    if (page > 3) pages.push(1, "...");
-
-    for (let i = page - 2; i <= page + 2; i++) {
-      if (i > 0 && i <= totalPages) {
-        pages.push(i);
-      }
-    }
-
-    if (page < totalPages - 2) pages.push("...", totalPages);
-
-    return pages;
-  };
-
-  // const getCount = (mapKey, value) => {
-
-  //   return filterItems.filter((x) => {
-
-  //     if (mapKey === "platforms") {
-  //       return x.platform === value;
-  //     }
-
-  //     if (mapKey === "regions") {
-  //       return x.card_region === value;
-  //     }
-
-  //     if (mapKey === "productTypes") {
-  //       return x.item_type === value;
-  //     }
-
-  //     if (mapKey === "worksOn") {
-  //       return x.work_platform === value;
-  //     }
-
-  //     return false;
-
-  //   }).length;
-
-  // };
-
-  const getCount = (mapKey, value) => {
-    return filterCounts[mapKey]?.[value] ?? 0;
-  };
-
-  const getItemHref = (item) => {
-
-    // 🎮 PRODUCTS
-    if (item.type === "product") {
-      return `/product/${item.slug}`;
-    }
-
-    // 🎁 GIFT CARDS
-    if (item.type === "gift-card") {
-      return `/store/category/gift-card/${item.platform}/${item.slug}`;
-    }
-
-    // 🕹️ PLAYSTATION
-    if (item.type === "store/category/product/psn") {
-      return `/store/category/product/psn/${item.slug}`;
-    }
-
-    // FALLBACK
-    return "#";
-  };
-
-  useEffect(() => {
-
-    const query = {};
-
-    // 🔍 SEARCH
-    if (debouncedSearch) {
-      query.search = debouncedSearch;
-    }
-
-    // 🎮 PLATFORM
-    if (selectedPlatforms.length) {
-      query.platform = selectedPlatforms.join(",");
-    }
-
-    // 🌍 REGION
-    if (selectedRegions.length) {
-      query.region = selectedRegions.join(",");
-    }
-
-    // 📦 PRODUCT TYPE
-    if (selectedProductTypes.length) {
-      query.productType = selectedProductTypes.join(",");
-    }
-
-    // 🖥️ WORKS ON
-    if (selectedWorksOn.length) {
-      query.worksOn = selectedWorksOn.join(",");
-    }
-
-    // ✅ AVAILABLE
-    if (onlyAvailable) {
-      query.available = "true";
-    }
-
-    // 💰 PRICE
-    if (minPrice > 0) {
-      query.minPrice = minPrice;
-    }
-
-    if (maxPrice < 999999) {
-      query.maxPrice = maxPrice;
-    }
-
-    // ✅ ADD THIS
-    if (page > 1) {
-      query.page = page;
-    }
-
-    router.push(
-      {
-        pathname: router.pathname,
-        query,
-      },
-      undefined,
-      { shallow: true }
-    );
-
-  }, [
-    debouncedSearch,
-    selectedPlatforms,
-    selectedRegions,
-    selectedProductTypes,
-    selectedWorksOn,
-    onlyAvailable,
-    minPrice,
-    maxPrice,
-    page,
-  ]);
-
-  useEffect(() => {
-
-    if (!router.isReady) return;
-
-    const {
-      search,
-      platform,
-      region,
-      productType,
-      worksOn,
-      available,
-      minPrice,
-      maxPrice,
-      page
-    } = router.query;
-
-    if (search) {
-      setSearch(search);
-    }
-
-    if (platform) {
-      setSelectedPlatforms(String(platform).split(","));
-    }
-
-    if (region) {
-      setSelectedRegions(String(region).split(","));
-    }
-
-    if (productType) {
-      setSelectedProductTypes(String(productType).split(","));
-    }
-
-    if (worksOn) {
-      setSelectedWorksOn(String(worksOn).split(","));
-    }
-
-    if (available === "true") {
-      setOnlyAvailable(true);
-    }
-
-    if (minPrice) {
-      setMinPrice(Number(minPrice));
-    }
-
-    if (maxPrice) {
-      setMaxPrice(Number(maxPrice));
-    }
-
-    if (page) {
-      setPage(Number(page));
-    }
-
-  }, [router.isReady]);
-
-  if (!loading && (!items || items.length === 0)) {
-    return (
-      <section className="my-0 flex items-center justify-center flex-col min-h-screen">
-        <Image
-          src="/3d/no-data.png"
-          alt="No Data"
-          width={512}
-          height={512}
-          className="mb-4">
-        </Image>
-        {/* <h2 className="text-xl font-bold mb-4 dark:text-white">
-          Best Selling Games
-        </h2>
-        <p className="text-gray-500">No products found in Best Selling.</p> */}
-      </section>
-    );
+  } catch {
+    toast.error("Please login first");
+    return;
   }
+  toast.error("Stock alerts are temporarily unavailable.");
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Data layer: small in-memory cache so repeat visits and the next page are   */
+/*  instant                                                                    */
+/* -------------------------------------------------------------------------- */
+
+const storeCache = new Map();
+let filterOptionsCache = null;
+
+async function fetchJson(path, signal) {
+  if (!API_URL) throw new Error("NEXT_PUBLIC_API_URL is not configured");
+
+  const res = await fetch(`${API_URL}${path}`, { signal });
+  const json = await res.json().catch(() => ({}));
+
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || "Request failed");
+  }
+  return json;
+}
+
+async function loadStore(apiQuery, signal) {
+  const hit = storeCache.get(apiQuery);
+  if (hit && Date.now() - hit.time < CACHE_TTL_MS) return hit.data;
+
+  const json = await fetchJson(`/store?${apiQuery}`, signal);
+  const rows = json.data || [];
+  const total = Number(json.total ?? rows.length);
+
+  const data = {
+    items: rows.map(normalizeItem),
+    total,
+    totalPages: Math.max(1, Number(json.totalPages ?? Math.ceil(total / PAGE_SIZE))),
+  };
+
+  storeCache.set(apiQuery, { data, time: Date.now() });
+  if (storeCache.size > CACHE_LIMIT) {
+    storeCache.delete(storeCache.keys().next().value);
+  }
+  return data;
+}
+
+async function loadFilterOptions(signal) {
+  if (filterOptionsCache) return filterOptionsCache;
+
+  const { data = {} } = await fetchJson("/store/filter-options", signal);
+  filterOptionsCache = {
+    platforms: data.platforms || [],
+    regions: data.regions || [],
+    productTypes: data.productTypes || [],
+    worksOn: data.worksOn || [],
+    counts: data.counts || {},
+  };
+  return filterOptionsCache;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Small UI pieces (module level, so they keep their state between renders)   */
+/* -------------------------------------------------------------------------- */
+
+function CheckIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white" aria-hidden="true">
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
+    </svg>
+  );
+}
+
+function OptionRow({ checked, onChange, label, count }) {
+  return (
+    <label
+      className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2 transition-colors ${checked
+          ? "border-purple-500/30 bg-purple-500/15"
+          : "border-transparent hover:bg-purple-500/10"
+        }`}
+    >
+      <span className="flex min-w-0 items-center gap-2">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="peer sr-only"
+        />
+        <span
+          aria-hidden="true"
+          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition peer-focus-visible:ring-2 peer-focus-visible:ring-purple-400 ${checked ? "border-purple-500 bg-purple-500" : "border-gray-300 dark:border-white/20"
+            }`}
+        >
+          {checked && <CheckIcon />}
+        </span>
+        <span className="truncate text-sm font-medium text-white">{label}</span>
+      </span>
+      {count != null && <span className="text-xs text-gray-500">{count}</span>}
+    </label>
+  );
+}
+
+const FilterSection = memo(function FilterSection({ title, field, items, selected, counts, onToggle }) {
+  const [open, setOpen] = useState(true);
+  const [query, setQuery] = useState("");
+  const panelId = useId();
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (item) =>
+        String(item).toLowerCase().includes(q) || formatLabel(item).toLowerCase().includes(q)
+    );
+  }, [items, query]);
+
+  if (!items.length) return null;
 
   return (
-    <div className="px-4 md:px-10 py-8">
+    <div className="mb-1">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls={panelId}
+        className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-500/10 dark:text-white"
+      >
+        {title}
+        <MdOutlineKeyboardArrowDown
+          className={`text-gray-400 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
 
-      <h2 className="text-xl font-bold mb-6 dark:text-white">
-        Best Selling Gift Cards
-      </h2>
+      {open && (
+        <div id={panelId} className="mt-3 space-y-3">
+          {items.length > 6 && (
+            <input
+              type="search"
+              placeholder={`Search ${title.toLowerCase()}`}
+              aria-label={`Search ${title}`}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className={INPUT_CLS}
+            />
+          )}
 
-      {/* 🔥 MAIN LAYOUT */}
+          <div className="custom-scroll max-h-[180px] space-y-1 overflow-y-auto pr-1">
+            {visible.map((item) => (
+              <OptionRow
+                key={item}
+                checked={selected.includes(item)}
+                onChange={(checked) => onToggle(field, item, checked)}
+                label={formatLabel(item)}
+                count={counts?.[field]?.[item]}
+              />
+            ))}
+            {visible.length === 0 && (
+              <p className="px-3 py-2 text-sm text-gray-500">Nothing matches “{query}”.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+const FiltersBody = memo(function FiltersBody({
+  filters,
+  inputs,
+  onInput,
+  onToggle,
+  onAvailable,
+  onClear,
+  isActive,
+  options,
+}) {
+  const uid = useId();
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-white">Filters</h3>
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={!isActive}
+          className={`text-sm ${isActive
+              ? "cursor-pointer text-purple-600 hover:text-purple-500 dark:text-purple-400 dark:hover:text-purple-300"
+              : "cursor-not-allowed text-gray-400 dark:text-gray-500"
+            }`}
+        >
+          Clear all
+        </button>
+      </div>
+
+      <div className="mb-6">
+        <label htmlFor={`${uid}-search`} className="mb-2 block text-sm text-gray-500 dark:text-gray-400">
+          Product name
+        </label>
+        <input
+          id={`${uid}-search`}
+          type="search"
+          placeholder="Search for games, gift cards"
+          value={inputs.search}
+          onChange={(e) => onInput("search", e.target.value)}
+          className={INPUT_CLS}
+        />
+
+        <div className="mt-3 space-y-1">
+          <OptionRow
+            label="Works in India"
+            checked={filters.regions.includes("INDIA")}
+            onChange={(checked) => onToggle("regions", "INDIA", checked)}
+          />
+          <OptionRow
+            label="Exclude out of stock products"
+            checked={filters.onlyAvailable}
+            onChange={onAvailable}
+          />
+        </div>
+      </div>
+
+      <div className="my-6 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-white/10" />
+
+      <div className="mb-6">
+        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">Price range (₹)</p>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            placeholder="Min"
+            aria-label="Minimum price"
+            value={inputs.min}
+            onChange={(e) => onInput("min", e.target.value)}
+            className={INPUT_CLS}
+          />
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            placeholder="Max"
+            aria-label="Maximum price"
+            value={inputs.max}
+            onChange={(e) => onInput("max", e.target.value)}
+            className={INPUT_CLS}
+          />
+        </div>
+      </div>
+
+      <div className="my-5 border-t border-gray-200 dark:border-white/5" />
+
+      {LIST_SECTIONS.map(({ field, title }) => (
+        <FilterSection
+          key={field}
+          title={title}
+          field={field}
+          items={options[field] || []}
+          selected={filters[field]}
+          counts={options.counts}
+          onToggle={onToggle}
+        />
+      ))}
+    </div>
+  );
+});
+
+const ProductCard = memo(function ProductCard({ item, symbol, priority }) {
+  const hasDiscount = item.available && item.originalPrice > item.price;
+  const discount = hasDiscount
+    ? Math.round((1 - item.price / item.originalPrice) * 100)
+    : 0;
+
+  const body = (
+    <>
+      <div className="relative mb-1.5 aspect-[3/5] w-full overflow-hidden rounded-md">
+        <OptimizedImage
+          src={item.image || FALLBACK_IMAGE}
+          alt={item.title || "Product image"}
+          fill
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+          blur
+          priority={priority}
+          className={`object-cover object-center ${item.available ? "" : "opacity-60 grayscale"}`}
+        />
+
+        {discount > 0 && (
+          <span className="absolute right-2 top-2 rounded bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+            -{discount}%
+          </span>
+        )}
+
+        {!item.available && (
+          <div className="absolute bottom-3 left-0 flex w-full justify-center px-3">
+            <button
+              type="button"
+              onClick={handleNotify}
+              className="flex w-full max-w-[85%] cursor-pointer items-center justify-center gap-2 rounded-md border border-white/20 bg-white/10 py-2.5 text-sm font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.5)] backdrop-blur-md transition hover:bg-white/20"
+            >
+              🔔 Notify me
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="h-[120px] rounded-b-md bg-gray-100 px-1 py-1 dark:bg-black/30">
+        <HoverCard title={item.title}>
+          <h3 className="mt-1 line-clamp-2 px-1.5 text-sm font-semibold text-gray-900 dark:text-white">
+            {item.title}
+          </h3>
+        </HoverCard>
+
+        {item.region && (
+          <p className="mt-0.5 px-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400">
+            {item.region}
+          </p>
+        )}
+
+        {item.available ? (
+          <p className="mt-1 px-1.5 text-lg text-gray-700 dark:text-gray-200">
+            {symbol} {item.price.toFixed(2)}
+            {hasDiscount && (
+              <s className="ml-2 text-xs text-gray-400">
+                {symbol} {item.originalPrice.toFixed(2)}
+              </s>
+            )}
+          </p>
+        ) : (
+          <p className="mt-1 px-1.5 text-lg font-bold text-[#cc0000]">Sold Out</p>
+        )}
+      </div>
+    </>
+  );
+
+  const cardCls =
+    "relative block rounded-lg bg-white p-1 shadow-sm transition duration-300 dark:bg-[##121212] dark:shadow-none";
+
+  return item.available ? (
+    <Link href={getItemHref(item)} className={`${cardCls} hover:-translate-y-1 hover:shadow-lg`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={`${cardCls} cursor-not-allowed`}>{body}</div>
+  );
+});
+
+function CardSkeleton() {
+  return (
+    <div className="animate-pulse rounded-lg bg-gray-200 p-1 dark:bg-[#1a1a1f]">
+      <div className="mb-1.5 aspect-[3/5] w-full rounded-md bg-gray-300/60 dark:bg-white/5" />
+      <div className="h-[120px] rounded-md bg-gray-300/40 dark:bg-white/[0.03]" />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Page                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export default function StorePage() {
+  const router = useRouter();
+  const { symbol } = useCurrency();
+
+  // `ready` flips once the URL has been read, so we never fetch with empty
+  // filters first and then fetch again with the real ones.
+  const [ready, setReady] = useState(false);
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [page, setPage] = useState(1);
+
+  // Text fields are typed into locally and committed to `filters` after a pause
+  const [searchInput, setSearchInput] = useState("");
+  const [minInput, setMinInput] = useState("");
+  const [maxInput, setMaxInput] = useState("");
+
+  const [options, setOptions] = useState(filterOptionsCache);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  /* ---- filter actions (all stable, so memoized children don't re-render) -- */
+
+  const applyFilters = useCallback((patch) => {
+    setFilters((f) => ({ ...f, ...patch }));
+    setPage(1);
+  }, []);
+
+  const toggleListValue = useCallback(
+    (field, value, checked) => {
+      const current = filtersRef.current[field];
+      const next = checked
+        ? current.includes(value)
+          ? current
+          : [...current, value]
+        : current.filter((v) => v !== value);
+      applyFilters({ [field]: next });
+    },
+    [applyFilters]
+  );
+
+  const setOnlyAvailable = useCallback(
+    (value) => applyFilters({ onlyAvailable: value }),
+    [applyFilters]
+  );
+
+  const clearFilters = useCallback(() => {
+    setFilters(EMPTY_FILTERS);
+    setPage(1);
+    setSearchInput("");
+    setMinInput("");
+    setMaxInput("");
+  }, []);
+
+  const onInput = useCallback((name, value) => {
+    if (name === "search") setSearchInput(value);
+    else if (name === "min") setMinInput(value);
+    else setMaxInput(value);
+  }, []);
+
+  const goToPage = useCallback((p) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  /* ---- 1. read the URL once ---------------------------------------------- */
+
+  useEffect(() => {
+    if (!router.isReady || ready) return;
+
+    const next = filtersFromQuery(router.query);
+    setFilters(next);
+    setSearchInput(next.search);
+    setMinInput(next.minPrice);
+    setMaxInput(next.maxPrice);
+    setPage(parsePage(router.query.page));
+    setReady(true);
+  }, [router.isReady, router.query, ready]);
+
+  /* ---- 2. commit text inputs after the user stops typing ------------------ */
+
+  useEffect(() => {
+    if (!ready) return;
+
+    const timer = setTimeout(() => {
+      const next = {
+        search: searchInput.trim(),
+        minPrice: toPrice(minInput),
+        maxPrice: toPrice(maxInput),
+      };
+      const cur = filtersRef.current;
+      if (
+        next.search !== cur.search ||
+        next.minPrice !== cur.minPrice ||
+        next.maxPrice !== cur.maxPrice
+      ) {
+        applyFilters(next);
+      }
+    }, DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [searchInput, minInput, maxInput, ready, applyFilters]);
+
+  /* ---- 3. keep the URL in sync (replace, so Back still leaves the page) --- */
+
+  useEffect(() => {
+    if (!ready) return;
+
+    const params = toParams(filters, page);
+    const current = (router.asPath.split("?")[1] || "").split("#")[0];
+    if (params.toString() === current) return;
+
+    router.replace(
+      { pathname: router.pathname, query: Object.fromEntries(params) },
+      undefined,
+      { shallow: true, scroll: false }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, page, ready]);
+
+  /* ---- 4. filter options (fetched once per session) ----------------------- */
+
+  useEffect(() => {
+    if (filterOptionsCache) return;
+
+    const controller = new AbortController();
+    loadFilterOptions(controller.signal)
+      .then(setOptions)
+      .catch((err) => {
+        if (err.name !== "AbortError") console.error("Failed to fetch filter items:", err);
+      });
+    return () => controller.abort();
+  }, []);
+
+  /* ---- 5. products -------------------------------------------------------- */
+
+  useEffect(() => {
+    if (!ready) return;
+
+    const controller = new AbortController();
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const data = await loadStore(toApiQuery(filters, page), controller.signal);
+        if (controller.signal.aborted) return;
+
+        setResult(data);
+
+        // warm the cache for "next page" while the browser is idle
+        if (page < data.totalPages) {
+          const nextQuery = toApiQuery(filters, page + 1);
+          runWhenIdle(() => loadStore(nextQuery).catch(() => { }));
+        }
+      } catch (err) {
+        if (err.name === "AbortError") return;
+        console.error("Failed to fetch store items:", err);
+        setError(err.message || "Failed to load store items.");
+        toast.error("Failed to load store items.");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [ready, filters, page, reloadKey]);
+
+  // A deep link to a page that no longer exists falls back to the last page
+  useEffect(() => {
+    if (result && result.items.length === 0 && page > result.totalPages) {
+      setPage(result.totalPages);
+    }
+  }, [result, page]);
+
+  /* ---- mobile drawer: lock scroll + close on Escape ----------------------- */
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+
+    const onKey = (e) => e.key === "Escape" && setFiltersOpen(false);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [filtersOpen]);
+
+  /* ---- derived ------------------------------------------------------------ */
+
+  const isActive = useMemo(() => hasActiveFilters(filters), [filters]);
+  const inputs = useMemo(
+    () => ({ search: searchInput, min: minInput, max: maxInput }),
+    [searchInput, minInput, maxInput]
+  );
+  const safeOptions = options || { platforms: [], regions: [], productTypes: [], worksOn: [], counts: {} };
+
+  const chips = useMemo(() => {
+    const out = [];
+
+    if (filters.search) {
+      out.push({
+        key: "search",
+        label: `Search: ${filters.search}`,
+        remove: () => {
+          setSearchInput("");
+          applyFilters({ search: "" });
+        },
+      });
+    }
+
+    for (const { field } of LIST_SECTIONS) {
+      for (const value of filters[field]) {
+        out.push({
+          key: `${field}:${value}`,
+          label: formatLabel(value),
+          remove: () => toggleListValue(field, value, false),
+        });
+      }
+    }
+
+    if (filters.onlyAvailable) {
+      out.push({ key: "available", label: "In stock only", remove: () => setOnlyAvailable(false) });
+    }
+
+    if (filters.minPrice || filters.maxPrice) {
+      const { minPrice: lo, maxPrice: hi } = filters;
+      out.push({
+        key: "price",
+        label: lo && hi ? `₹${lo} – ₹${hi}` : lo ? `₹${lo}+` : `Up to ₹${hi}`,
+        remove: () => {
+          setMinInput("");
+          setMaxInput("");
+          applyFilters({ minPrice: "", maxPrice: "" });
+        },
+      });
+    }
+
+    return out;
+  }, [filters, applyFilters, toggleListValue, setOnlyAvailable]);
+
+  const items = result?.items ?? [];
+  const totalPages = result?.totalPages ?? 1;
+  const pageItems = useMemo(() => getPageItems(page, totalPages), [page, totalPages]);
+
+  const showSkeleton = !error && items.length === 0 && (loading || !ready);
+  const showEmpty = !error && !loading && ready && result && items.length === 0;
+
+  const filtersBody = (
+    <FiltersBody
+      filters={filters}
+      inputs={inputs}
+      onInput={onInput}
+      onToggle={toggleListValue}
+      onAvailable={setOnlyAvailable}
+      onClear={clearFilters}
+      isActive={isActive || Boolean(searchInput || minInput || maxInput)}
+      options={safeOptions}
+    />
+  );
+
+  /* ---- render ------------------------------------------------------------- */
+
+  return (
+    <div className="px-4 py-8 md:px-10">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-white">Best Selling Gift Cards</h1>
+          {result && (
+            <p aria-live="polite" className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {result.total.toLocaleString()} {result.total === 1 ? "result" : "results"}
+            </p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setFiltersOpen(true)}
+          className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-900 lg:hidden dark:border-white/10 dark:bg-[#121216] dark:text-white"
+        >
+          <MdFilterList aria-hidden="true" />
+          Filters
+          {chips.length > 0 && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-purple-600 px-1 text-xs text-white">
+              {chips.length}
+            </span>
+          )}
+        </button>
+      </div>
+
       <div className="flex gap-6">
+        {/* Desktop sidebar */}
+        <aside className="hidden w-[300px] shrink-0 lg:block">
+          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-white/10 bg-[#121216] p-5 backdrop-blur-md shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+            {filtersBody}
+          </div>
+        </aside>
 
-        {/* 🧱 LEFT FILTER SIDEBAR */}
-        <div className="hidden lg:block w-[300px] shrink-0">
-          <div className="bg-[#121216] border border-white/10 p-5 rounded-2xl backdrop-blur-md shadow-[0_0_0_1px_rgba(255,255,255,0.03)] sticky top-24">
+        {/* Results */}
+        <div className="min-w-0 flex-1">
+          {chips.length > 0 && (
+            <ul className="mb-4 flex flex-wrap gap-2" aria-label="Active filters">
+              {chips.map((chip) => (
+                <li key={chip.key}>
+                  <button
+                    type="button"
+                    onClick={chip.remove}
+                    aria-label={`Remove filter ${chip.label}`}
+                    className="flex cursor-pointer items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-xs font-medium text-purple-700 transition hover:bg-purple-500/20 dark:text-purple-200"
+                  >
+                    {chip.label}
+                    <MdClose aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
 
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-white font-semibold text-lg">Filters</h3>
-
+          {error && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <p className="mb-4 text-gray-700 dark:text-gray-300">We couldn’t load the store right now.</p>
               <button
-                onClick={clearFilters}
-                disabled={!isFilterActive}
-                className={`text-sm cursor-pointer ${isFilterActive ? "text-purple-400 hover:text-purple-300" : "text-gray-500 cursor-not-allowed"}`}>
-                Clear All
+                type="button"
+                onClick={() => setReloadKey((k) => k + 1)}
+                className="cursor-pointer rounded-full bg-purple-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-purple-500"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {showEmpty && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Image
+                src="/3d/no-data.png"
+                alt=""
+                width={320}
+                height={320}
+                className="mb-4 h-auto w-64"
+              />
+              <p className="text-gray-700 dark:text-gray-300">No products match your filters.</p>
+              {isActive && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="mt-4 cursor-pointer rounded-full border border-purple-500/40 px-6 py-2 text-sm font-medium text-purple-700 transition hover:bg-purple-500/10 dark:text-purple-300"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+          )}
+
+          {(showSkeleton || items.length > 0) && !error && (
+            <div
+              aria-busy={loading}
+              className={`grid grid-cols-2 gap-4 transition-opacity duration-200 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 ${loading && items.length > 0 ? "opacity-60" : "opacity-100"
+                }`}
+            >
+              {showSkeleton
+                ? Array.from({ length: PAGE_SIZE }, (_, i) => <CardSkeleton key={i} />)
+                : items.map((item, i) => (
+                  <ProductCard key={item.id} item={item} symbol={symbol} priority={i < 5} />
+                ))}
+            </div>
+          )}
+
+          {result && totalPages > 1 && (
+            <Pagination className="mt-10">
+              <PaginationContent className="flex-wrap justify-center">
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    aria-disabled={page === 1}
+                    tabIndex={page === 1 ? -1 : undefined}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (page > 1) goToPage(page - 1);
+                    }}
+                    className={page === 1 ? "pointer-events-none opacity-40" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+
+                {pageItems.map((p, i) =>
+                  p === ELLIPSIS ? (
+                    <PaginationItem key={`gap-${i}`}>
+                      <span
+                        aria-hidden="true"
+                        className="flex h-9 min-w-9 items-center justify-center px-2 text-sm text-[var(--keyzoo-text-muted)]"
+                      >
+                        …
+                      </span>
+                    </PaginationItem>
+                  ) : (
+                    <PaginationItem key={p}>
+                      <PaginationLink
+                        href="#"
+                        isActive={p === page}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (p !== page) goToPage(p);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                )}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    aria-disabled={page === totalPages}
+                    tabIndex={page === totalPages ? -1 : undefined}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (page < totalPages) goToPage(page + 1);
+                    }}
+                    className={
+                      page === totalPages ? "pointer-events-none opacity-40" : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile filter drawer */}
+      {filtersOpen && (
+        <div className="fixed inset-0 z-[60] lg:hidden" role="dialog" aria-modal="true" aria-label="Filters">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setFiltersOpen(false)} />
+
+          <div className="absolute inset-y-0 left-0 flex w-[min(92vw,360px)] flex-col bg-white shadow-xl">
+            <div className="flex items-center justify-end border-b border-gray-200 px-3 py-2 dark:border-white/10">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                aria-label="Close filters"
+                className="cursor-pointer rounded-md p-2 text-xl text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/10"
+              >
+                <MdClose />
               </button>
             </div>
 
-            {/* 🔍 MAIN SEARCH */}
-            <div className="mb-6">
-              <p className="text-gray-400 text-sm mb-2">Product Name</p>
+            <div className="flex-1 overflow-y-auto p-5">{filtersBody}</div>
 
-              <input
-                type="text"
-                placeholder="Search for games, gift cards"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[#1a1a1f] text-white text-sm border border-white/5 focus:border-purple-500 outline-none"
-              />
-
-              <div className="mt-3 space-y-2 text-sm">
-                <label className="flex items-center gap-2 cursor-pointer text-white">
-
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition
-        ${selectedRegions.includes("INDIA")
-                      ? "bg-purple-500 border-purple-500"
-                      : "border-white/20"}
-    `}>
-                    {selectedRegions.includes("INDIA") && (
-                      <span className="text-xs text-white">✓</span>
-                    )}
-                  </div>
-
-                  <span>Works in India</span>
-
-                  <input
-                    type="checkbox"
-                    checked={selectedRegions.includes("INDIA")}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedRegions(["INDIA"]);
-                      } else {
-                        setSelectedRegions([]);
-                      }
-                    }}
-                    className="hidden"
-                  />
-                </label>
-
-                <label className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg cursor-pointer transition">
-
-                  <div className="flex items-center gap-2">
-
-                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition
-            ${onlyAvailable
-                        ? "bg-purple-500 border-purple-500"
-                        : "border-white/20"}
-        `}>
-                      {onlyAvailable && (
-                        <span className="text-xs text-white">✓</span>
-                      )}
-                    </div>
-
-                    <span className="text-white">Exclude out of stock products</span>
-                  </div>
-
-                  <input
-                    type="checkbox"
-                    checked={onlyAvailable}
-                    onChange={(e) => setOnlyAvailable(e.target.checked)}
-                    className="hidden"
-                  />
-                </label>
-              </div>
+            <div className="border-t border-gray-200 p-4 dark:border-white/10">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                className="w-full cursor-pointer rounded-full bg-purple-600 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
+              >
+                {result ? `Show ${result.total.toLocaleString()} results` : "Show results"}
+              </button>
             </div>
-
-            <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-6" />
-
-            {/* 💰 PRICE */}
-            <div className="mb-6">
-              <p className="text-gray-400 text-sm mb-2">Price Range (₹)</p>
-
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  placeholder="0"
-                  onChange={(e) =>
-                    setMinPrice(e.target.value ? Number(e.target.value) : 0)
-                  }
-                  className="w-full px-2 py-2 bg-[#1a1a1f] text-white rounded-lg text-sm border border-white/5 focus:border-purple-500 outline-none"
-                />
-                <input
-                  type="number"
-                  placeholder="9999"
-                  onChange={(e) =>
-                    setMaxPrice(e.target.value ? Number(e.target.value) : 9999)
-                  }
-                  className="w-full px-2 py-2 bg-[#1a1a1f] text-white rounded-lg text-sm border border-white/5 focus:border-purple-500 outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="border-t border-white/5 my-5" />
-
-            {/* 🎮 PLATFORM */}
-            <FilterSection
-              title="Platforms"
-              items={platforms}
-              selected={selectedPlatforms}
-              mapKey="platforms"
-              onChange={(value, checked) => {
-                setSelectedPlatforms(prev =>
-                  checked
-                    ? [...prev, value]
-                    : prev.filter(v => v !== value)
-                );
-              }}
-            />
-
-            {/* 📦 PRODUCT TYPE */}
-            <FilterSection
-              title="Product Type"
-              items={productTypes}
-              selected={selectedProductTypes}
-              mapKey="productTypes"
-              onChange={(value, checked) => {
-                setSelectedProductTypes(prev =>
-                  checked
-                    ? [...prev, value]
-                    : prev.filter(v => v !== value)
-                );
-              }}
-            />
-
-            {/* 🎯 GENRES */}
-            <FilterSection
-              title="Genres"
-              items={["Action", "Adventure", "RPG", "Shooter", "Horror"]}
-              onChange={() => { }}
-            />
-
-            {/* 🌐 REGION */}
-            <FilterSection
-              title="Region"
-              items={regions}
-              selected={selectedRegions}
-              mapKey="regions"
-              onChange={(value, checked) => {
-                setSelectedRegions(prev =>
-                  checked
-                    ? [...prev, value]
-                    : prev.filter(v => v !== value)
-                );
-              }}
-            />
-
-            {/* 🖥️ WORKS ON */}
-            <FilterSection
-              title="Works On"
-              items={worksOn}
-              selected={selectedWorksOn}
-              mapKey="worksOn"
-              onChange={(value, checked) => {
-                setSelectedWorksOn(prev =>
-                  checked
-                    ? [...prev, value]
-                    : prev.filter(v => v !== value)
-                );
-              }}
-            />
-
           </div>
         </div>
-
-        {/* 🧱 RIGHT SIDE (YOUR ORIGINAL GRID — UNTOUCHED) */}
-        <div className="flex-1">
-
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {loading ? (
-              Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className="animate-pulse bg-[#1a1a1f] h-[260px] rounded-lg" />
-              ))
-            ) : (
-
-              items.map((item) => {
-
-                // const getStrapiMedia = (url) => {
-                //   if (!url) return '';
-                //   if (url.startsWith('http')) return url;
-                //   return `${process.env.NEXT_PUBLIC_STRAPI_IMAGE_URL}${url}`;
-                // };
-
-                // const imgUrl = getStrapiMedia(item.image?.url);
-
-                const imageUrl = item.image || "/keyzoo-fallback.png";
-
-                return (
-                  <div key={item.id} className='mb-2 mt-2'>
-                    {item.available ? (
-                      <Link
-                        // href={`/product/${item.slug}`}
-                        href={getItemHref(item)}
-                        // className="block p-1 rounded-lg hover:shadow-md transition bg-white dark:bg-[#1a1a1a] relative max-w-[260px] mx-auto"
-                        className="block p-1 rounded-lg bg-white dark:bg-[#1a1a1a] relative min-w-[200px] mx-auto shadow-sm dark:shadow-none hover:shadow-lg transition-transform duration-300 transform hover:-translate-y-1"
-                      >
-                        <div className="relative w-full aspect-[3/5] mb-1.5 rounded-md overflow-hidden">
-                          {/* {imageUrl && ( */}
-                          <OptimizedImage
-                            src={imageUrl}
-                            alt={item.title || "Product image"}
-                            fill
-                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                            width={600}
-                            height={1000}
-                            blur
-                            className={`object-center ${item.available ? "" : "grayscale opacity-60"
-                              }`}
-                          />
-
-                          {/* Platform badge */}
-                          {/* {item.platform && (
-                            <span className="absolute top-2 left-2 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded uppercase">
-                              {item.platform}
-                            </span>
-                          )} */}
-
-                          {/* Discount ribbon */}
-                          {/* {item.originalPrice && item.originalPrice > item.price && (
-                            <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded">
-                              -{Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%
-                            </span>
-                          )} */}
-                        </div>
-                        <div className='bg-gray-100 dark:bg-black/30 backdrop-blur-sm px-1 py-1 rounded-b-md h-[120px]'>
-                          <HoverCard title={item.title}>
-                            <h3 className="text-sm font-semibold line-clamp-2 px-1.5 mt-1 text-black">
-                              {item.title}
-                            </h3>
-                          </HoverCard>
-                          <h3 className="text-sm font-semibold text-blue-600 px-1.5 mt-0.5">{item.card_region}</h3>
-                          <p className="text-lg text-gray-600 dark:text-gray-300 px-1.5 mt-1 mb-1.5">
-                            {symbol} {Number(item.discountPrice).toFixed(2)}
-                          </p>
-                        </div>
-                      </Link>
-                    ) : (
-                      <div
-                        // href={`/product/${item.slug}`}
-                        // className="block p-1 rounded-lg hover:shadow-md transition bg-white dark:bg-[#1a1a1a] relative max-w-[260px] mx-auto"
-                        className="block p-1 rounded-lg bg-white dark:bg-[#1a1a1a] relative min-w-[200px] mx-auto shadow-sm dark:shadow-none hover:shadow-lg transition-transform duration-300 transform hover:-translate-y-1 cursor-not-allowed"
-                      >
-                        <div className="relative w-full aspect-[3/5] mb-1.5 rounded-md overflow-hidden">
-                          <OptimizedImage
-                            src={imageUrl}
-                            alt={item.title || "Product image"}
-                            fill
-                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                            width={600}
-                            height={1000}
-                            blur
-                            className={`object-center ${item.available ? "" : "grayscale opacity-60"
-                              }`}
-                          />
-
-                          {/* 🔥 Bottom overlay container */}
-                          <div className="absolute bottom-3 left-0 w-full flex justify-center px-3">
-
-                            <button onClick={() => handleNotify(item)} disabled={notified[item.id]} className="flex items-center justify-center gap-2 w-full max-w-[85%] bg-white/10 backdrop-blur-md border border-white/20 text-white text-sm font-semibold py-2.5 rounded-md hover:bg-white/20 transition shadow-[0_4px_20px_rgba(0,0,0,0.5)] cursor-pointer">
-                              {notified[item.id] ? "✔ Notified" : "🔔 Notify me"}
-                            </button>
-
-                          </div>
-
-                          {/* Platform badge */}
-                          {/* {item.platform && (
-                            <span className="absolute top-2 left-2 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded uppercase">
-                              {item.platform}
-                            </span>
-                          )} */}
-
-                          {/* Discount ribbon */}
-                          {/* {item.originalPrice && item.originalPrice > item.price && (
-                            <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded">
-                              -{Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%
-                            </span>
-                          )} */}
-                        </div>
-                        <div className='bg-gray-100 dark:bg-black/30 backdrop-blur-sm px-1 py-1 rounded-b-md h-[120px]'>
-                          <HoverCard title={item.title}>
-                            <h3 className="text-sm font-semibold line-clamp-2 px-1.5 mt-1 text-black">
-                              {item.title}
-                            </h3>
-                          </HoverCard>
-                          <h3 className="text-sm font-semibold text-blue-600 px-1.5 mt-0.5">{item.card_region}</h3>
-                          <p className="text-lg text-[#cc0000] font-bold dark:text-gray-300 px-1.5 mt-1 mb-1.5">
-                            Sold Out
-                          </p>
-                        </div>
-                      </div>
-                    )
-                    }
-                  </div>
-                );
-              })
-
-            )}
-
-          </div>
-
-          <Pagination className="mt-10">
-            <PaginationContent>
-
-              {/* Previous */}
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-
-                    if (page > 1) {
-                      setPage((prev) => prev - 1);
-                    }
-                  }}
-                  className={
-                    page === 1
-                      ? "pointer-events-none opacity-40"
-                      : "cursor-pointer"
-                  }
-                />
-              </PaginationItem>
-
-              {/* Page numbers */}
-              {getPages().map((p, index) =>
-                p === "..." ? (
-                  <PaginationItem key={`ellipsis-${index}`}>
-                    <span className="flex h-9 min-w-9 items-center justify-center px-2 text-sm text-[var(--keyzoo-text-muted)]">
-                      ...
-                    </span>
-                  </PaginationItem>
-                ) : (
-                  <PaginationItem key={p}>
-                    <PaginationLink
-                      href="#"
-                      isActive={p === page}
-                      onClick={(e) => {
-                        e.preventDefault();
-
-                        if (p !== page) {
-                          setPage(p);
-                        }
-                      }}
-                      className="cursor-pointer"
-                    >
-                      {p}
-                    </PaginationLink>
-                  </PaginationItem>
-                )
-              )}
-
-              {/* Next */}
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-
-                    if (page < totalPages) {
-                      setPage((prev) => prev + 1);
-                    }
-                  }}
-                  className={
-                    page === totalPages
-                      ? "pointer-events-none opacity-40"
-                      : "cursor-pointer"
-                  }
-                />
-              </PaginationItem>
-
-            </PaginationContent>
-          </Pagination>
-
-        </div>
-      </div>
-    </div >
+      )}
+    </div>
   );
-
-  function FilterSection({ title, items = [], selected = [], onChange, mapKey }) {
-
-    const [search, setSearch] = useState("");
-    const [debouncedSearch, setDebouncedSearch] = useState(search);
-
-    useEffect(() => {
-      const timeout = setTimeout(() => {
-        setDebouncedSearch(search);
-      }, 600);
-
-      return () => clearTimeout(timeout);
-    }, [search]);
-    const [open, setOpen] = useState(true);
-
-
-
-    const filteredItems = (items || []).filter((item) =>
-      String(item).toLowerCase().includes(search.toLowerCase())
-    );
-
-    return (
-      <div className="mb-1">
-
-        {/* HEADER */}
-        {/* <details className="group"> */}
-
-        <div onClick={() => setOpen(prev => !prev)} className="flex justify-between items-center cursor-pointer text-white text-sm font-semibold hover:bg-purple-500/10 px-3 py-2.5 rounded-md transition">
-          {title}
-          <span className="text-gray-400 group-open:rotate-180 transition-transform duration-300">
-            <MdOutlineKeyboardArrowDown />
-          </span>
-        </div>
-
-        {/* CONTENT */}
-        {open && (
-          <div className="mt-4 space-y-3">
-
-            {/* 🔍 SEARCH */}
-            <input
-              type="text"
-              placeholder={`Search ${title}`}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[#18181c] text-white text-sm border border-white/5 focus:border-purple-500 outline-none"
-            />
-
-            {/* LIST */}
-            <div className="max-h-[180px] overflow-y-auto space-y-2 pr-1 custom-scroll">
-
-              {filteredItems.map((item, i) => {
-                const isChecked = selected.includes(item);
-
-                return (
-                  <label
-                    key={i}
-                    className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200
-  ${isChecked
-                        ? "bg-purple-500/15 border border-purple-500/30"
-                        : "hover:bg-purple-500/8 border border-transparent"
-                      }
-  `}
-                  >
-
-                    {/* LEFT */}
-                    <div className="flex items-center gap-2">
-
-                      {/* CUSTOM CHECKBOX */}
-                      <div className={`w-5 h-5 rounded border flex items-center justify-center transition
-                                              ${isChecked
-                          ? "bg-purple-500 border-purple-500"
-                          : "border-white/20"}
-                                          `}>
-                        {isChecked && (
-                          <span className="text-xs text-white">✓</span>
-                        )}
-                      </div>
-
-                      <span className="text-sm text-white font-medium">
-                        {formatLabel(item)}
-                      </span>
-                    </div>
-
-                    {/* COUNT */}
-                    <span className="text-xs text-gray-500">
-                      {getCount(mapKey, item)}
-                    </span>
-
-                    {/* INPUT (hidden but functional) */}
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={(e) => onChange(item, e.target.checked)}
-                      className="hidden"
-                    />
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        {/* </details> */}
-      </div>
-    );
-  }
-
-  function formatLabel(value) {
-    if (!value) return "";
-
-    const str = String(value);
-
-    // Special cases (important for premium feel)
-    const special = {
-      psn: "PlayStation",
-      xbox: "Xbox",
-      steam: "Steam",
-      spotify: "Spotify",
-      roblox: "Roblox",
-      binance: "Binance"
-    };
-
-    if (special[str.toLowerCase()]) {
-      return special[str.toLowerCase()];
-    }
-
-    // General capitalize
-    return str
-      .toLowerCase()
-      .replace(/\b\w/g, (c) => c.toUpperCase());
-  }
 }

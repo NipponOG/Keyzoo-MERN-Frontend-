@@ -2,13 +2,14 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { IoArrowForward } from "react-icons/io5";
+import { HugeiconsIcon } from '@hugeicons/react';
+import { ArrowRight02Icon } from '@hugeicons/core-free-icons';
 import useCurrency from "@/hook/useCurrency";
 
 const PRICE_STEPS = [100, 200, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000];
 
 // Change this to match your listing route / query param
-const priceHref = (max) => `/games?maxPrice=${max}`;
+const priceHref = (max) => `/store?maxPrice=${max}`;
 
 const formatPrice = (n) => n.toLocaleString("en-US");
 
@@ -18,7 +19,7 @@ function PriceChip({ amount, symbol }) {
             href={priceHref(amount)}
             aria-label={`Games under ${symbol} ${formatPrice(amount)}`}
             className="group relative flex min-h-[92px] flex-col items-start justify-center overflow-hidden rounded-2xl
-                       border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-sm
+                       border border-white/10 bg-[#1a1a1a] px-5 py-4 backdrop-blur-sm
                        transition-all duration-300 ease-out
                        hover:-translate-y-1 hover:border-purple-400/50 hover:bg-white/[0.08]
                        hover:shadow-lg hover:shadow-purple-500/20
@@ -40,7 +41,7 @@ function PriceChip({ amount, symbol }) {
                 {formatPrice(amount)}
             </span>
 
-            <IoArrowForward
+            <HugeiconsIcon icon={ArrowRight02Icon}
                 aria-hidden="true"
                 className="absolute right-4 top-4 -translate-x-1 text-lg text-white/0 transition-all duration-300
                            group-hover:translate-x-0 group-hover:text-white/80"
