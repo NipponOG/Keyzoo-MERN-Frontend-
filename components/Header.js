@@ -1,205 +1,247 @@
-import { Search, Menu, X } from "lucide-react";
+import { memo, useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { FaShoppingCart, FaUserCircle, FaHeart } from "react-icons/fa";
+import { useRouter } from "next/router";
+import { CircleUser, Heart, Menu, Search, ShoppingCart, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-// import UserMenu from "./UserMenu";
 import LiveSearch from "./LiveSearch";
-import AccountOverlayMenu from "@/components/AccountOverlayMenu";
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
 
-const HeaderSkeleton = () => (
-  <SkeletonTheme baseColor="#202020" highlightColor="#444">
-    <header className="w-full shadow-sm border-b border-neutral-800 sticky top-0 z-50 bg-[#1e1e1e]">
-      <div className="px-4 py-3 flex items-center justify-between min-h-[72px] gap-3">
+// Only needed after a tap on mobile, so keep it out of the initial bundle
+const AccountOverlayMenu = dynamic(() => import("@/components/AccountOverlayMenu"), {
+  ssr: false,
+});
 
-        {/* Logo */}
-        <Skeleton width={120} height={40} />
+// LiveSearch doesn't need to re-render when the menu or account state changes
+const SearchBox = memo(LiveSearch);
 
-        {/* Search bar (desktop) */}
-        <div className="hidden md:block w-full max-w-lg mx-4">
-          <Skeleton height={42} borderRadius={8} />
-        </div>
+const LOGO_URL =
+  "https://res.cloudinary.com/dblttl9bh/image/upload/v1778325665/Chat_GPT_Image_May_9_2026_04_48_26_PM_1_113ae62610.png";
 
-        {/* Right icons */}
-        <div className="flex items-center gap-3">
-          <Skeleton circle width={36} height={36} />
-          <Skeleton circle width={36} height={36} />
-          <Skeleton circle width={36} height={36} />
-        </div>
-      </div>
+const NAV_LINKS = [
+  { href: "/store", label: "Store" },
+  { href: "/upcoming", label: "Upcoming" },
+  { href: "/topup", label: "Topups" },
+  {
+    href: "/pricing",
+    label: (
+      <>
+        Save with <span className="font-bold text-[#8f6bff]">plus</span>
+      </>
+    ),
+  },
+  { href: "/country-connections", label: "Explore eSIMs" },
+];
 
-      {/* Nav Skeleton */}
-      <nav className="bg-neutral-900 px-4 py-3 flex gap-5">
-        <Skeleton width={60} />
-        <Skeleton width={80} />
-        <Skeleton width={70} />
-        <Skeleton width={90} />
-      </nav>
-    </header>
-  </SkeletonTheme>
-);
+const ICON_BTN =
+  "relative shrink-0 rounded-md p-2 text-white transition hover:bg-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6d3cff]";
 
+function AuthArea({ user, loading, onOpenAccount }) {
+  // Placeholder keeps the header from shifting while auth state loads
+  if (loading) {
+    return (
+      <div
+        aria-hidden="true"
+        className="h-9 w-9 animate-pulse rounded-full bg-neutral-700 md:w-[170px] md:rounded-md"
+      />
+    );
+  }
 
-export default function Header() {
-  const { user, loading } = useAuth();
-  const [isNavOpen, setIsNavOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isAccountOpen, setIsAccountOpen] = useState(false);
+  if (user) {
+    return (
+      <>
+        <Link href="/account/profile" aria-label="Your account" className={`${ICON_BTN} hidden md:block`}>
+          <CircleUser className="h-6 w-6" aria-hidden="true" />
+        </Link>
 
-  // ⭐ Show skeleton while loading AuthContext
-  if (loading) return <HeaderSkeleton />;
+        <button
+          type="button"
+          onClick={onOpenAccount}
+          aria-label="Open account menu"
+          className={`${ICON_BTN} md:hidden`}
+        >
+          <CircleUser className="h-5 w-5" aria-hidden="true" />
+        </button>
+      </>
+    );
+  }
 
   return (
-    <header className="w-full shadow-sm border-b border-neutral-800 sticky top-0 z-50 bg-[#1e1e1e]">
-      {/* Top Header */}
-      <div className="px-4 py-3 flex items-center justify-between min-h-[72px] gap-3">
-        {/* Left: Logo */}
-        <div className="flex items-center gap-2">
-          <Link href="/" className="cursor-pointer flex items-center gap-2">
-            <Image src="https://res.cloudinary.com/dblttl9bh/image/upload/v1778325665/Chat_GPT_Image_May_9_2026_04_48_26_PM_1_113ae62610.png" alt="Logo" width={120} height={100} />
-          </Link>
-        </div>
+    <>
+      <div className="hidden items-center gap-2 md:flex">
+        <Link
+          href="/sign-in"
+          className="rounded-md border border-[#6d3cff] bg-white px-4 py-2 text-sm font-semibold text-[#6d3cff] transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6d3cff]"
+        >
+          Sign In
+        </Link>
+        <Link
+          href="/sign-up"
+          className="rounded-md bg-[#6d3cff] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        >
+          Sign Up
+        </Link>
+      </div>
 
-        {/* Center: Search (Desktop only) */}
-        <div className="hidden md:flex flex-1 max-w-6xl mx-auto px-4">
+      <Link href="/sign-in" aria-label="Sign in" className={`${ICON_BTN} md:hidden`}>
+        <CircleUser className="h-5 w-5" aria-hidden="true" />
+      </Link>
+    </>
+  );
+}
+
+export default function Header() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  const [isNavOpen, setIsNavOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false); // mobile full-screen search
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
+
+  const openAccount = useCallback(() => setIsAccountOpen(true), []);
+  const closeAccount = useCallback(() => setIsAccountOpen(false), []);
+  const closeSearch = useCallback(() => setIsSearchOpen(false), []);
+
+  // Close menus after navigating, and when the screen grows to desktop size
+  useEffect(() => {
+    const closeAll = () => {
+      setIsNavOpen(false);
+      setIsSearchOpen(false);
+      setIsAccountOpen(false);
+    };
+    const mq = window.matchMedia("(min-width: 768px)");
+    const onBreakpoint = (e) => e.matches && closeAll();
+
+    router.events.on("routeChangeStart", closeAll);
+    mq.addEventListener("change", onBreakpoint);
+
+    return () => {
+      router.events.off("routeChangeStart", closeAll);
+      mq.removeEventListener("change", onBreakpoint);
+    };
+  }, [router.events]);
+
+  // Full-screen search: lock page scroll and close on Escape
+  useEffect(() => {
+    if (!isSearchOpen) return;
+
+    const onKey = (e) => e.key === "Escape" && setIsSearchOpen(false);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [isSearchOpen]);
+
+  const isActive = (href) =>
+    router.pathname === href || router.pathname.startsWith(`${href}/`);
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-neutral-800 bg-[#1e1e1e] shadow-sm">
+      {/* Top bar */}
+      <div className="flex min-h-[72px] items-center justify-between gap-3 px-4 py-3">
+        {/* Logo: always rendered (it doesn't depend on auth) and loaded eagerly */}
+        <Link href="/" aria-label="Keyzoo home" className="flex shrink-0 items-center">
+          <Image src={LOGO_URL} alt="Keyzoo" width={120} height={100} priority />
+        </Link>
+
+        {/* Desktop search */}
+        <div className="mx-auto hidden max-w-6xl flex-1 px-4 md:flex">
           <div className="relative w-full">
-            <LiveSearch
-              isSearchOpen={isSearchOpen}
-              setIsSearchOpen={setIsSearchOpen}
-            />
-            <Search className="absolute left-3 top-3 h-5 w-5 text-black" />
+            <SearchBox />
           </div>
         </div>
 
-        {/* Right Controls */}
-        <div className="flex items-center gap-2 md:gap-3.5 flex-none">
-          {/* Mobile Search Icon */}
+        {/* Right controls */}
+        <div className="flex flex-none items-center gap-1 md:gap-3">
           <button
+            type="button"
             onClick={() => setIsSearchOpen(true)}
-            className="md:hidden p-2 rounded-md hover:bg-neutral-800 transition shrink-0"
+            className={`${ICON_BTN} md:hidden`}
             aria-label="Open search"
           >
-            <Search className="h-5 w-5 text-white" />
+            <Search className="h-5 w-5" aria-hidden="true" />
           </button>
 
-          {/* Cart */}
-          <Link
-            href="/favourites"
-            className="p-2 rounded-md hover:bg-neutral-800 transition relative shrink-0"
-            aria-label="View cart"
-          >
-            <FaHeart className="text-xl text-white" />
+          <Link href="/favourites" className={ICON_BTN} aria-label="View favourites">
+            <Heart className="h-5 w-5" aria-hidden="true" />
           </Link>
 
-          {/* Cart */}
-          <Link
-            href="/cart"
-            className="p-2 rounded-md hover:bg-neutral-800 transition relative shrink-0"
-            aria-label="View cart"
-          >
-            <FaShoppingCart className="text-xl text-white" />
+          <Link href="/cart" className={ICON_BTN} aria-label="View cart">
+            <ShoppingCart className="h-5 w-5" aria-hidden="true" />
           </Link>
 
-          {/* Auth Area */}
-          <div className="flex items-center gap-2 justify-end shrink-0">
-            {user ? (
-              <>
-                {/* Desktop user menu */}
-                <Link href="/account/profile" className="hidden md:block">
-                  <FaUserCircle className="cursor-pointer text-2xl text-white focus:outline-none" />
-                </Link>
-
-                {/* Mobile user overlay trigger */}
-                <button
-                  onClick={() => setIsAccountOpen(true)}
-                  className="md:hidden p-2 rounded-md hover:bg-neutral-800 transition"
-                >
-                  <FaUserCircle className="text-xl text-white" />
-                </button>
-              </>
-            ) : (
-              <>
-                {/* Desktop Buttons */}
-                <div className="hidden sm:flex items-center gap-2">
-                  <Link
-                    href="/sign-in"
-                    className="px-4 py-2 rounded-md bg-white border border-[#6d3cff] text-sm font-semibold text-[#6d3cff] hover:opacity-90 transition-all duration-300"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    href="/sign-up"
-                    className="px-4 py-2 rounded-md bg-[#6d3cff] text-sm font-semibold text-white hover:opacity-90 transition-all duration-300"
-                  >
-                    Sign Up
-                  </Link>
-                </div>
-
-                {/* Mobile Icon */}
-                <Link
-                  href="/sign-in"
-                  className="md:hidden p-2 rounded-md hover:bg-neutral-800 transition"
-                >
-                  <FaUserCircle className="text-xl text-white" />
-                </Link>
-              </>
-            )}
+          <div className="flex shrink-0 items-center justify-end gap-2">
+            <AuthArea user={user} loading={loading} onOpenAccount={openAccount} />
           </div>
 
-          {/* Mobile Menu Toggle */}
           <button
-            onClick={() => setIsNavOpen(!isNavOpen)}
-            className="md:hidden p-2 rounded-md hover:bg-neutral-800 transition shrink-0"
-            aria-label="Open menu"
+            type="button"
+            onClick={() => setIsNavOpen((open) => !open)}
+            className={`${ICON_BTN} md:hidden`}
+            aria-label={isNavOpen ? "Close menu" : "Open menu"}
+            aria-expanded={isNavOpen}
+            aria-controls="site-nav"
           >
-            <Menu className="h-5 w-5 text-white" />
+            {isNavOpen ? (
+              <X className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <Menu className="h-5 w-5" aria-hidden="true" />
+            )}
           </button>
         </div>
       </div>
 
-      {/* Bottom Navigation */}
+      {/* Main navigation: a stacked list on mobile, a row on desktop */}
       <nav
-        className={`bg-neutral-900 text-white px-4 py-2 flex items-center gap-5 text-sm font-medium overflow-x-auto transition-all duration-300 ${isNavOpen ? "block" : "hidden md:flex"
-          }`}
+        id="site-nav"
+        aria-label="Main"
+        className={`${isNavOpen ? "flex" : "hidden"
+          } flex-col gap-1 bg-neutral-900 px-4 py-2 text-sm font-medium text-white md:flex md:flex-row md:items-center md:gap-5 md:overflow-x-auto`}
       >
-        <Link href="/store" className="whitespace-nowrap">
-          Store
-        </Link>
-        <Link href="/upcoming" className="whitespace-nowrap">
-          Upcoming
-        </Link>
-        <Link href="/topup" className="whitespace-nowrap">
-          Topups
-        </Link>
-        <Link href="/pricing" className="whitespace-nowrap">
-          Save with <span className="text-[#6d3cff] font-bold">plus</span>
-        </Link>
-        <Link href="/country-connections" className="whitespace-nowrap">
-          Explore eSIMs
-        </Link>
+        {NAV_LINKS.map(({ href, label }) => {
+          const active = isActive(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-current={active ? "page" : undefined}
+              className={`whitespace-nowrap rounded-md py-2.5 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6d3cff] md:py-0 ${active
+                  ? "text-white underline decoration-[#6d3cff] decoration-2 underline-offset-8"
+                  : "text-white/75"
+                }`}
+            >
+              {label}
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* Mobile Account Overlay */}
-      {isAccountOpen && <AccountOverlayMenu onClose={() => setIsAccountOpen(false)} />}
+      {/* Mobile account overlay (code-split) */}
+      {isAccountOpen && <AccountOverlayMenu onClose={closeAccount} />}
 
-      {/* Mobile Fullscreen Search */}
+      {/* Mobile full-screen search */}
       {isSearchOpen && (
-        <div className="fixed inset-0 z-[70] bg-[#1e1e1e] flex flex-col md:hidden">
-          <div className="flex items-center px-4 py-3 border-b border-neutral-800">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Search"
+          className="fixed inset-0 z-[70] flex flex-col bg-[#1e1e1e] md:hidden"
+        >
+          <div className="flex items-center border-b border-neutral-800 px-4 py-3">
             <div className="flex-1">
-              <LiveSearch
-                isSearchOpen={isSearchOpen}
-                setIsSearchOpen={setIsSearchOpen}
-              />
+              <SearchBox setIsSearchOpen={setIsSearchOpen} autoFocus />
             </div>
             <button
-              onClick={() => setIsSearchOpen(false)}
-              className="ml-3 text-gray-400 hover:text-white"
+              type="button"
+              onClick={closeSearch}
+              aria-label="Close search"
+              className="ml-3 rounded-md p-2 text-gray-400 transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#6d3cff]"
             >
-              <X className="h-6 w-6" />
+              <X className="h-6 w-6" aria-hidden="true" />
             </button>
           </div>
         </div>
