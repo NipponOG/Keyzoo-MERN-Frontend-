@@ -1671,6 +1671,7 @@ import {
   SystemRequirements,
   hasRequirements,
 } from "@/components/product/ProductDetails";
+import WishlistButton from "@/components/product/WishlistButton";
 import { CARD, FOCUS, LINK, SECTION, SpriteIcon, formatPrice } from "@/components/product/shared";
 
 // Swiper + its CSS only load when the gallery is about to scroll into view
@@ -2042,12 +2043,15 @@ export default function ProductPage({ product, variations }) {
 
           {/* Info */}
           <div className="flex w-full min-w-0 flex-col gap-2">
-            <h1
-              title={product.title}
-              className="line-clamp-2 break-words text-lg font-bold leading-tight lg:text-[18px] xl:text-[20px]"
-            >
-              {product.title}
-            </h1>
+            <div className="flex items-start gap-3">
+              <h1
+                title={product.title}
+                className="line-clamp-2 min-w-0 flex-1 break-words text-lg font-bold leading-tight lg:text-[18px] xl:text-[20px]"
+              >
+                {product.title}
+              </h1>
+              <WishlistButton product={product} />
+            </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-3">
               {product.item_type && (
@@ -2151,8 +2155,8 @@ export default function ProductPage({ product, variations }) {
                 disabled={!available}
                 aria-label="Add to cart"
                 className={`flex items-center justify-center rounded-lg p-2 text-white lg:p-3 ${FOCUS} ${available
-                    ? "cursor-pointer bg-neutral-800 hover:bg-neutral-700"
-                    : "cursor-not-allowed select-none bg-gray-400"
+                  ? "cursor-pointer bg-neutral-800 hover:bg-neutral-700"
+                  : "cursor-not-allowed select-none bg-gray-400"
                   }`}
               >
                 <ShoppingCart className="h-5 w-5 lg:h-6 lg:w-6" aria-hidden="true" />
@@ -2163,8 +2167,8 @@ export default function ProductPage({ product, variations }) {
                 onClick={handleBuyNow}
                 disabled={!available || buying}
                 className={`flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors lg:px-4 lg:py-3 lg:text-base ${FOCUS} ${available
-                    ? "cursor-pointer bg-[#814DE5] hover:bg-[#6C34D8] disabled:opacity-70"
-                    : "cursor-not-allowed select-none bg-gray-400"
+                  ? "cursor-pointer bg-[#814DE5] hover:bg-[#6C34D8] disabled:opacity-70"
+                  : "cursor-not-allowed select-none bg-gray-400"
                   }`}
               >
                 <ShoppingBag className="h-5 w-5 lg:h-6 lg:w-6" aria-hidden="true" />
@@ -2186,7 +2190,7 @@ export default function ProductPage({ product, variations }) {
                     className={`flex items-center justify-start gap-2 px-3 py-2 bg-[#1e1e1e] lg:py-3 ${b.radius}`}
                   >
                     <SpriteIcon id={b.id} className={b.iconClass} fill={b.id !== "verified-filled"} />
-                    <span className="text-xs lg:text-sm">{b.label}</span>
+                    <span className="text-xs lg:text-xs">{b.label}</span>
                   </div>
                 </HoverCard>
               ))}

@@ -27,7 +27,7 @@ export default function ProductGallery({ images = [], title }) {
                 "--swiper-navigation-color": "#ffffff",
                 "--swiper-navigation-size": "22px",
             }}
-            className="w-full"
+            className="w-full select-none"
         >
             {images.map((img, index) => {
                 // Support MongoDB string URLs and Strapi media objects

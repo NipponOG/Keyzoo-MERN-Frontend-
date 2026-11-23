@@ -166,7 +166,7 @@ export default function Header() {
             <Search className="h-5 w-5" aria-hidden="true" />
           </button>
 
-          <Link href="/favourites" className={ICON_BTN} aria-label="View favourites">
+          <Link href="/favorites" className={ICON_BTN} aria-label="View favourites">
             <Heart className="h-5 w-5" aria-hidden="true" />
           </Link>
 
