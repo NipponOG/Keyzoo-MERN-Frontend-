@@ -9,7 +9,7 @@ const nextConfig = {
         remotePatterns: [
             {
                 protocol: 'https',
-                hostname: 'wise-horse-c531a7dfe7.strapiapp.com',
+                hostname: 'shared.akamai.steamstatic.com',
             },
             {
                 protocol: 'https',
