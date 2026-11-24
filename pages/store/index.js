@@ -54,8 +54,7 @@ const LIST_SECTIONS = [
   { field: "worksOn", title: "Works On" },
 ];
 
-const INPUT_CLS =
-  "w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-purple-500 dark:border-white/5 dark:bg-[#1a1a1f] dark:text-white dark:placeholder:text-gray-500";
+const INPUT_CLS = "w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-purple-500 dark:border-white/5 dark:bg-[#1a1a1f] dark:text-white dark:placeholder:text-gray-500";
 
 /* -------------------------------------------------------------------------- */
 /*  Helpers                                                                    */
@@ -290,12 +289,12 @@ function OptionRow({ checked, onChange, label, count }) {
         />
         <span
           aria-hidden="true"
-          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition peer-focus-visible:ring-2 peer-focus-visible:ring-purple-400 ${checked ? "border-purple-500 bg-purple-500" : "border-gray-300 dark:border-white/20"
+          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition peer-focus-visible:ring-2 peer-focus-visible:ring-purple-400 ${checked ? "border-purple-500 bg-purple-500" : "border-white/20"
             }`}
         >
           {checked && <CheckIcon />}
         </span>
-        <span className="truncate text-sm font-medium text-gray-900 dark:text-white">{label}</span>
+        <span className="truncate text-sm font-medium text-white">{label}</span>
       </span>
       {count != null && <span className="text-xs text-gray-500">{count}</span>}
     </label>
@@ -325,7 +324,7 @@ const FilterSection = memo(function FilterSection({ title, field, items, selecte
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2.5 text-sm font-semibold text-gray-900 transition hover:bg-purple-500/10 dark:text-white"
+        className="flex w-full cursor-pointer items-center justify-between rounded-md px-3 py-2.5 text-sm font-semibold transition hover:bg-purple-500/10 text-white"
       >
         {title}
         <MdOutlineKeyboardArrowDown
@@ -381,7 +380,7 @@ const FiltersBody = memo(function FiltersBody({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h3>
+        <h3 className="text-lg font-semibold text-white">Filters</h3>
         <button
           type="button"
           onClick={onClear}
@@ -848,7 +847,7 @@ export default function StorePage() {
     <div className="px-4 py-8 md:px-10">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Best Selling Gift Cards</h1>
+          <h1 className="text-xl font-bold text-white">Best Selling Gift Cards</h1>
           {result && (
             <p aria-live="polite" className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {result.total.toLocaleString()} {result.total === 1 ? "result" : "results"}
@@ -874,7 +873,7 @@ export default function StorePage() {
       <div className="flex gap-6">
         {/* Desktop sidebar */}
         <aside className="hidden w-[300px] shrink-0 lg:block">
-          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#121216] dark:shadow-none">
+          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-white/10 bg-[#161616] p-5 shadow-sm">
             {filtersBody}
           </div>
         </aside>
