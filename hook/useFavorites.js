@@ -71,6 +71,20 @@ function normalizeFavorite(item) {
     };
 }
 
+function extractWishlistItems(response) {
+    const data = response?.data;
+
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+    if (Array.isArray(data?.items)) {
+        return data.items;
+    }
+
+    return [];
+}
+
 async function loadFavorites(jwt, version) {
     const response = await apiFetch("/wishlist", {
         headers: {
@@ -85,9 +99,7 @@ async function loadFavorites(jwt, version) {
         return;
     }
 
-    const items = Array.isArray(response.data)
-        ? response.data.map(normalizeFavorite)
-        : [];
+    const items = extractWishlistItems(response).map(normalizeFavorite);
 
     setCache(items);
 }
@@ -124,9 +136,7 @@ async function addFavorite(jwt, item) {
         }),
     });
 
-    const items = Array.isArray(response.data)
-        ? response.data.map(normalizeFavorite)
-        : [];
+    const items = extractWishlistItems(response).map(normalizeFavorite);
 
     if (jwt === activeJwt) {
         setCache(items);
@@ -166,9 +176,7 @@ async function removeFavorite(jwt, item) {
         }
     );
 
-    const items = Array.isArray(response.data)
-        ? response.data.map(normalizeFavorite)
-        : [];
+    const items = extractWishlistItems(response).map(normalizeFavorite);
 
     if (jwt === activeJwt) {
         setCache(items);
@@ -217,6 +225,12 @@ export default function useFavorites() {
 
     const [ready, setReady] = useState(false);
     const [syncing, setSyncing] = useState(false);
+
+    const favorites = useSyncExternalStore(
+        subscribe,
+        read,
+        () => EMPTY
+    );
 
     useEffect(() => {
         if (authLoading) return;
@@ -268,8 +282,8 @@ export default function useFavorites() {
     }, [jwt, user, authLoading]);
 
     const ids = useMemo(
-        () => new Set(cache.map((item) => String(item._id))),
-        [cache]
+        () => new Set(favorites.map((item) => String(item._id))),
+        [favorites]
     );
 
     const isFavorite = useCallback(
@@ -302,18 +316,16 @@ export default function useFavorites() {
         [jwt, isFavorite]
     );
 
-    const refresh = useCallback(
-        async () => {
-            if (!jwt) return;
-            const version = requestVersion;
-            await loadFavorites(jwt, version);
-        },
-        [jwt]
-    );
+    const refresh = useCallback(async () => {
+        if (!jwt || jwt !== activeJwt) return;
+
+        const version = requestVersion;
+        await loadFavorites(jwt, version);
+    }, [jwt]);
 
     return {
-        favorites: cache,
-        count: cache.length,
+        favorites,
+        count: favorites.length,
         ready: ready && !authLoading,
         syncing,
         isFavorite,

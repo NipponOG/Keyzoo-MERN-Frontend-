@@ -16,10 +16,7 @@ export default function WishlistButton({
 }) {
     const router = useRouter();
 
-    const {
-        isFavorite,
-        toggle,
-    } = useFavorites();
+    const { isFavorite, toggle, ready } = useFavorites();
 
     const [saving, setSaving] = useState(false);
 
@@ -31,7 +28,7 @@ export default function WishlistButton({
     const active = isFavorite(item._id);
 
     const handleClick = async () => {
-        if (saving) return;
+        if (saving || !ready) return;
 
         setSaving(true);
 
@@ -65,8 +62,9 @@ export default function WishlistButton({
         <button
             type="button"
             onClick={handleClick}
-            disabled={saving}
+            disabled={saving || !ready}
             aria-pressed={active}
+            aria-busy={saving}
             aria-label={label}
             title={label}
             className={`group flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-all duration-200
