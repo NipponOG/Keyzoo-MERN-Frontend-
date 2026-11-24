@@ -2063,20 +2063,23 @@ export default function ProfilePage() {
                     {/* ---------- Hero ---------- */}
                     <section className={`relative overflow-hidden ${CARD} shadow-xl`}>
                         {/* cover */}
-                        <div aria-hidden="true" className="relative h-28 bg-gradient-to-r from-purple-700 via-indigo-600 to-blue-500 sm:h-32">
+                        <div aria-hidden="true" className="relative h-28 overflow-hidden bg-gradient-to-br from-[#2b1a52] via-[#1c1a3a] to-[#202020] sm:h-32">
                             <div
-                                className="absolute inset-0 opacity-20"
+                                className="absolute inset-0 opacity-[0.07]"
                                 style={{
                                     backgroundImage: "radial-gradient(#fff 1px, transparent 1px)",
                                     backgroundSize: "18px 18px",
                                 }}
                             />
-                            <div className="absolute -right-10 -top-16 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
+                            <div className="absolute -left-10 -top-20 h-56 w-56 rounded-full bg-purple-600/30 blur-3xl" />
+                            <div className="absolute -right-10 top-0 h-48 w-48 rounded-full bg-blue-600/20 blur-3xl" />
+                            {/* fade the banner into the card so there is no hard edge */}
+                            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#202020] to-transparent" />
                         </div>
 
                         <div className="relative px-6 pb-6 md:px-8 md:pb-8">
-                            <div className="-mt-10 flex flex-col gap-5 sm:-mt-12 md:flex-row md:items-end md:justify-between">
-                                <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                            <div className="-mt-12 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
                                     <div
                                         aria-hidden="true"
                                         className="flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl border-4 border-[#202020] bg-gradient-to-br from-purple-600 to-blue-500 text-3xl font-bold text-white shadow-xl shadow-purple-500/20"
@@ -2084,13 +2087,14 @@ export default function ProfilePage() {
                                         {identity.initials}
                                     </div>
 
-                                    <div className="min-w-0 sm:pb-1">
-                                        <h1 className="truncate text-2xl font-bold tracking-tight md:text-3xl" title={identity.fullName}>
+                                    {/* starts below the banner on sm+ (avatar overlaps it by 48px) */}
+                                    <div className="min-w-0 sm:pt-14">
+                                        <h1 className="truncate text-2xl font-bold leading-snug tracking-tight md:text-3xl" title={identity.fullName}>
                                             {identity.fullName}
                                         </h1>
-                                        <p className="mt-1 truncate text-sm text-neutral-400">{user.email}</p>
+                                        <p className="mt-2 truncate text-sm text-neutral-400">{user.email}</p>
 
-                                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                                        <div className="mt-4 flex flex-wrap items-center gap-2">
                                             {user.isEmailVerified && (
                                                 <Badge tone="success" icon={<FiCheckCircle />}>
                                                     Email verified
@@ -2107,7 +2111,7 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
 
-                                <Link href="/account/orders" className={`${BTN_GHOST} shrink-0`}>
+                                <Link href="/account/orders" className={`${BTN_GHOST} shrink-0 md:mt-14`}>
                                     <FiPackage aria-hidden="true" />
                                     My orders
                                     <FiArrowRight aria-hidden="true" />
