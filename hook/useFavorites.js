@@ -1,172 +1,325 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
-/**
- * Shared favorites (wishlist) store.
- *
- * - One store for the whole app: the heart on a product page and the Favorites
- *   page always agree, and no provider or Redux wiring is needed.
- * - Persisted in localStorage and synced across tabs.
- * - SSR safe: the server (and the first client render) sees an empty list, then
- *   the saved list appears after hydration.
- *
- * BACKEND LATER: every change goes through `commit()` below. When the API is
- * ready, call it from `add` / `remove` there (and load the list from the API on
- * login, using localStorage as the guest fallback).
- */
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+    useSyncExternalStore,
+} from "react";
 
-const STORAGE_KEY = "keyzoo:favorites";
+import { apiFetch } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+
 const EMPTY = [];
 
-let cache = null; // loaded lazily on the client
-const listeners = new Set();
+let cache = [];
+let activeJwt = null;
+let requestVersion = 0;
+let listeners = new Set();
 
 const sameId = (a, b) => String(a) === String(b);
 
-function read() {
-    if (typeof window === "undefined") return EMPTY;
-    if (cache) return cache;
-
-    try {
-        const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
-        cache = Array.isArray(parsed) ? parsed.filter((i) => i && i._id != null) : [];
-    } catch {
-        cache = [];
-    }
-    return cache;
-}
-
-function commit(next) {
-    cache = next;
-    try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-        /* storage full or blocked: the in-memory list still works for this session */
-    }
-    listeners.forEach((l) => l());
+function notify() {
+    listeners.forEach((listener) => listener());
 }
 
 function subscribe(callback) {
     listeners.add(callback);
 
-    const onStorage = (e) => {
-        if (e.key === STORAGE_KEY || e.key === null) {
-            cache = null; // another tab changed it: re-read
-            callback();
-        }
-    };
-    window.addEventListener("storage", onStorage);
-
     return () => {
         listeners.delete(callback);
-        window.removeEventListener("storage", onStorage);
     };
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Actions                                                                    */
-/* -------------------------------------------------------------------------- */
+function read() {
+    return cache;
+}
 
-const SNAPSHOT_FIELDS = [
-    "slug",
-    "title",
-    "image",
-    "platform",
-    "region",
-    "discountPrice",
-    "originalPrice",
-    "status",
-    "type",
-    "item_type",
-];
+function setCache(next) {
+    cache = next;
+    notify();
+}
 
-export const favoritesActions = {
-    /** Add an item. `index` (optional) restores it to a specific position, e.g. for Undo. */
-    add(item, index) {
-        const current = read();
-        if (current.some((f) => sameId(f._id, item._id))) return;
+function normalizeFavorite(item) {
+    const price = Number(item.price) || 0;
+    const discountPrice = Number(item.discountPrice) || 0;
 
-        const entry = { ...item, addedAt: item.addedAt ?? new Date().toISOString() };
-        const next = [...current];
-        next.splice(index == null ? 0 : Math.min(index, next.length), 0, entry);
-        commit(next);
-    },
+    return {
+        _id: item._id || item.id,
+        id: item._id || item.id,
 
-    remove(id) {
-        const current = read();
-        if (!current.some((f) => sameId(f._id, id))) return;
-        commit(current.filter((f) => !sameId(f._id, id)));
-    },
+        slug: item.slug || null,
+        title: item.title || "",
+        image: item.image || "",
 
-    /** Returns true if the item is now a favorite. */
-    toggle(item) {
-        const exists = read().some((f) => sameId(f._id, item._id));
-        if (exists) favoritesActions.remove(item._id);
-        else favoritesActions.add(item);
-        return !exists;
-    },
+        platform: item.platform || null,
+        region: item.region || null,
 
-    /** Keep a saved item's price / stock / title current when its product page is viewed again. */
-    refresh(item) {
-        const current = read();
-        const index = current.findIndex((f) => sameId(f._id, item._id));
-        if (index === -1) return;
+        // Backend price is the original price.
+        originalPrice: price,
 
-        const saved = current[index];
-        const changed = SNAPSHOT_FIELDS.some((k) => (saved[k] ?? null) !== (item[k] ?? null));
-        if (!changed) return;
+        // Backend discountPrice is the actual selling price.
+        discountPrice: discountPrice > 0 ? discountPrice : price,
 
-        const next = [...current];
-        next[index] = { ...saved, ...item, addedAt: saved.addedAt };
-        commit(next);
-    },
-};
+        type: item.type || "product",
+        item_type: item.item_type || null,
 
-/* -------------------------------------------------------------------------- */
-/*  Product -> favorite snapshot                                               */
-/* -------------------------------------------------------------------------- */
+        status: item.status || "unavailable",
+        available: item.available === true,
+
+        addedAt: item.addedAt || null,
+    };
+}
+
+async function loadFavorites(jwt, version) {
+    const response = await apiFetch("/wishlist", {
+        headers: {
+            Authorization: `Bearer ${jwt}`,
+        },
+    });
+
+    if (
+        version !== requestVersion ||
+        jwt !== activeJwt
+    ) {
+        return;
+    }
+
+    const items = Array.isArray(response.data)
+        ? response.data.map(normalizeFavorite)
+        : [];
+
+    setCache(items);
+}
+
+function getItemType(item) {
+    if (item.type === "gift-card" || item.type === "gift_card") {
+        return "gift-card";
+    }
+
+    return "product";
+}
+
+async function addFavorite(jwt, item) {
+    if (!jwt) {
+        throw new Error("Please sign in to save favorites.");
+    }
+
+    const itemId = item._id || item.id;
+
+    if (!itemId) {
+        throw new Error("Product ID is missing.");
+    }
+
+    const itemType = getItemType(item);
+
+    const response = await apiFetch("/wishlist/items", {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${jwt}`,
+        },
+        body: JSON.stringify({
+            itemId,
+            itemType,
+        }),
+    });
+
+    const items = Array.isArray(response.data)
+        ? response.data.map(normalizeFavorite)
+        : [];
+
+    if (jwt === activeJwt) {
+        setCache(items);
+    }
+
+    return items;
+}
+
+async function removeFavorite(jwt, item) {
+    if (!jwt) {
+        throw new Error("Please sign in to manage favorites.");
+    }
+
+    const itemId = typeof item === "object"
+        ? item._id || item.id
+        : item;
+
+    if (!itemId) {
+        throw new Error("Product ID is missing.");
+    }
+
+    const existing = cache.find(
+        (favorite) => sameId(favorite._id, itemId)
+    );
+
+    const itemType = existing
+        ? getItemType(existing)
+        : "product";
+
+    const response = await apiFetch(
+        `/wishlist/items/${itemType}/${itemId}`,
+        {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${jwt}`,
+            },
+        }
+    );
+
+    const items = Array.isArray(response.data)
+        ? response.data.map(normalizeFavorite)
+        : [];
+
+    if (jwt === activeJwt) {
+        setCache(items);
+    }
+
+    return items;
+}
 
 /**
- * The shape the Favorites page / ProductCard read. `discountPrice` is the price
- * actually charged, `originalPrice` the undiscounted one.
+ * Product -> favorite snapshot.
+ * Used by the product page and WishlistButton.
  */
 export function toFavoriteItem(product) {
     const price = Number(product.price) || 0;
-    const sale = Number(product.discountPrice) > 0 ? Number(product.discountPrice) : price;
+
+    const sale =
+        Number(product.discountPrice) > 0
+            ? Number(product.discountPrice)
+            : price;
 
     return {
-        _id: product._id ?? product.id ?? product.slug,
+        _id: product._id ?? product.id,
         slug: product.slug ?? null,
         title: product.title ?? "",
         image: product.image ?? "",
         platform: product.platform ?? null,
         region: product.region ?? null,
+
+        price,
         discountPrice: sale,
         originalPrice: price,
-        status: product.available ? "published" : "sold_out",
-        type: product.type ?? null,
+
+        status: product.status || (
+            product.available ? "published" : "sold_out"
+        ),
+
+        available: product.available === true,
+
+        type: product.type || "product",
         item_type: product.item_type ?? null,
     };
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Hook                                                                       */
-/* -------------------------------------------------------------------------- */
-
 export default function useFavorites() {
-    const favorites = useSyncExternalStore(subscribe, read, () => EMPTY);
+    const { user, jwt, loading: authLoading } = useAuth();
 
-    // false during SSR + first client render, so pages can show a skeleton instead of a flash of "empty"
     const [ready, setReady] = useState(false);
-    useEffect(() => setReady(true), []);
+    const [syncing, setSyncing] = useState(false);
 
-    const ids = useMemo(() => new Set(favorites.map((f) => String(f._id))), [favorites]);
-    const isFavorite = useCallback((id) => id != null && ids.has(String(id)), [ids]);
+    useEffect(() => {
+        if (authLoading) return;
+
+        let cancelled = false;
+
+        async function synchronize() {
+            if (!jwt || !user) {
+                requestVersion += 1;
+                activeJwt = null;
+                setCache([]);
+                setReady(true);
+                setSyncing(false);
+                return;
+            }
+
+            if (activeJwt !== jwt) {
+                requestVersion += 1;
+                activeJwt = jwt;
+                setCache([]);
+                setReady(false);
+            }
+
+            const version = requestVersion;
+
+            setSyncing(true);
+
+            try {
+                await loadFavorites(jwt, version);
+            } catch (error) {
+                console.error("Failed to load favorites:", error);
+
+                if (!cancelled && version === requestVersion) {
+                    setCache([]);
+                }
+            } finally {
+                if (!cancelled && version === requestVersion) {
+                    setReady(true);
+                    setSyncing(false);
+                }
+            }
+        }
+
+        synchronize();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [jwt, user, authLoading]);
+
+    const ids = useMemo(
+        () => new Set(cache.map((item) => String(item._id))),
+        [cache]
+    );
+
+    const isFavorite = useCallback(
+        (id) => id != null && ids.has(String(id)),
+        [ids]
+    );
+
+    const add = useCallback(
+        (item) => addFavorite(jwt, item),
+        [jwt]
+    );
+
+    const remove = useCallback(
+        (id) => removeFavorite(jwt, id),
+        [jwt]
+    );
+
+    const toggle = useCallback(
+        async (item) => {
+            const id = item._id || item.id;
+
+            if (isFavorite(id)) {
+                await removeFavorite(jwt, id);
+                return false;
+            }
+
+            await addFavorite(jwt, item);
+            return true;
+        },
+        [jwt, isFavorite]
+    );
+
+    const refresh = useCallback(
+        async () => {
+            if (!jwt) return;
+            const version = requestVersion;
+            await loadFavorites(jwt, version);
+        },
+        [jwt]
+    );
 
     return {
-        favorites,
-        count: favorites.length,
-        ready,
+        favorites: cache,
+        count: cache.length,
+        ready: ready && !authLoading,
+        syncing,
         isFavorite,
-        ...favoritesActions,
+        add,
+        remove,
+        toggle,
+        refresh,
     };
 }

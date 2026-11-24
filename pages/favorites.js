@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -10,7 +11,7 @@ import { addToCart } from "@/store/cartSlice";
 import ProductCard, { ProductCardSkeleton } from "@/components/ProductCard";
 
 /* -------------------------------------------------------------------------- */
-/*  Helpers                                                                    */
+/* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
 
 const FALLBACK_IMAGE = "/keyzoo-fallback.png";
@@ -18,107 +19,180 @@ const FALLBACK_IMAGE = "/keyzoo-fallback.png";
 const FOCUS =
     "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500";
 
-const toNumber = (v) => {
-    if (v === null || v === undefined || v === "") return null;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
+const toNumber = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
 };
 
 const getPricing = (item) => {
     const current = toNumber(item.discountPrice ?? item.price);
     const original = toNumber(item.originalPrice);
+
     const discount =
         current !== null && original !== null && original > current
             ? Math.round(((original - current) / original) * 100)
             : 0;
+
     return { current, discount };
 };
 
-const isAvailable = (item) => item.status === "published";
+// A product can be published but unavailable for purchase.
+const isAvailable = (item) =>
+    item.status === "published" && item.available !== false;
 
 const SORTS = {
-    recent: { label: "Recently added", fn: (a, b) => new Date(b.addedAt) - new Date(a.addedAt) },
-    "price-asc": { label: "Price: low to high", fn: (a, b) => (getPricing(a).current ?? 0) - (getPricing(b).current ?? 0) },
-    "price-desc": { label: "Price: high to low", fn: (a, b) => (getPricing(b).current ?? 0) - (getPricing(a).current ?? 0) },
-    discount: { label: "Biggest discount", fn: (a, b) => getPricing(b).discount - getPricing(a).discount },
-    name: { label: "Name: A to Z", fn: (a, b) => String(a.title).localeCompare(String(b.title)) },
+    recent: {
+        label: "Recently added",
+        fn: (a, b) => new Date(b.addedAt) - new Date(a.addedAt),
+    },
+    "price-asc": {
+        label: "Price: low to high",
+        fn: (a, b) =>
+            (getPricing(a).current ?? 0) - (getPricing(b).current ?? 0),
+    },
+    "price-desc": {
+        label: "Price: high to low",
+        fn: (a, b) =>
+            (getPricing(b).current ?? 0) - (getPricing(a).current ?? 0),
+    },
+    discount: {
+        label: "Biggest discount",
+        fn: (a, b) => getPricing(b).discount - getPricing(a).discount,
+    },
+    name: {
+        label: "Name: A to Z",
+        fn: (a, b) => String(a.title).localeCompare(String(b.title)),
+    },
 };
 
-const GRID = "grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
+const GRID =
+    "grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
 
 function EmptyState({ title, text, action }) {
     return (
         <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 text-center">
             <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-rose-500/10">
-                <Heart className="h-11 w-11 text-rose-500" aria-hidden="true" />
+                <Heart
+                    className="h-11 w-11 text-rose-500"
+                    aria-hidden="true"
+                />
             </div>
+
             <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
-            <p className="mt-2 max-w-sm text-gray-500 dark:text-neutral-400">{text}</p>
+
+            <p className="mt-2 max-w-sm text-gray-500 dark:text-neutral-400">
+                {text}
+            </p>
+
             {action}
         </div>
     );
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Page                                                                       */
+/* Page                                                                       */
 /* -------------------------------------------------------------------------- */
 
 export default function FavoritesPage() {
     const dispatch = useDispatch();
     const { symbol } = useCurrency();
 
-    // Same store the heart button on the product page writes to.
-    // BACKEND LATER: swap the internals of `useFavorites`, this page doesn't change.
+    // Favorites are now loaded and managed through the backend API.
     const { favorites, ready, add, remove } = useFavorites();
+
     const loading = !ready;
 
     const [platform, setPlatform] = useState("All");
     const [sort, setSort] = useState("recent");
+    const [removingIds, setRemovingIds] = useState(() => new Set());
 
     const platforms = useMemo(
-        () => ["All", ...new Set(favorites.map((f) => f.platform).filter(Boolean))],
+        () => [
+            "All",
+            ...new Set(favorites.map((item) => item.platform).filter(Boolean)),
+        ],
         [favorites]
     );
 
-    // If the selected platform no longer exists (last item removed), fall back to All
+    // Reset the filter if its last matching item is removed.
     useEffect(() => {
-        if (!platforms.includes(platform)) setPlatform("All");
+        if (!platforms.includes(platform)) {
+            setPlatform("All");
+        }
     }, [platforms, platform]);
 
     const visible = useMemo(() => {
-        const list = platform === "All" ? favorites : favorites.filter((f) => f.platform === platform);
+        const list =
+            platform === "All"
+                ? favorites
+                : favorites.filter((item) => item.platform === platform);
+
         return [...list].sort(SORTS[sort].fn);
     }, [favorites, platform, sort]);
 
-    const availableVisible = useMemo(() => visible.filter(isAvailable), [visible]);
-
-    /* ---- actions ------------------------------------------------------------ */
-
-    const handleRemove = useCallback(
-        (item) => {
-            const index = favorites.findIndex((f) => f._id === item._id);
-            remove(item._id);
-
-            toast((t) => (
-                <span className="flex items-center gap-3 text-sm">
-                    Removed from favorites
-                    <button
-                        type="button"
-                        onClick={() => {
-                            add(item, index); // puts it back in its old position, keeping its original "added" date
-                            toast.dismiss(t.id);
-                        }}
-                        className="cursor-pointer font-semibold text-purple-500 underline"
-                    >
-                        Undo
-                    </button>
-                </span>
-            ));
-        },
-        [favorites, add, remove]
+    const availableVisible = useMemo(
+        () => visible.filter(isAvailable),
+        [visible]
     );
 
-    // Same payload shape the product page sends to the cart
+    /* ---- actions ---------------------------------------------------------- */
+
+    // Remove from the server, then offer an Undo action.
+    const handleRemove = useCallback(
+        async (item) => {
+            if (removingIds.has(item._id)) return;
+
+            setRemovingIds((previous) => {
+                const next = new Set(previous);
+                next.add(item._id);
+                return next;
+            });
+
+            try {
+                await remove(item._id);
+
+                toast((t) => (
+                    <span className="flex items-center gap-3 text-sm">
+                        Removed from favorites
+
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                try {
+                                    await add(item);
+                                    toast.dismiss(t.id);
+                                    toast.success("Added back to favorites");
+                                } catch (error) {
+                                    toast.error(
+                                        error.message ||
+                                        "Could not restore this favorite"
+                                    );
+                                }
+                            }}
+                            className="cursor-pointer font-semibold text-purple-500 underline"
+                        >
+                            Undo
+                        </button>
+                    </span>
+                ));
+            } catch (error) {
+                toast.error(
+                    error.message || "Could not remove this favorite"
+                );
+            } finally {
+                setRemovingIds((previous) => {
+                    const next = new Set(previous);
+                    next.delete(item._id);
+                    return next;
+                });
+            }
+        },
+        [removingIds, add, remove]
+    );
+
+    // Same payload shape used by the product page.
     const pushToCart = useCallback(
         (item) =>
             dispatch(
@@ -138,34 +212,46 @@ export default function FavoritesPage() {
     const handleAddToCart = useCallback(
         (item) => {
             if (!isAvailable(item)) return;
+
             pushToCart(item);
             toast.success(`${item.title} added to cart`);
         },
         [pushToCart]
     );
 
-    const handleAddAll = () => {
+    const handleAddAll = useCallback(() => {
         if (availableVisible.length === 0) return;
-        availableVisible.forEach(pushToCart);
-        toast.success(
-            `${availableVisible.length} ${availableVisible.length === 1 ? "item" : "items"} added to cart`
-        );
-    };
 
-    /* ---- render --------------------------------------------------------------- */
+        availableVisible.forEach(pushToCart);
+
+        toast.success(
+            `${availableVisible.length} ${availableVisible.length === 1 ? "item" : "items"
+            } added to cart`
+        );
+    }, [availableVisible, pushToCart]);
+
+    /* ---- header ----------------------------------------------------------- */
 
     const header = (
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div className="flex items-center gap-4">
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10">
-                    <Heart className="h-6 w-6 fill-rose-500 text-rose-500" aria-hidden="true" />
+                    <Heart
+                        className="h-6 w-6 fill-rose-500 text-rose-500"
+                        aria-hidden="true"
+                    />
                 </span>
+
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white">My favorites</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-white">
+                        My favorites
+                    </h1>
+
                     <p className="mt-0.5 text-sm text-gray-500 dark:text-neutral-400">
                         {loading
                             ? "Loading your collection…"
-                            : `${favorites.length} saved ${favorites.length === 1 ? "item" : "items"}`}
+                            : `${favorites.length} saved ${favorites.length === 1 ? "item" : "items"
+                            }`}
                     </p>
                 </div>
             </div>
@@ -184,13 +270,15 @@ export default function FavoritesPage() {
         </div>
     );
 
+    /* ---- body ------------------------------------------------------------- */
+
     let body;
 
     if (loading) {
         body = (
             <div className={GRID} aria-busy="true">
-                {Array.from({ length: 8 }).map((_, i) => (
-                    <ProductCardSkeleton key={i} />
+                {Array.from({ length: 8 }).map((_, index) => (
+                    <ProductCardSkeleton key={index} />
                 ))}
             </div>
         );
@@ -212,25 +300,25 @@ export default function FavoritesPage() {
     } else {
         body = (
             <>
-                {/* toolbar */}
+                {/* Platform filter and sorting */}
                 <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div
                         role="group"
                         aria-label="Filter by platform"
                         className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
                     >
-                        {platforms.map((p) => (
+                        {platforms.map((itemPlatform) => (
                             <button
-                                key={p}
+                                key={itemPlatform}
                                 type="button"
-                                onClick={() => setPlatform(p)}
-                                aria-pressed={platform === p}
-                                className={`shrink-0 cursor-pointer rounded-full border px-4 py-1.5 text-sm font-medium transition ${FOCUS} ${platform === p
+                                onClick={() => setPlatform(itemPlatform)}
+                                aria-pressed={platform === itemPlatform}
+                                className={`shrink-0 cursor-pointer rounded-full border px-4 py-1.5 text-sm font-medium transition ${FOCUS} ${platform === itemPlatform
                                         ? "border-[#6d3cff] bg-[#6d3cff] text-white"
                                         : "border-gray-200 bg-white text-gray-700 hover:border-purple-400 dark:border-white/10 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:border-purple-500"
                                     }`}
                             >
-                                {p}
+                                {itemPlatform}
                             </button>
                         ))}
                     </div>
@@ -239,18 +327,20 @@ export default function FavoritesPage() {
                         <label htmlFor="sort" className="sr-only">
                             Sort favorites
                         </label>
+
                         <select
                             id="sort"
                             value={sort}
-                            onChange={(e) => setSort(e.target.value)}
+                            onChange={(event) => setSort(event.target.value)}
                             className="w-full cursor-pointer appearance-none rounded-xl border border-gray-200 bg-white py-2.5 pl-4 pr-10 text-sm text-gray-900 outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 dark:border-white/10 dark:bg-neutral-800 dark:text-white"
                         >
-                            {Object.entries(SORTS).map(([key, { label }]) => (
+                            {Object.entries(SORTS).map(([key, value]) => (
                                 <option key={key} value={key}>
-                                    {label}
+                                    {value.label}
                                 </option>
                             ))}
                         </select>
+
                         <ChevronDown
                             className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 dark:text-neutral-400"
                             aria-hidden="true"
@@ -258,7 +348,7 @@ export default function FavoritesPage() {
                     </div>
                 </div>
 
-                {/* grid: the shared ProductCard, with the favorite + add-to-cart actions switched on */}
+                {/* Favorites grid */}
                 <ul className={GRID}>
                     {visible.map((item) => (
                         <li key={item._id}>
@@ -276,6 +366,8 @@ export default function FavoritesPage() {
             </>
         );
     }
+
+    /* ---- render ----------------------------------------------------------- */
 
     return (
         <>
