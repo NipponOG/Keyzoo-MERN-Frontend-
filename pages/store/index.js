@@ -1,11 +1,8 @@
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import { MdClose, MdFilterList, MdOutlineKeyboardArrowDown } from "react-icons/md";
-import OptimizedImage from "@/components/Image/OptimizedImage";
-import HoverCard from "@/components/HoverCard";
 import useCurrency from "@/hook/useCurrency";
 import {
   Pagination,
@@ -15,6 +12,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import ProductCard from "@/components/ProductCard";
 
 /* -------------------------------------------------------------------------- */
 /*  Config                                                                     */
@@ -153,18 +151,29 @@ function getItemHref(item) {
 }
 
 function normalizeItem(item) {
-  const basePrice = Number(item.price ?? 0) || 0;
+  const original = Number(item.price ?? 0) || 0;
+  const price = Number(item.discountPrice ?? item.price ?? 0) || 0;
+
   return {
-    id: item.id,
+    id: item.id ?? item._id,
     slug: item.slug,
     type: item.type,
     platform: item.platform,
     title: item.title,
-    image: item.image,
+
     available: Boolean(item.available ?? item.Available),
     region: item.card_region ?? item.region ?? "",
-    originalPrice: basePrice,
-    price: Number(item.discountPrice ?? item.price ?? 0) || 0,
+
+    price,
+    original,
+
+    discount:
+      original > price && original > 0
+        ? Math.round(((original - price) / original) * 100)
+        : 0,
+
+    imgUrl: item.image || FALLBACK_IMAGE,
+    blurUrl: "",
   };
 }
 
@@ -276,8 +285,8 @@ function OptionRow({ checked, onChange, label, count }) {
   return (
     <label
       className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2 transition-colors ${checked
-          ? "border-purple-500/30 bg-purple-500/15"
-          : "border-transparent hover:bg-purple-500/10"
+        ? "border-purple-500/30 bg-purple-500/15"
+        : "border-transparent hover:bg-purple-500/10"
         }`}
     >
       <span className="flex min-w-0 items-center gap-2">
@@ -386,8 +395,8 @@ const FiltersBody = memo(function FiltersBody({
           onClick={onClear}
           disabled={!isActive}
           className={`text-sm ${isActive
-              ? "cursor-pointer text-purple-600 hover:text-purple-500 dark:text-purple-400 dark:hover:text-purple-300"
-              : "cursor-not-allowed text-gray-400 dark:text-gray-500"
+            ? "cursor-pointer text-purple-600 hover:text-purple-500 dark:text-purple-400 dark:hover:text-purple-300"
+            : "cursor-not-allowed text-gray-400 dark:text-gray-500"
             }`}
         >
           Clear all
@@ -463,85 +472,6 @@ const FiltersBody = memo(function FiltersBody({
         />
       ))}
     </div>
-  );
-});
-
-const ProductCard = memo(function ProductCard({ item, symbol, priority }) {
-  const hasDiscount = item.available && item.originalPrice > item.price;
-  const discount = hasDiscount
-    ? Math.round((1 - item.price / item.originalPrice) * 100)
-    : 0;
-
-  const body = (
-    <>
-      <div className="relative mb-1.5 aspect-[3/5] w-full overflow-hidden rounded-md">
-        <OptimizedImage
-          src={item.image || FALLBACK_IMAGE}
-          alt={item.title || "Product image"}
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-          blur
-          priority={priority}
-          className={`object-cover object-center ${item.available ? "" : "opacity-60 grayscale"}`}
-        />
-
-        {discount > 0 && (
-          <span className="absolute right-2 top-2 rounded bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white">
-            -{discount}%
-          </span>
-        )}
-
-        {!item.available && (
-          <div className="absolute bottom-3 left-0 flex w-full justify-center px-3">
-            <button
-              type="button"
-              onClick={handleNotify}
-              className="flex w-full max-w-[85%] cursor-pointer items-center justify-center gap-2 rounded-md border border-white/20 bg-white/10 py-2.5 text-sm font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.5)] backdrop-blur-md transition hover:bg-white/20"
-            >
-              🔔 Notify me
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="h-[120px] rounded-b-md bg-gray-100 px-1 py-1 dark:bg-black/30">
-        <HoverCard title={item.title}>
-          <h3 className="mt-1 line-clamp-2 px-1.5 text-sm font-semibold text-gray-900 dark:text-white">
-            {item.title}
-          </h3>
-        </HoverCard>
-
-        {item.region && (
-          <p className="mt-0.5 px-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400">
-            {item.region}
-          </p>
-        )}
-
-        {item.available ? (
-          <p className="mt-1 px-1.5 text-lg text-gray-700 dark:text-gray-200">
-            {symbol} {item.price.toFixed(2)}
-            {hasDiscount && (
-              <s className="ml-2 text-xs text-gray-400">
-                {symbol} {item.originalPrice.toFixed(2)}
-              </s>
-            )}
-          </p>
-        ) : (
-          <p className="mt-1 px-1.5 text-lg font-bold text-[#cc0000]">Sold Out</p>
-        )}
-      </div>
-    </>
-  );
-
-  const cardCls =
-    "relative block rounded-lg bg-white p-1 shadow-sm transition duration-300 dark:bg-[#1a1a1a] dark:shadow-none";
-
-  return item.available ? (
-    <Link href={getItemHref(item)} className={`${cardCls} hover:-translate-y-1 hover:shadow-lg`}>
-      {body}
-    </Link>
-  ) : (
-    <div className={`${cardCls} cursor-not-allowed`}>{body}</div>
   );
 });
 
@@ -920,7 +850,7 @@ export default function StorePage() {
                 height={320}
                 className="mb-4 h-auto w-64"
               />
-              <p className="text-gray-700 dark:text-gray-300">No products match your filters.</p>
+              <p className="text-white">No products match your filters.</p>
               {isActive && (
                 <button
                   type="button"
@@ -941,8 +871,14 @@ export default function StorePage() {
             >
               {showSkeleton
                 ? Array.from({ length: PAGE_SIZE }, (_, i) => <CardSkeleton key={i} />)
-                : items.map((item, i) => (
-                  <ProductCard key={item.id} item={item} symbol={symbol} priority={i < 5} />
+                : items.map((item) => (
+                  <ProductCard
+                    key={item.id}
+                    card={item}
+                    symbol={symbol}
+                    href={getItemHref(item)}
+                    onNotify={handleNotify}
+                  />
                 ))}
             </div>
           )}
