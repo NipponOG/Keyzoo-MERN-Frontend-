@@ -13,7 +13,7 @@ const nextConfig = {
             },
             {
                 protocol: 'https',
-                hostname: 'wise-peace-adfa09b55e.strapiapp.com',
+                hostname: 'ik.imagekit.io',
             },
             {
                 protocol: 'https',
@@ -34,6 +34,10 @@ const nextConfig = {
             {
                 protocol: 'https',
                 hostname: 'ucarecdn.com',
+            },
+            {
+                protocol: 'https',
+                hostname: 'ik.imagekit.io',
             },
             {
                 protocol: 'https',

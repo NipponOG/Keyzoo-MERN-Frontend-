@@ -277,6 +277,7 @@ import toast from "react-hot-toast";
 import useCurrency from "@/hook/useCurrency";
 import ProductCard from "@/components/ProductCard";
 import Skeleton from "react-loading-skeleton";
+import { getStrapiMedia } from "@/lib/getStrapiMedia";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -386,17 +387,55 @@ export default function ProductCarousel() {
                     1536: { slidesPerView: 6, spaceBetween: 20 },
                 }}
             >
-                {products.map((item) => (
-                    <SwiperSlide key={item._id} className="!h-auto py-2">
-                        <ProductCard
-                            item={item}
-                            symbol={symbol}
-                            available={item.status === "published"}
-                            notified={Boolean(notified[item._id])}
-                            onNotify={handleNotify}
-                        />
-                    </SwiperSlide>
-                ))}
+
+                {products.map((item) => {
+                    const original = Number(item.price) || 0;
+
+                    const price =
+                        Number(item.discountPrice) > 0
+                            ? Number(item.discountPrice)
+                            : original;
+
+
+                    const imageSource = item.image || item.platform_image;
+
+                    const card = {
+                        id: item._id,
+                        slug: item.slug,
+                        title: item.title,
+                        platform: item.platform || "",
+                        region: item.card_region || item.region || "",
+                        available: item.available === true,
+                        price,
+                        original,
+                        discount:
+                            original > price && original > 0
+                                ? Math.round(((original - price) / original) * 100)
+                                : 0,
+
+                        imgUrl: getStrapiMedia(imageSource, {
+                            width: 480,
+                        }),
+
+                        blurUrl: getStrapiMedia(imageSource, {
+                            blur: true,
+                        }),
+                    };
+
+
+                    return (
+                        <SwiperSlide key={item._id} className="!h-auto py-2">
+                            <ProductCard
+                                card={card}
+                                symbol={symbol}
+                                href={`/product/${item.slug}`}
+                                notified={Boolean(notified[item._id])}
+                                onNotify={() => handleNotify(item)}
+                            />
+                        </SwiperSlide>
+                    );
+                })}
+
             </Swiper>
         </section>
     );
