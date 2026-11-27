@@ -19,7 +19,7 @@ const MD_COMPONENTS = {
     ol: ({ node, ...props }) => <ol className="mb-2 list-decimal pl-5" {...props} />,
     li: ({ node, ...props }) => <li className="mb-1" {...props} />,
     p: ({ node, ...props }) => (
-        <p className="mb-2 leading-relaxed text-gray-600 dark:text-[#bfbfbf]" {...props} />
+        <p className="mb-2 leading-relaxed text-[#bfbfbf]" {...props} />
     ),
     a: ({ node, ...props }) => (
         <a
@@ -108,7 +108,7 @@ export function ProductDescription({ product }) {
             </div>
 
             {clamped && canExpand && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-12 h-28 bg-gradient-to-t from-white to-transparent dark:from-[#171717]" />
+                <div className="pointer-events-none absolute inset-x-0 bottom-12 h-28 bg-gradient-to-t  to-transparent from-[#171717]" />
             )}
 
             {canExpand && (
@@ -116,7 +116,7 @@ export function ProductDescription({ product }) {
                     type="button"
                     onClick={() => setExpanded((e) => !e)}
                     aria-expanded={expanded}
-                    className="relative z-10 mt-4 cursor-pointer text-[0.95rem] font-medium text-gray-600 transition hover:text-gray-900 dark:text-white/80 dark:hover:text-white"
+                    className="relative z-10 mt-4 cursor-pointer text-[0.95rem] font-medium text-gray-600 transition hover:text-white"
                 >
                     {expanded ? "Read less" : "Read more"}
                 </button>

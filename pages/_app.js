@@ -22,10 +22,9 @@ import PageLoader from "@/components/PageLoader";
 import 'react-loading-skeleton/dist/skeleton.css';
 import { SkeletonTheme } from 'react-loading-skeleton';
 import TermlyCMP from '@/components/TermlyCMP'
-import { Onest } from 'next/font/google';
-// import { AdminProvider } from "@/context/AdminContext";
+import localFont from 'next/font/local'
 
-const onest = Onest({ subsets: ['latin'] });
+const onest = localFont({ src: '../font/Onest/Onest-VariableFont_wght.ttf' });
 
 // Optional: Configure NProgress
 NProgress.configure({ showSpinner: false }); // only bar
